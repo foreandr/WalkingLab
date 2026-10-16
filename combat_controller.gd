@@ -133,6 +133,8 @@ func pose():
 	var breathing = sin(idle_clock * 1.8) * 0.012
 	rotate_bone("spine2", Vector3.RIGHT, breathing)
 	var g = guard_weight
+	if host.player_controlled and not host.boxing_assets.available.is_empty() and attack_time < DURATION:
+		g *= 1.0 - smoothstep(0.0, DURATION * 0.18, attack_time) * (1.0 - smoothstep(DURATION * 0.74, DURATION, attack_time))
 	if g > 0.001:
 		# High guard, elbows tucked, torso slightly bladed.
 		rotate_bone("spine1", Vector3.UP, 0.12 * g)
