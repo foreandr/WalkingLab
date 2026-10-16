@@ -1,125 +1,157 @@
 extends Node3D
-# Ten real, continuously playing stationary idle loops.
-# The Y Bot skeleton is driven using paths copied from its own proven animation.
-# Each loop averages a full gait cycle for a balanced neutral standing base, then
-# adds independent breathing/weight-shift motion. No gait clip is played.
-const LABELS = ["Arms Down", "Wide Shoulders", "Arms Behind", "Hands On Hips", "Arms Crossed", "Boxer Guard", "One Hand Hip", "Ready Guard", "Military Rest", "Open Chest"]
-# (arm angle, elbow adjustment, chest breathing, sway, cycle seconds)
-const STYLES = [
-	[0.00,0.00,0.020,0.013,3.0],
-	[-0.65,-0.12,0.035,0.025,3.5],
-	[0.45,-0.42,0.030,0.014,4.0],
-	[0.95,0.92,0.040,0.022,3.1],
-	[1.25,1.30,0.033,0.018,3.3],
-	[1.70,1.65,0.055,0.032,2.7],
-	[0.70,0.60,0.035,0.024,3.8],
-	[1.42,1.20,0.060,0.037,2.6],
-	[-0.35,-0.30,0.025,0.015,4.2],
-	[-0.90,-0.18,0.045,0.024,3.2]
+# Idle studio: ten stationary, continuously animated mannequins.
+# Authored targets are solved with two-bone IK in the actual Y Bot skeleton.
+# No walking animation, synthetic animation-track guessing, or T-pose fallback.
+const TITLES = [
+	"At Ease", "Wide & Proud", "Hands Behind", "Hands on Hips",
+	"Arms Folded", "Boxer Guard", "One Hand Hip", "Combat Ready",
+	"Military Rest", "Open Chest"
 ]
+var specimens: Array = []
+var elapsed := 0.0
 
-func base_rotation(source: Animation, track: int) -> Quaternion:
-	# Average opposite phases of the SAME full cycle. This cancels the
-	# left/right stride and arm swing that made the old lineup look like running.
-	var a = source.rotation_track_interpolate(track, source.length * 0.25)
-	var b = source.rotation_track_interpolate(track, source.length * 0.75)
-	return a.slerp(b,0.5).normalized()
+func find_bone(rig: Skeleton3D, suffix: String) -> int:
+	var end = suffix.to_lower()
+	for i in range(rig.get_bone_count()):
+		var name = String(rig.get_bone_name(i)).to_lower()
+		if name.ends_with(end): return i
+	return -1
 
-func base_position(source: Animation, track: int) -> Vector3:
-	var a = source.position_track_interpolate(track, source.length * 0.25)
-	var b = source.position_track_interpolate(track, source.length * 0.75)
-	return (a+b)*0.5
+func point(rig: Skeleton3D, bone: int) -> Vector3:
+	return rig.get_bone_global_pose(bone).origin
 
-func make_idle(source: Animation, index: int) -> Animation:
-	var style = STYLES[index]
-	var length = float(style[4])
-	var idle = Animation.new()
-	idle.length = length
-	idle.loop_mode = Animation.LOOP_LINEAR
-	for i in range(source.get_track_count()):
-		if source.track_get_key_count(i) == 0: continue
-		var kind = source.track_get_type(i)
-		if kind not in [Animation.TYPE_POSITION_3D,Animation.TYPE_ROTATION_3D,Animation.TYPE_SCALE_3D]: continue
-		var path = source.track_get_path(i)
-		var bone = String(path).to_lower()
-		var dst = idle.add_track(kind)
-		idle.track_set_path(dst,path)
-		if kind == Animation.TYPE_ROTATION_3D:
-			var neutral = base_rotation(source,i)
-			var offset = Quaternion.IDENTITY
-			var motion_axis = Vector3.ZERO
-			var angle = 0.0
-			if bone.contains("leftarm") and not bone.contains("forearm"):
-				angle = float(style[0])
-				motion_axis = Vector3(0,0,float(style[2]))
-			elif bone.contains("rightarm") and not bone.contains("forearm"):
-				angle = -float(style[0])
-				motion_axis = Vector3(0,0,-float(style[2]))
-			elif bone.contains("leftforearm"):
-				angle = float(style[1])
-				motion_axis = Vector3(0,float(style[2])*0.4,0)
-			elif bone.contains("rightforearm"):
-				angle = -float(style[1])
-				motion_axis = Vector3(0,-float(style[2])*0.4,0)
-			elif bone.contains("spine"):
-				motion_axis = Vector3(float(style[2]),float(style[3])*0.3,0)
-			elif bone.contains("head") or bone.contains("neck"):
-				motion_axis = Vector3(-float(style[2])*0.25,0,float(style[3])*0.25)
-			if absf(angle) > 0.001:
-				offset = Quaternion(Vector3(0,0,1),angle)
-			for frame in range(9):
-				var time = float(frame)*length/8.0
-				var oscillation = sin(float(frame)*TAU/8.0)
-				var movement = Quaternion.from_euler(motion_axis*oscillation)
-				idle.rotation_track_insert_key(dst,time,(neutral*offset*movement).normalized())
-		elif kind == Animation.TYPE_POSITION_3D:
-			var pos = base_position(source,i)
-			# Eliminate gait translation. Keep the character planted.
-			for frame in range(9):
-				idle.position_track_insert_key(dst,float(frame)*length/8.0,pos)
-		elif kind == Animation.TYPE_SCALE_3D:
-			var scale_value = source.scale_track_interpolate(i,source.length*0.5)
-			idle.scale_track_insert_key(dst,0.0,scale_value)
-			idle.scale_track_insert_key(dst,length,scale_value)
-	return idle
+func aim_joint(rig: Skeleton3D, joint: int, end: int, goal: Vector3) -> void:
+	var joint_pos = point(rig,joint)
+	var from = point(rig,end) - joint_pos
+	var to = goal - joint_pos
+	if from.length_squared() < 0.000001 or to.length_squared() < 0.000001: return
+	var adjustment = Quaternion(from.normalized(),to.normalized())
+	var parent = rig.get_bone_parent(joint)
+	var parent_basis = Basis.IDENTITY if parent < 0 else rig.get_bone_global_pose(parent).basis
+	var current_global = rig.get_bone_global_pose(joint).basis
+	var wanted_global = Basis(adjustment) * current_global
+	var rest_basis = rig.get_bone_rest(joint).basis
+	var new_local = (parent_basis.inverse() * wanted_global).get_rotation_quaternion()
+	var local_rest = rest_basis.get_rotation_quaternion()
+	rig.set_bone_pose_rotation(joint,(local_rest.inverse()*new_local).normalized())
 
-func _ready():
-	for index in range(10):
-		var model = preload("res://assets/user_mixamo.glb").instantiate()
-		model.position = Vector3((float(index)-4.5)*3.0,0.0,17.0)
+func solve_arm(rig: Skeleton3D, shoulder: int, elbow: int, hand: int, target: Vector3, elbow_pole: Vector3) -> void:
+	# CCD with an explicit elbow pole to prevent arms inverting behind the torso.
+	for iteration in range(9):
+		aim_joint(rig,elbow,hand,target)
+		aim_joint(rig,shoulder,hand,target)
+	# Bias the elbow toward the anatomically appropriate side of the torso,
+	# then settle the hand back onto its intended target.
+	var shoulder_pos = point(rig,shoulder)
+	var wrist_pos = point(rig,hand)
+	var axis = (wrist_pos-shoulder_pos).normalized()
+	if axis.length_squared() < 0.0001: return
+	var elbow_pos = point(rig,elbow)
+	var elbow_radial = (elbow_pos-shoulder_pos).slide(axis).normalized()
+	var desired_radial = elbow_pole.slide(axis).normalized()
+	if elbow_radial.length_squared() > 0.0001 and desired_radial.length_squared() > 0.0001:
+		var sin_value = axis.dot(elbow_radial.cross(desired_radial))
+		var cos_value = clampf(elbow_radial.dot(desired_radial),-1.0,1.0)
+		var twist = atan2(sin_value,cos_value)
+		var parent = rig.get_bone_parent(shoulder)
+		var parent_basis = Basis.IDENTITY if parent < 0 else rig.get_bone_global_pose(parent).basis
+		var new_global = Basis(Quaternion(axis,twist)) * rig.get_bone_global_pose(shoulder).basis
+		var base = rig.get_bone_rest(shoulder).basis.get_rotation_quaternion()
+		rig.set_bone_pose_rotation(shoulder,(base.inverse()*(parent_basis.inverse()*new_global).get_rotation_quaternion()).normalized())
+	for iteration in range(3):
+		aim_joint(rig,elbow,hand,target)
+		aim_joint(rig,shoulder,hand,target)
+
+func _ready() -> void:
+	for i in range(10):
+		var model: Node3D = preload("res://assets/user_mixamo.glb").instantiate()
+		model.position = Vector3((float(i)-4.5)*3.3,0,17)
 		model.rotation.y = PI
 		add_child(model)
+		var rigs = model.find_children("*","Skeleton3D",true,false)
 		var players = model.find_children("*","AnimationPlayer",true,false)
-		if players.is_empty(): continue
-		var animator: AnimationPlayer = players[0]
-		var name = "NewWalk"
-		if not animator.has_animation(name):
-			push_warning("IDLE_SOURCE_MISSING "+name)
+		if rigs.is_empty(): continue
+		var rig: Skeleton3D = rigs[0]
+		# Disable any existing gait animation, including its RESET tracks.
+		for animator in players: animator.stop()
+		rig.reset_bone_poses()
+		var left = [find_bone(rig,"LeftArm"),find_bone(rig,"LeftForeArm"),find_bone(rig,"LeftHand")]
+		var right = [find_bone(rig,"RightArm"),find_bone(rig,"RightForeArm"),find_bone(rig,"RightHand")]
+		var head = find_bone(rig,"Head")
+		var hips = find_bone(rig,"Hips")
+		if left.has(-1) or right.has(-1) or head < 0 or hips < 0:
+			push_warning("IDLE_RIG_BONES_MISSING "+str(i+1))
 			continue
-		var idle = make_idle(animator.get_animation(name),index)
-		var library = AnimationLibrary.new()
-		library.add_animation("Standing",idle)
-		animator.add_animation_library("preview",library)
-		animator.play("preview/Standing")
+		var l_shoulder = point(rig,left[0])
+		var r_shoulder = point(rig,right[0])
+		var center = (l_shoulder+r_shoulder)*0.5
+		var across = (r_shoulder-l_shoulder).normalized()
+		var up = (point(rig,head)-point(rig,hips)).normalized()
+		var forward = across.cross(up).normalized()
+		var scale_value = (r_shoulder-l_shoulder).length()
+		# Identify front direction using the mesh's anatomical front:
+		# target hands start near the same side as the original walk.
+		var height = (point(rig,head)-point(rig,hips)).length()
+		var spec = {
+			"rig":rig,"left":left,"right":right,"center":center,
+			"across":across,"up":up,"forward":forward,
+			"width":scale_value,"height":height,"index":i
+		}
+		specimens.append(spec)
 		for part in model.find_children("*","MeshInstance3D",true,false):
-			var white = StandardMaterial3D.new()
+			var white := StandardMaterial3D.new()
 			white.albedo_color = Color.WHITE
 			white.roughness = 0.82
 			part.material_override = white
-		var number = Label3D.new()
-		number.text = str(index+1)
+		var number := Label3D.new()
+		number.text = str(i+1)
 		number.font_size = 85
 		number.pixel_size = 0.005
 		number.modulate = Color(1,0.88,0.25)
 		number.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		number.position = Vector3(0,2.45,0)
+		number.position = Vector3(0,2.50,0)
 		model.add_child(number)
-		var label = Label3D.new()
-		label.text = LABELS[index]
-		label.font_size = 28
-		label.pixel_size = 0.005
-		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.position = Vector3(0,2.12,0)
-		model.add_child(label)
-		print("STANDING_IDLE ",index+1," loops=",idle.length," tracks=",idle.get_track_count())
-	print("IDLE_LINEUP_READY 10 continuously playing stationary idles")
+		var name_label := Label3D.new()
+		name_label.text = TITLES[i]
+		name_label.font_size = 28
+		name_label.pixel_size = 0.005
+		name_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		name_label.position = Vector3(0,2.12,0)
+		model.add_child(name_label)
+	print("IDLE_STUDIO_READY ",specimens.size()," IK-controlled stationary characters")
+
+func target(spec: Dictionary, side: float, time: float) -> Vector3:
+	var i: int = spec.index
+	var w: float = spec.width
+	var h: float = spec.height
+	var breathing = sin(time*TAU/(2.9+float(i)*0.18)+float(i)*0.7)*0.018*h
+	var shoulder = spec.center + spec.across*side*w*0.5
+	var lateral = spec.across*side
+	var up: Vector3 = spec.up
+	var front: Vector3 = spec.forward
+	var goal: Vector3
+	match i:
+		0: goal = shoulder + lateral*w*0.12 - up*h*0.83 + front*w*0.07
+		1: goal = shoulder + lateral*w*0.45 - up*h*0.80 - front*w*0.10
+		2: goal = spec.center + lateral*w*0.25 - up*h*0.70 - front*w*0.36
+		3: goal = spec.center + lateral*w*0.54 - up*h*0.63 + front*w*0.26
+		4: goal = spec.center - lateral*w*0.23 - up*h*0.22 + front*w*0.43
+		5: goal = spec.center + lateral*w*0.20 - up*h*0.01 + front*w*0.76
+		6:
+			if side < 0: goal = spec.center+lateral*w*0.54-up*h*0.63+front*w*0.26
+			else: goal = shoulder+lateral*w*0.1-up*h*0.82+front*w*0.10
+		7: goal = spec.center + lateral*w*0.38 - up*h*0.32 + front*w*0.82
+		8: goal = spec.center + lateral*w*0.18 - up*h*0.85 - front*w*0.23
+		_: goal = shoulder + lateral*w*0.63 - up*h*0.73 - front*w*0.17
+	return goal + up*breathing
+
+func _process(dt: float) -> void:
+	elapsed += dt
+	for spec in specimens:
+		var rig: Skeleton3D = spec.rig
+		# Reset to rest; feet and pelvis remain perfectly planted.
+		rig.reset_bone_poses()
+		for side in [-1.0,1.0]:
+			var arm = spec.left if side < 0.0 else spec.right
+			var pole: Vector3 = spec.across*side + spec.forward*0.35
+			solve_arm(rig,arm[0],arm[1],arm[2],target(spec,side,elapsed),pole)
