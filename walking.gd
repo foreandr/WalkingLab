@@ -35,6 +35,8 @@ var hud: Label
 var feet = preload("res://foot_ground.gd").new()
 var crouch = preload("res://crouch_controller.gd").new()
 var jump = preload("res://jump_controller.gd").new()
+var combat = preload("res://combat_controller.gd").new()
+var combat_targets = []
 var camera_focus_height = 1.05
 var clock = 0.0
 var speed = 0.0
@@ -105,6 +107,7 @@ func _ready():
 	actor.add_child(visual)
 	visual.rotation.y = PI
 	skeleton = visual.find_children("*","Skeleton3D",true,false)[0]
+	combat.setup(self)
 	var player: AnimationPlayer = visual.find_children("*","AnimationPlayer",true,false)[0]
 	if player.has_animation("Sprint"): player.get_animation_library("").remove_animation("Sprint")
 	install_backwards(player)
@@ -193,7 +196,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Hold Shift to build sprint | Ctrl walk | C crouch | V AI showcase | Tab watch AI | Right-drag camera"
+		controls.text = "WASD move | Shift sprint | Ctrl walk | C crouch | Space jump | Left-click punch | V AI showcase | Tab watch AI | Right-drag camera"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func smooth_gait(t: float) -> float:
@@ -244,7 +247,10 @@ func begin_direction_change(target_backward: bool):
 	turn_start_forward = blend
 	turn_start_back = back_blend
 func _physics_process(dt):
-	if stationary_only: return
+	if stationary_only:
+		combat.update(dt, combat_targets)
+		combat.pose()
+		return
 	if paused: return
 	var step = dt*(0.35 if slow else 1.0)
 	clock += step
@@ -322,6 +328,8 @@ func _physics_process(dt):
 	tree.set("parameters/Cadence/scale",speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	tree.advance(step)
+	combat.update(step, combat_targets)
+	combat.pose()
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve()
 	crouch.update_capsule(step)
@@ -431,6 +439,8 @@ func _unhandled_input(event):
 			if event.keycode==KEY_C: crouch.toggle()
 			if event.keycode==KEY_SPACE: jump.request_jump()
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+			combat.punch()
 		if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 			orbit -= event.relative.x*0.006
 			elevation = clamp(elevation-event.relative.y*0.004,-0.8,0.15)
