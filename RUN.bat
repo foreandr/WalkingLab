@@ -17,19 +17,25 @@ if not exist "%GODOT%" (
 )
 if not exist "assets\custom_idle" mkdir "assets\custom_idle"
 set "NEED_IMPORT=0"
-if not exist "assets\custom_idle\Idle.fbx" (
-    for %%I in ("%USERPROFILE%\Downloads\Idle.fbx" "%USERPROFILE%\Desktop\Idle.fbx" "%~dp0Idle.fbx") do (
-        if exist "%%~I" (
-            echo Found your Idle.fbx: %%~I
-            copy /Y "%%~I" "assets\custom_idle\Idle.fbx" >nul
-            set "NEED_IMPORT=1"
+for %%F in ("Idle.fbx" "Idle (1).fbx" "Idle(1).fbx" "Action Idle To Fight Idle.fbx" "Fight Idle To Standing Idle.fbx") do (
+    if not exist "assets\custom_idle\%%~F" (
+        for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
+            if exist "%%~D\%%~F" (
+                echo Importing %%~F from %%~D
+                copy /Y "%%~D\%%~F" "assets\custom_idle\%%~F" >nul
+                set "NEED_IMPORT=1"
+            )
         )
     )
 )
+if not exist "assets\custom_idle\Idle (1).fbx" if exist "assets\custom_idle\Idle(1).fbx" (
+    copy /Y "assets\custom_idle\Idle(1).fbx" "assets\custom_idle\Idle (1).fbx" >nul
+    set "NEED_IMPORT=1"
+)
 if "%NEED_IMPORT%"=="1" (
-    echo Importing your custom idle animation...
+    echo Importing idle and transition FBX motions...
     "%GODOT%" --headless --editor --path . --import
-    if errorlevel 1 echo Warning: custom idle import failed. Using safe standing pose.
+    if errorlevel 1 echo Warning: FBX import failed; check source compatibility.
 )
 echo [2/2] Launching game...
 "%GODOT%" --path .
