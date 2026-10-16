@@ -2,6 +2,8 @@ extends RefCounted
 # Loads actual Mixamo motion clips from assets/boxing. Keeps the existing Y Bot.
 const MOTIONS = ["Fight_Idle", "Lead_Jab", "Cross_Punch", "Hook_Punch", "Right_Hook"]
 var available = {}
+func normalized_bone(name: String) -> String:
+	return name.to_lower().replace("mixamorig:", "").replace("mixamorig", "").replace("_", "").replace(":", "")
 func install(owner: Node3D, player: AnimationPlayer, graph: AnimationNodeBlendTree):
 	var skeleton: Skeleton3D = owner.skeleton
 	var target_path = player.get_node(player.root_node).get_path_to(skeleton)
@@ -22,9 +24,12 @@ func install(owner: Node3D, player: AnimationPlayer, graph: AnimationNodeBlendTr
 			continue
 		var source_player: AnimationPlayer = players[0]
 		var source_skeleton: Skeleton3D = skeletons[0]
+		var bone_map = {}
+		for bone in range(skeleton.get_bone_count()):
+			bone_map[normalized_bone(String(skeleton.get_bone_name(bone)))] = String(skeleton.get_bone_name(bone))
 		var compatible = true
 		for bone in range(source_skeleton.get_bone_count()):
-			if skeleton.find_bone(source_skeleton.get_bone_name(bone)) < 0:
+			if not bone_map.has(normalized_bone(String(source_skeleton.get_bone_name(bone)))):
 				compatible = false
 				break
 		if not compatible:
@@ -42,10 +47,11 @@ func install(owner: Node3D, player: AnimationPlayer, graph: AnimationNodeBlendTr
 				clip.remove_track(index)
 				continue
 			var bone_name = String(track_path.get_subname(0))
-			if skeleton.find_bone(bone_name) < 0:
+			var canonical = normalized_bone(bone_name)
+			if not bone_map.has(canonical):
 				clip.remove_track(index)
 				continue
-			clip.track_set_path(index, NodePath(String(target_path) + ":" + bone_name))
+			clip.track_set_path(index, NodePath(String(target_path) + ":" + bone_map[canonical]))
 		clip.loop_mode = Animation.LOOP_LINEAR if name == "Fight_Idle" else Animation.LOOP_NONE
 		library.add_animation(name, clip)
 		available[name] = true
