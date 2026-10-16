@@ -15,9 +15,9 @@ var manual_heading = 0.0
 var camera_target: CharacterBody3D
 
 const LABELS = ["WALK", "EASY RUN", "RUN", "STANDARD RUN", "FAST RUN", "QUICK RUN"]
-const NAMES = ["PreviousWalk", "EasyRun", "Run", "StandardRun", "FastRun", "QuickRun"]
+const NAMES = ["PreviousWalk", "EasyRun", "Run", "StandardRun", "QuickRun", "FastRun"]
 const SPEEDS = [2.295,4.0,6.0,8.0,10.0,12.0]
-const STRIDES = [1.8247359725,2.0463959811,2.9254565804,3.0925173375,2.8810510397,3.5791259432]
+const STRIDES = [1.8247359725,2.0463959811,2.9254565804,3.0925173375,3.5791259432,2.8810510397]
 const FILE_LABELS = ["previous walk", "Running (1).fbx", "Running.fbx", "Standard Run.fbx", "Fast Run.fbx", "Running (3).fbx"]
 const BACK_NAMES = ["BackWalk", "BackRun", "BackQuickRun"]
 const BACK_LABELS = ["BACKWARD WALK", "BACKWARD RUN", "QUICK BACKWARD RUN"]
