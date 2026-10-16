@@ -55,7 +55,7 @@ func _ready() -> void:
 		# This eliminates the 0/65 failed retarget problem.
 		var clip: Animation = chosen_player.get_animation(chosen_clip)
 		clip.loop_mode = Animation.LOOP_LINEAR
-		model.position = Vector3((float(shown)-4.5)*3.3, 0.0, 17.0)
+		model.position = Vector3((float(shown)-float(mini(filenames.size(),LIMIT)-1)*0.5)*3.3, 0.0, 17.0)
 		model.rotation.y = PI
 		add_child(model)
 		for animator in animators: animator.stop()
