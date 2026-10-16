@@ -248,8 +248,10 @@ func begin_direction_change(target_backward: bool):
 	turn_start_back = back_blend
 func _physics_process(dt):
 	if stationary_only:
+		tree.advance(dt)
 		combat.update(dt, combat_targets)
 		combat.pose()
+		feet.resolve()
 		return
 	if paused: return
 	var step = dt*(0.35 if slow else 1.0)
