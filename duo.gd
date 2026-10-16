@@ -1,6 +1,7 @@
 extends Node3D
 var ai
 var player
+var spectator
 var ai_label: Label3D
 var player_label: Label3D
 var ai_wait = 0.0
@@ -27,6 +28,15 @@ func _ready():
 	player.character_tint = Color("bdcedf")
 	add_child(player)
 	player.camera.current = true
+	spectator = preload("res://walking.gd").new()
+	spectator.name = "CenterMan"
+	spectator.actor_only = true
+	spectator.autonomous_only = true
+	spectator.stationary_only = true
+	spectator.spawn_point = Vector3.ZERO
+	spectator.character_tint = Color("b7c5ac")
+	add_child(spectator)
+	make_label(spectator.actor, "CENTER", Color("c5efbd"))
 	ai_label = make_label(ai.actor,"AI",Color("ffbf69"))
 	player_label = make_label(player.actor,"YOU",Color("75d8ff"))
 	make_boundary()
