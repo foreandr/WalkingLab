@@ -57,6 +57,15 @@ func install(owner: Node3D, player: AnimationPlayer, graph: AnimationNodeBlendTr
 				clip.remove_track(index)
 				continue
 			clip.track_set_path(index, NodePath(String(target_path) + ":" + bone_map[canonical]))
+		var rotation_tracks = 0
+		for track_index in range(clip.get_track_count()):
+			if clip.track_get_type(track_index) == Animation.TYPE_ROTATION_3D:
+				rotation_tracks += 1
+		if rotation_tracks < 12:
+			push_warning("REJECTED boxing " + name + ": only " + str(rotation_tracks) + " compatible animated bones")
+			source.free()
+			continue
+		print("BOXING_CLIP ", name, " length=", clip.length, " rotation_tracks=", rotation_tracks)
 		clip.loop_mode = Animation.LOOP_LINEAR if name == "Fight_Idle" else Animation.LOOP_NONE
 		library.add_animation(name, clip)
 		available[name] = true
