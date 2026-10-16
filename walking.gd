@@ -10,6 +10,8 @@ var manual_input = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
 # Seconds per smooth 6 -> 8 -> 10 -> 12 m/s sprint stage.
+# Above 12 m/s, keep the final FastRun clip and gain 0.2 m/s per stage duration.
+const ENDLESS_SPRINT_GAIN = 0.2
 const SPRINT_STAGE_SECONDS = 3.0
 var manual_heading = 0.0
 var camera_target: CharacterBody3D
@@ -267,7 +269,7 @@ func _physics_process(dt):
 		if not building_sprint:
 			manual_sprint_clock = 0.0
 		elif signed_speed>=SPEEDS[2]-0.05 and actor.get_real_velocity().length()>SPEEDS[2]*0.7:
-			manual_sprint_clock = min(manual_sprint_clock+step,SPRINT_STAGE_SECONDS*3.0)
+			manual_sprint_clock += step
 	if crouch_driving:
 		signed_speed = crouch.forward_speed
 	elif player_controlled:
@@ -388,7 +390,9 @@ func manual_target_speed() -> float:
 	if manual_input.y< -0.1: return -BACK_SPEEDS[2] if sprinting else -BACK_SPEEDS[1]
 	if Input.is_action_pressed("walk"): return SPEEDS[0]
 	if not sprinting or manual_input.y<=0.1: return SPEEDS[2]
-	var progress = clamp(manual_sprint_clock/SPRINT_STAGE_SECONDS,0.0,3.0)
+	var progress = manual_sprint_clock / SPRINT_STAGE_SECONDS
+	if progress >= 3.0:
+		return SPEEDS[5] + (progress - 3.0) * ENDLESS_SPRINT_GAIN
 	var stage = mini(int(progress),2)
 	return lerp(float(SPEEDS[2+stage]),float(SPEEDS[3+stage]),smooth_gait(progress-stage))
 func speed_band(values: Array, value: float) -> float:
