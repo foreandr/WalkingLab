@@ -418,6 +418,7 @@ func make_standing_idle(player: AnimationPlayer):
 	# Prefer the user's own Mixamo Idle.fbx, imported by RUN.bat.
 	# The original standing pose remains the safe fallback.
 	var source = player.get_animation("crouch/Stand")
+	var custom_loaded = false
 	var idle_path = "res://assets/custom_idle/Idle.fbx"
 	if ResourceLoader.exists(idle_path):
 		var packed = load(idle_path)
@@ -447,12 +448,31 @@ func make_standing_idle(player: AnimationPlayer):
 									source.remove_track(i)
 									continue
 								source.track_set_path(i, NodePath(String(target_path) + ":" + bone))
+							custom_loaded = true
 							print("CUSTOM_IDLE_LOADED ", name)
 							break
 				else:
 					push_warning("Custom Idle.fbx skeleton differs; keeping safe standing pose.")
 			instance.free()
-	var idle = source.duplicate(true)
+	var idle = Animation.new()
+	if custom_loaded:
+		idle = source.duplicate(true)
+	else:
+		# Freeze the end of Stand; do not loop a get-up animation.
+		idle.length = 1.0
+		for track in range(source.get_track_count()):
+			if source.track_get_key_count(track) == 0: continue
+			var kind = source.track_get_type(track)
+			var value
+			match kind:
+				Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(track, source.length)
+				Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(track, source.length)
+				Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(track, source.length)
+				_: value = source.track_get_key_value(track, source.track_get_key_count(track) - 1)
+			var target = idle.add_track(kind)
+			idle.track_set_path(target, source.track_get_path(track))
+			idle.track_insert_key(target, 0.0, value)
+			idle.track_insert_key(target, 1.0, value)
 	idle.loop_mode = Animation.LOOP_LINEAR
 	var library = AnimationLibrary.new()
 	library.add_animation("StandIdle",idle)
