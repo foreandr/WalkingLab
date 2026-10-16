@@ -399,90 +399,32 @@ func normalized_idle_bone(name: String) -> String:
 	return name.to_lower().replace("mixamorig", "").replace(":", "").replace("_", "").replace(" ", "")
 
 func make_standing_idle(player: AnimationPlayer):
-	# A real standing loop, not the final frame of a crouch/get-up motion.
-	# Import from the user's existing Idle.fbx; match Mixamo bones by normalized names.
-	var lib = AnimationLibrary.new()
-	var filename = "res://assets/custom_idle/Idle.fbx"
-	var success = false
-	if ResourceLoader.exists(filename):
-		var packed = load(filename)
-		if packed is PackedScene:
-			var scene = packed.instantiate()
-			var players = scene.find_children("*", "AnimationPlayer", true, false)
-			var rigs = scene.find_children("*", "Skeleton3D", true, false)
-			if not players.is_empty() and not rigs.is_empty():
-				var source_player: AnimationPlayer = players[0]
-				var source_rig: Skeleton3D = rigs[0]
-				var bone_names = {}
-				for i in range(skeleton.get_bone_count()):
-					bone_names[normalized_idle_bone(String(skeleton.get_bone_name(i)))] = String(skeleton.get_bone_name(i))
-				var source_name = ""
-				for candidate in source_player.get_animation_list():
-					if candidate != "RESET":
-						source_name = candidate
-						break
-				if source_name != "":
-					var original = source_player.get_animation(source_name)
-					var idle = Animation.new()
-					idle.length = original.length
-					idle.loop_mode = Animation.LOOP_LINEAR
-					var target_path = player.get_node(player.root_node).get_path_to(skeleton)
-					var matches = 0
-					print("IDLE_SOURCE_CLIP ", source_name, " tracks=", original.get_track_count())
-					for t in range(original.get_track_count()):
-						var path = original.track_get_path(t)
-						if path.get_subname_count() == 0: continue
-						var source_bone = String(path.get_subname(path.get_subname_count() - 1))
-						var norm = normalized_idle_bone(source_bone)
-						if not bone_names.has(norm): continue
-						var source_index = -1
-						for b in range(source_rig.get_bone_count()):
-							if normalized_idle_bone(String(source_rig.get_bone_name(b))) == norm:
-								source_index = b
-								break
-						var dest_index = skeleton.find_bone(bone_names[norm])
-						if source_index < 0 or dest_index < 0: continue
-						var kind = original.track_get_type(t)
-						if kind != Animation.TYPE_ROTATION_3D: continue
-						var dst = idle.add_track(kind)
-						idle.track_set_path(dst, NodePath(String(target_path) + ":" + bone_names[norm]))
-						# Retarget source local bone rotations through each skeleton's rest axes.
-						var source_rest = source_rig.get_bone_rest(source_index).basis.get_rotation_quaternion()
-						var target_rest = skeleton.get_bone_rest(dest_index).basis.get_rotation_quaternion()
-						var correction = target_rest.inverse() * source_rest
-						for k in range(original.track_get_key_count(t)):
-							var rotation = original.track_get_key_value(t, k)
-							var corrected = (correction * rotation * correction.inverse()).normalized()
-							idle.rotation_track_insert_key(dst, original.track_get_key_time(t, k), corrected)
-						matches += 1
-					print("IDLE_RETARGET ", matches, " rotating bones / ", skeleton.get_bone_count())
-					if matches >= 12:
-						lib.add_animation("StandIdle", idle)
-						success = true
-					else:
-						push_warning("Idle.fbx has too few compatible animated bones; using fallback.")
-			scene.free()
-	if not success:
-		# Safe still-standing pose, without repeatedly playing the crouch transition.
-		var source = player.get_animation("PreviousWalk")
-		var fallback = Animation.new()
-		fallback.length = 1.0
-		fallback.loop_mode = Animation.LOOP_LINEAR
-		for t in range(source.get_track_count()):
-			if source.track_get_key_count(t) == 0: continue
-			var kind = source.track_get_type(t)
-			if kind not in [Animation.TYPE_ROTATION_3D, Animation.TYPE_POSITION_3D, Animation.TYPE_SCALE_3D]: continue
-			var value
-			match kind:
-				Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(t, 0.0)
-				Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(t, 0.0)
-				Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(t, 0.0)
-			var dst = fallback.add_track(kind)
-			fallback.track_set_path(dst, source.track_get_path(t))
-			fallback.track_insert_key(dst, 0.0, value)
-			fallback.track_insert_key(dst, 1.0, value)
-		lib.add_animation("StandIdle", fallback)
-	player.add_animation_library("manual", lib)
+	# Use only the proven compatible Y Bot library.
+	# The external Idle.fbx currently imports zero matching bone tracks.
+	# Freeze a neutral weight-transfer frame from a genuine walk cycle:
+	# arms hang apart, rather than folding across the pelvis.
+	var source = player.get_animation("NewWalk")
+	var idle = Animation.new()
+	idle.length = 1.0
+	idle.loop_mode = Animation.LOOP_LINEAR
+	var pose_time = source.length * 0.48
+	for t in range(source.get_track_count()):
+		if source.track_get_key_count(t) == 0: continue
+		var kind = source.track_get_type(t)
+		if kind not in [Animation.TYPE_ROTATION_3D, Animation.TYPE_POSITION_3D, Animation.TYPE_SCALE_3D]: continue
+		var value
+		match kind:
+			Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(t, pose_time)
+			Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(t, pose_time)
+			Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(t, pose_time)
+		var target = idle.add_track(kind)
+		idle.track_set_path(target, source.track_get_path(t))
+		idle.track_insert_key(target, 0.0, value)
+		idle.track_insert_key(target, 1.0, value)
+	var library = AnimationLibrary.new()
+	library.add_animation("StandIdle", idle)
+	player.add_animation_library("manual", library)
+	print("IDLE_POSE NewWalk frame=", pose_time, " tracks=", idle.get_track_count())
 
 func _unhandled_input(event):
 	if autonomous_only: return
