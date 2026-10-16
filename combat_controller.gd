@@ -69,7 +69,7 @@ func region_point(region: String) -> Vector3:
 	return skeleton.global_transform * skeleton.get_bone_global_pose(i) * definition[1]
 
 func punch():
-	if not host.player_controlled or host.crouch.active(): return
+	if not host.player_controlled or host.crouch.active() or host.speed > 0.65: return
 	if attack_time < DURATION * 0.58: return
 	attack_index = (attack_index + 1) % 4 if combo_timer > 0.0 else 0
 	attack_time = 0.0
@@ -99,6 +99,7 @@ func update(dt: float, targets: Array):
 	var is_stationary = host.speed < 0.28 and host.manual_input.length() < 0.08
 	var combat_guard = host.player_controlled and is_stationary and not host.crouch.active()
 	guard_weight = move_toward(guard_weight, 1.0 if combat_guard else 0.0, dt * (12.0 if combat_guard else 19.0))
+	if host.speed > 1.0: guard_weight = 0.0
 	if attack_time > DURATION or hit_done or not host.player_controlled: return
 	if attack_time < DURATION * 0.43: return
 	hit_done = true
