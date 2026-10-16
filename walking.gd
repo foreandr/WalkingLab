@@ -2,6 +2,7 @@ extends Node3D
 @export var player_controlled = false
 @export var actor_only = false
 @export var autonomous_only = false
+@export var stationary_only = false
 var spawn_point = Vector3(0,0,40)
 var route_center = Vector3.ZERO
 var route_radius = 40.0
@@ -33,6 +34,7 @@ var camera: Camera3D
 var hud: Label
 var feet = preload("res://foot_ground.gd").new()
 var crouch = preload("res://crouch_controller.gd").new()
+var jump = preload("res://jump_controller.gd").new()
 var camera_focus_height = 1.05
 var clock = 0.0
 var speed = 0.0
@@ -242,6 +244,7 @@ func begin_direction_change(target_backward: bool):
 	turn_start_forward = blend
 	turn_start_back = back_blend
 func _physics_process(dt):
+	if stationary_only: return
 	if paused: return
 	var step = dt*(0.35 if slow else 1.0)
 	clock += step
@@ -272,19 +275,19 @@ func _physics_process(dt):
 		signed_speed = crouch.forward_speed
 	elif player_controlled:
 		var target_speed = manual_target_speed()
-		signed_speed = move_toward(signed_speed,target_speed,step*(8.0 if target_speed==0.0 else 6.0))
+		signed_speed = move_toward(signed_speed,target_speed,step*(18.0 if target_speed * signed_speed < 0.0 else (12.0 if target_speed == 0.0 else 9.0)))
 		backward = signed_speed<0.0
 		direction_weight = move_toward(direction_weight,1.0 if backward else 0.0,step*4.0)
 		blend = speed_band(SPEEDS,abs(signed_speed))
 		back_blend = speed_band(BACK_SPEEDS,abs(signed_speed))
 	elif turning:
 		turn_time += step
-		var weight = smooth_gait(clamp(turn_time/4.0,0.0,1.0))
+		var weight = smooth_gait(clamp(turn_time/0.65,0.0,1.0))
 		blend = lerp(turn_start_forward,0.0,weight)
 		back_blend = lerp(turn_start_back,0.0,weight)
 		direction_weight = lerp(turn_start_weight,1.0 if turn_target else 0.0,weight)
 		signed_speed = lerp(turn_start_speed,-BACK_SPEEDS[0] if turn_target else SPEEDS[0],weight)
-		if turn_time>=4.0:
+		if turn_time>=0.65:
 			turning = false
 			backward = turn_target
 			mode_clock = 0.0
@@ -344,10 +347,16 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
-	actor.velocity.y = -0.3
+	if player_controlled:
+		jump.before_move(step, actor, crouch.active())
+	else:
+		actor.velocity.y = -0.3
 	actor.move_and_slide()
+	if player_controlled:
+		jump.after_move(step, actor)
+		jump.apply_visual(step, visual, wrapf(manual_heading - actor.rotation.y, -PI, PI), speed)
 	# This arena has a flat floor at zero, including at wall contacts.
-	if actor.position.y<0.0:
+	if actor.position.y<0.0 and (not player_controlled or jump.mode != "airborne"):
 		actor.position.y = 0.0
 		actor.velocity.y = 0.0
 	if backward and not turning and not crouch_driving:
@@ -420,6 +429,7 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_C: crouch.toggle()
+			if event.keycode==KEY_SPACE: jump.request_jump()
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 			orbit -= event.relative.x*0.006
