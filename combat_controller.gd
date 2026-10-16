@@ -75,6 +75,11 @@ func punch():
 	attack_time = 0.0
 	combo_timer = COMBO_WINDOW
 	hit_done = false
+	if not host.boxing_assets.available.is_empty():
+		var clips = ["Lead_Jab", "Cross_Punch", "Hook_Punch", "Right_Hook"]
+		var chosen = clips[attack_index]
+		if host.boxing_assets.available.has(chosen):
+			host.tree.set("parameters/BoxingChoice/transition_request", chosen)
 
 func receive_hit(region: String, incoming: Vector3):
 	reaction_time = 0.0
@@ -137,7 +142,7 @@ func pose():
 		rotate_bone("rightforearm", Vector3.RIGHT, -1.12 * g)
 		rotate_bone("leftshoulder", Vector3.UP, -0.13 * g)
 		rotate_bone("rightshoulder", Vector3.UP, 0.13 * g)
-	if attack_time < DURATION:
+	if attack_time < DURATION and (not host.player_controlled or host.boxing_assets.available.is_empty()):
 		var t = clampf(attack_time / DURATION, 0.0, 1.0)
 		var drive = smoothstep(0.02, 0.42, t) * (1.0 - smoothstep(0.48, 1.0, t))
 		var side = -1.0 if attack_index % 2 == 0 else 1.0
