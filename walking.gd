@@ -428,13 +428,18 @@ func make_standing_idle(player: AnimationPlayer):
 					idle.loop_mode = Animation.LOOP_LINEAR
 					var target_path = player.get_node(player.root_node).get_path_to(skeleton)
 					var matches = 0
+					print("IDLE_SOURCE_CLIP ", source_name, " tracks=", original.get_track_count())
 					for t in range(original.get_track_count()):
 						var path = original.track_get_path(t)
 						if path.get_subname_count() == 0: continue
-						var source_bone = String(path.get_subname(0))
+						var source_bone = String(path.get_subname(path.get_subname_count() - 1))
 						var norm = normalized_idle_bone(source_bone)
 						if not bone_names.has(norm): continue
-						var source_index = source_rig.find_bone(source_bone)
+						var source_index = -1
+						for b in range(source_rig.get_bone_count()):
+							if normalized_idle_bone(String(source_rig.get_bone_name(b))) == norm:
+								source_index = b
+								break
 						var dest_index = skeleton.find_bone(bone_names[norm])
 						if source_index < 0 or dest_index < 0: continue
 						var kind = original.track_get_type(t)
@@ -451,7 +456,7 @@ func make_standing_idle(player: AnimationPlayer):
 							idle.rotation_track_insert_key(dst, original.track_get_key_time(t, k), corrected)
 						matches += 1
 					print("IDLE_RETARGET ", matches, " rotating bones / ", skeleton.get_bone_count())
-					if matches >= 18:
+					if matches >= 12:
 						lib.add_animation("StandIdle", idle)
 						success = true
 					else:
@@ -459,7 +464,7 @@ func make_standing_idle(player: AnimationPlayer):
 			scene.free()
 	if not success:
 		# Safe still-standing pose, without repeatedly playing the crouch transition.
-		var source = player.get_animation("crouch/Stand")
+		var source = player.get_animation("PreviousWalk")
 		var fallback = Animation.new()
 		fallback.length = 1.0
 		fallback.loop_mode = Animation.LOOP_LINEAR
@@ -469,9 +474,9 @@ func make_standing_idle(player: AnimationPlayer):
 			if kind not in [Animation.TYPE_ROTATION_3D, Animation.TYPE_POSITION_3D, Animation.TYPE_SCALE_3D]: continue
 			var value
 			match kind:
-				Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(t, source.length)
-				Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(t, source.length)
-				Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(t, source.length)
+				Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(t, 0.0)
+				Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(t, 0.0)
+				Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(t, 0.0)
 			var dst = fallback.add_track(kind)
 			fallback.track_set_path(dst, source.track_get_path(t))
 			fallback.track_insert_key(dst, 0.0, value)
