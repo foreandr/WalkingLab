@@ -15,6 +15,19 @@ if not exist "%GODOT%" (
  pause
  exit /b 1
 )
+if not exist "assets\custom_idle" mkdir "assets\custom_idle"
+set "IDLE_NEW=0"
+if not exist "assets\custom_idle\Idle.fbx" (
+    if exist "%USERPROFILE%\Downloads\Idle.fbx" (
+        copy /Y "%USERPROFILE%\Downloads\Idle.fbx" "assets\custom_idle\Idle.fbx" >nul
+        set "IDLE_NEW=1"
+    )
+)
+if "%IDLE_NEW%"=="1" (
+    echo Importing real standing idle animation...
+    "%GODOT%" --headless --editor --path . --import
+    if errorlevel 1 echo Warning: Idle.fbx import failed.
+)
 echo [2/2] Launching game...
 "%GODOT%" --path .
 if errorlevel 1 (
