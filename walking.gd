@@ -36,6 +36,7 @@ var feet = preload("res://foot_ground.gd").new()
 var crouch = preload("res://crouch_controller.gd").new()
 var jump = preload("res://jump_controller.gd").new()
 var combat = preload("res://combat_controller.gd").new()
+var boxing_assets = preload("res://boxing_assets.gd").new()
 var combat_targets = []
 var camera_focus_height = 1.05
 var clock = 0.0
@@ -161,6 +162,8 @@ func _ready():
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
 	graph.connect_node("Cadence",0,"Direction")
 	crouch.setup(self,player,graph)
+	if player_controlled:
+		boxing_assets.install(self, player, graph)
 	print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
 	visual.add_child(tree)
@@ -339,6 +342,12 @@ func _physics_process(dt):
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	tree.advance(step)
 	combat.update(step, combat_targets)
+	if player_controlled and not boxing_assets.available.is_empty():
+		var boxing_blend = 0.0
+		if combat.attack_time < combat.DURATION:
+			var normalized = combat.attack_time / combat.DURATION
+			boxing_blend = smoothstep(0.0, 0.12, normalized) * (1.0 - smoothstep(0.73, 1.0, normalized))
+		tree.set("parameters/BoxingOverlay/blend_amount", boxing_blend)
 	combat.pose()
 	combat.update_flash()
 	feet.use_full_support = crouch_driving or crouch.active()
