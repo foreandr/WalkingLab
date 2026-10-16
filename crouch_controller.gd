@@ -79,7 +79,7 @@ func setup(owner_node, player: AnimationPlayer, graph: AnimationNodeBlendTree):
 	posture_blend.sync = true
 	graph.add_node("Posture",posture_blend)
 	var standing_source = "Cadence"
-	if host.player_controlled:
+	if host.player_controlled or host.stationary_only:
 		host.make_standing_idle(player)
 		var idle = AnimationNodeAnimation.new()
 		idle.animation = "manual/StandIdle"
