@@ -1,0 +1,66 @@
+[
+  {
+    "file": "previous accepted Standard Walk",
+    "name": "PreviousWalk",
+    "duration": 1.1666666667,
+    "stride": 1.8247359725,
+    "native_speed": 1.5640594049553125,
+    "offset": 0
+  },
+  {
+    "file": "Walking.fbx",
+    "name": "NewWalk",
+    "duration": 1.0333333333333334,
+    "stride": 1.6464436119889154,
+    "native_speed": 1.5933325277312083,
+    "offset": 3
+  },
+  {
+    "file": "Running (1).fbx",
+    "name": "EasyRun",
+    "duration": 0.8333333333333334,
+    "stride": 2.0463959810665266,
+    "native_speed": 2.455675177279832,
+    "offset": 5
+  },
+  {
+    "file": "Running.fbx",
+    "name": "Run",
+    "duration": 0.7,
+    "stride": 2.9254565803671198,
+    "native_speed": 4.179223686238743,
+    "offset": 6
+  },
+  {
+    "file": "Standard Run.fbx",
+    "name": "StandardRun",
+    "duration": 0.7333333333333333,
+    "stride": 3.092517337488347,
+    "native_speed": 4.217069096575019,
+    "offset": 0
+  },
+  {
+    "file": "Fast Run.fbx",
+    "name": "FastRun",
+    "duration": 0.5333333333333333,
+    "stride": 2.8810510397047446,
+    "native_speed": 5.401970699446396,
+    "offset": 119
+  },
+  {
+    "file": "Running (3).fbx",
+    "name": "QuickRun",
+    "duration": 0.6333333333333333,
+    "stride": 3.579125943172417,
+    "native_speed": 5.651251489219606,
+    "offset": 115
+  },
+  {
+    "file": "Sprint.fbx",
+    "name": "Sprint",
+    "duration": 0.5333333333333333,
+    "stride": 3.141479679550127,
+    "native_speed": 5.890274399156489,
+    "offset": 119
+  }
+]

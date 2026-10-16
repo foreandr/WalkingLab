@@ -1,0 +1,7 @@
+# Large runtime and evidence files are distributed as release assets.
+/.godot/
+/WalkingLab.exe
+/evidence/rokoko-native-retarget.avi
+/evidence/run-to-sprint.avi
+/evidence/source-retarget-comparison.avi
+/evidence/walk-to-jog.avi

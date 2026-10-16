@@ -1,0 +1,26 @@
+[
+  {
+    "file": "Walking Backwards.fbx",
+    "name": "BackWalk",
+    "duration": 0.9666666666666667,
+    "stride": 1.2861592746987032,
+    "heading_correction_degrees": 0,
+    "offset": 0
+  },
+  {
+    "file": "Running Backward.fbx",
+    "name": "BackRun",
+    "duration": 0.6333333333333333,
+    "stride": 1.9162409005443621,
+    "heading_correction_degrees": 0,
+    "offset": 6
+  },
+  {
+    "file": "Run Backward.fbx",
+    "name": "BackQuickRun",
+    "duration": 0.6333333333333333,
+    "stride": 1.9161717009087424,
+    "heading_correction_degrees": 180,
+    "offset": 6
+  }
+]

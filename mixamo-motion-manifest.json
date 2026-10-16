@@ -1,0 +1,42 @@
+[
+  {
+    "file": "Standard Walk.fbx",
+    "name": "Walk",
+    "speed": 2.295,
+    "stride": 1.8247359724967693,
+    "duration": 1.1666666666666667,
+    "offset": 0
+  },
+  {
+    "file": "Running (2).fbx",
+    "name": "Saunter",
+    "speed": 3.2,
+    "stride": 2.143232330907794,
+    "duration": 0.8333333333333334,
+    "offset": 5
+  },
+  {
+    "file": "Running (1).fbx",
+    "name": "Jog",
+    "speed": 4.6,
+    "stride": 2.6387753300465273,
+    "duration": 0.7,
+    "offset": 6
+  },
+  {
+    "file": "Running.fbx",
+    "name": "FastRun",
+    "speed": 6.5,
+    "stride": 3.748498234449614,
+    "duration": 0.6333333333333333,
+    "offset": 115
+  },
+  {
+    "file": "Fast Run.fbx",
+    "name": "Sprint",
+    "speed": 8.5,
+    "stride": 3.0173877051063966,
+    "duration": 0.5333333333333333,
+    "offset": 119
+  }
+]

@@ -1,0 +1,15 @@
+WALKING LAB — ACTIVE ASSET CREDITS
+
+Quaternius Universal Animation Library [Standard].
+Original mannequin, original skeleton and movement animations: Quaternius.
+CC0 1.0. See QUATERNIUS-LICENSE.txt.
+https://quaternius.com/packs/universalanimationlibrary.html
+https://quaternius.itch.io/universal-animation-library
+Change: plain white runtime material, clip aliases and gameplay blending.
+No character retargeting is used in the active mannequin build.
+
+Godot Engine 4.7.2, MIT. See GODOT-LICENSE.txt.
+
+Archived Defender and Rokoko assets/diagnostics remain in the source
+project but are excluded from the current runtime pack. Their provenance
+is documented in ANIMATION_ASSET_MANIFEST.md and prior source backups.
