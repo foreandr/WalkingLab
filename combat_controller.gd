@@ -98,7 +98,7 @@ func update(dt: float, targets: Array):
 	flash_time = maxf(0.0, flash_time - dt)
 	var is_stationary = host.speed < 0.28 and host.manual_input.length() < 0.08
 	var combat_guard = host.player_controlled and is_stationary and not host.crouch.active()
-	guard_weight = move_toward(guard_weight, 1.0 if combat_guard else 0.0, dt * (12.0 if combat_guard else 19.0))
+	guard_weight = move_toward(guard_weight, 1.0 if combat_guard and host.boxing_assets.available.is_empty() else 0.0, dt * 19.0)
 	if host.speed > 1.0: guard_weight = 0.0
 	if attack_time > DURATION or hit_done or not host.player_controlled: return
 	if attack_time < DURATION * 0.43: return
@@ -138,15 +138,6 @@ func pose():
 	var g = guard_weight
 	if host.player_controlled and not host.boxing_assets.available.is_empty() and attack_time < DURATION:
 		g *= 1.0 - smoothstep(0.0, DURATION * 0.18, attack_time) * (1.0 - smoothstep(DURATION * 0.74, DURATION, attack_time))
-	if g > 0.001:
-		# High guard, elbows tucked, torso slightly bladed.
-		rotate_bone("spine1", Vector3.UP, 0.12 * g)
-		rotate_bone("leftarm", Vector3.RIGHT, -0.70 * g)
-		rotate_bone("rightarm", Vector3.RIGHT, -0.70 * g)
-		rotate_bone("leftforearm", Vector3.RIGHT, -1.12 * g)
-		rotate_bone("rightforearm", Vector3.RIGHT, -1.12 * g)
-		rotate_bone("leftshoulder", Vector3.UP, -0.13 * g)
-		rotate_bone("rightshoulder", Vector3.UP, 0.13 * g)
 	if attack_time < DURATION and (not host.player_controlled or host.boxing_assets.available.is_empty()):
 		var t = clampf(attack_time / DURATION, 0.0, 1.0)
 		var drive = smoothstep(0.02, 0.42, t) * (1.0 - smoothstep(0.48, 1.0, t))
