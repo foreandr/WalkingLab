@@ -95,32 +95,33 @@ func update(dt: float, targets: Array):
 	if attack_time > DURATION or hit_done or not host.player_controlled: return
 	if attack_time < DURATION * 0.43: return
 	hit_done = true
-	var origin = host.actor.global_position + Vector3.UP * 1.4
 	var forward = -host.actor.global_basis.z
-	var ray_origin = host.camera.project_ray_origin(host.camera.get_viewport().get_visible_rect().size * 0.5)
-	var ray_direction = host.camera.project_ray_normal(host.camera.get_viewport().get_visible_rect().size * 0.5)
+	var viewport_center = host.camera.get_viewport().get_visible_rect().size * 0.5
 	var best_target = null
 	var best_region = ""
 	var best_score = INF
 	for target in targets:
 		if target == host: continue
 		var delta = target.actor.global_position - host.actor.global_position
-		if delta.length() > MAX_REACH + 0.3: continue
-		if delta.dot(forward) < 0.0: continue
+		var horizontal = Vector3(delta.x, 0.0, delta.z)
+		if horizontal.length() > MAX_REACH + 0.5: continue
+		if horizontal.dot(forward) < -0.2: continue
 		for region in REGIONS:
 			var point = target.combat.region_point(region)
-			var along = (point - ray_origin).dot(ray_direction)
-			if along <= 0.0: continue
-			var miss = (point - (ray_origin + ray_direction * along)).length()
-			var allowed = float(REGIONS[region][2]) + 0.12
-			if miss > allowed: continue
-			var score = miss / allowed
+			if host.camera.is_position_behind(point): continue
+			var screen = host.camera.unproject_position(point)
+			var pixels = screen.distance_to(viewport_center)
+			# The camera is third-person: allow an aim-assist cone, not a tiny 3D ray.
+			var score = pixels / (88.0 if region == "head" else 125.0)
 			if score < best_score:
 				best_score = score
 				best_target = target
 				best_region = region
-	if best_target != null:
+	if best_target != null and best_score < 3.5:
 		best_target.combat.receive_hit(best_region, forward)
+		print("PUNCH_HIT ", host.name, " -> ", best_target.name, " region=", best_region)
+	else:
+		print("PUNCH_MISS: no reachable target close to crosshair")
 
 func pose():
 	# Called after the animation tree applies its current pose.
@@ -148,7 +149,7 @@ func pose():
 		rotate_bone("spine2", Vector3.RIGHT, -0.10 * drive)
 		rotate_bone(arm + "arm", Vector3.RIGHT, -1.05 * drive * power)
 		rotate_bone(arm + "forearm", Vector3.RIGHT, 0.85 * drive)
-		rotate_bone(arm + "shoulder", Vector3.UP, side * 0.12 * drive)
+		rotate_bone("leftshoulder" if side < 0.0 else "rightshoulder", Vector3.UP, side * 0.12 * drive)
 		rotate_bone(other + "forearm", Vector3.RIGHT, -0.15 * drive)
 	if reaction_time < 0.5:
 		var t = clampf(reaction_time / 0.5, 0.0, 1.0)
