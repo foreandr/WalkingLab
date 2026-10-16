@@ -96,7 +96,9 @@ func update(dt: float, targets: Array):
 	reaction_time += dt
 	combo_timer = maxf(0.0, combo_timer - dt)
 	flash_time = maxf(0.0, flash_time - dt)
-	guard_weight = move_toward(guard_weight, 1.0 if host.player_controlled and not host.crouch.active() else 0.0, dt * 6.0)
+	var is_stationary = host.speed < 0.28 and host.manual_input.length() < 0.08
+	var combat_guard = host.player_controlled and is_stationary and not host.crouch.active()
+	guard_weight = move_toward(guard_weight, 1.0 if combat_guard else 0.0, dt * (12.0 if combat_guard else 19.0))
 	if attack_time > DURATION or hit_done or not host.player_controlled: return
 	if attack_time < DURATION * 0.43: return
 	hit_done = true
