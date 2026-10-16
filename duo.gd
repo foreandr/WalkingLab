@@ -40,9 +40,6 @@ func _ready():
 	ai_label = make_label(ai.actor,"AI",Color("ffbf69"))
 	player_label = make_label(player.actor,"YOU",Color("75d8ff"))
 	make_boundary()
-	var actors = [player, ai, spectator]
-	for character in actors:
-		character.combat_targets = actors
 	ai.crouch.start_showcase()
 func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	var label = Label3D.new()
