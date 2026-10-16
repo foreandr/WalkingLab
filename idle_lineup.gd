@@ -3,20 +3,21 @@ extends Node3D
 # The Y Bot skeleton is driven using paths copied from its own proven animation.
 # Each loop averages a full gait cycle for a balanced neutral standing base, then
 # adds independent breathing/weight-shift motion. No gait clip is played.
-const LABELS = ["Neutral", "Relaxed", "Wide", "Upright", "Confident", "Guard", "At Ease", "Ready", "Solid", "Calm"]
+const LABELS = ["Arms Down", "Wide Shoulders", "Arms Behind", "Hands On Hips", "Arms Crossed", "Boxer Guard", "One Hand Hip", "Ready Guard", "Military Rest", "Open Chest"]
 # (arm angle, elbow adjustment, chest breathing, sway, cycle seconds)
 const STYLES = [
-	[0.00,0.00,0.018,0.012,3.0],
-	[0.11,0.02,0.030,0.023,3.7],
-	[-0.13,0.04,0.025,0.018,3.2],
-	[0.02,-0.04,0.025,0.012,3.8],
-	[0.13,0.10,0.032,0.021,3.3],
-	[-0.10,0.23,0.040,0.027,2.8],
-	[0.10,0.05,0.021,0.026,4.1],
-	[-0.05,0.15,0.045,0.028,2.7],
-	[-0.16,0.12,0.032,0.012,3.5],
-	[0.04,0.00,0.014,0.018,4.4]
+	[0.00,0.00,0.020,0.013,3.0],
+	[-0.65,-0.12,0.035,0.025,3.5],
+	[0.45,-0.42,0.030,0.014,4.0],
+	[0.95,0.92,0.040,0.022,3.1],
+	[1.25,1.30,0.033,0.018,3.3],
+	[1.70,1.65,0.055,0.032,2.7],
+	[0.70,0.60,0.035,0.024,3.8],
+	[1.42,1.20,0.060,0.037,2.6],
+	[-0.35,-0.30,0.025,0.015,4.2],
+	[-0.90,-0.18,0.045,0.024,3.2]
 ]
+
 func base_rotation(source: Animation, track: int) -> Quaternion:
 	# Average opposite phases of the SAME full cycle. This cancels the
 	# left/right stride and arm swing that made the old lineup look like running.
