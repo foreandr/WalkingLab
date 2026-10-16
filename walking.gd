@@ -415,22 +415,45 @@ func speed_band(values: Array, value: float) -> float:
 		if value<=values[index+1]: return clamp(float(index)+(value-values[index])/(values[index+1]-values[index]),0.0,float(values.size()-1))
 	return float(values.size()-1)
 func make_standing_idle(player: AnimationPlayer):
+	# Prefer the user's own Mixamo Idle.fbx, imported by RUN.bat.
+	# The original standing pose remains the safe fallback.
 	var source = player.get_animation("crouch/Stand")
-	var idle = Animation.new()
-	idle.length = 1.0
+	var idle_path = "res://assets/custom_idle/Idle.fbx"
+	if ResourceLoader.exists(idle_path):
+		var packed = load(idle_path)
+		if packed is PackedScene:
+			var instance = packed.instantiate()
+			var anim_players = instance.find_children("*", "AnimationPlayer", true, false)
+			var skeletons = instance.find_children("*", "Skeleton3D", true, false)
+			if not anim_players.is_empty() and not skeletons.is_empty():
+				var source_player: AnimationPlayer = anim_players[0]
+				var source_skeleton: Skeleton3D = skeletons[0]
+				var match_count = 0
+				for i in range(skeleton.get_bone_count()):
+					if source_skeleton.find_bone(skeleton.get_bone_name(i)) >= 0:
+						match_count += 1
+				if match_count == skeleton.get_bone_count():
+					for name in source_player.get_animation_list():
+						if name != "RESET":
+							source = source_player.get_animation(name).duplicate(true)
+							var target_path = player.get_node(player.root_node).get_path_to(skeleton)
+							for i in range(source.get_track_count() - 1, -1, -1):
+								var track_path = source.track_get_path(i)
+								if track_path.get_subname_count() == 0:
+									source.remove_track(i)
+									continue
+								var bone = String(track_path.get_subname(0))
+								if skeleton.find_bone(bone) < 0:
+									source.remove_track(i)
+									continue
+								source.track_set_path(i, NodePath(String(target_path) + ":" + bone))
+							print("CUSTOM_IDLE_LOADED ", name)
+							break
+				else:
+					push_warning("Custom Idle.fbx skeleton differs; keeping safe standing pose.")
+			instance.free()
+	var idle = source.duplicate(true)
 	idle.loop_mode = Animation.LOOP_LINEAR
-	for track in range(source.get_track_count()):
-		var kind = source.track_get_type(track)
-		var value
-		match kind:
-			Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(track,source.length)
-			Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(track,source.length)
-			Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(track,source.length)
-			_: value = source.track_get_key_value(track,source.track_get_key_count(track)-1)
-		var target = idle.add_track(kind)
-		idle.track_set_path(target,source.track_get_path(track))
-		idle.track_insert_key(target,0.0,value)
-		idle.track_insert_key(target,1.0,value)
 	var library = AnimationLibrary.new()
 	library.add_animation("StandIdle",idle)
 	player.add_animation_library("manual",library)
