@@ -17,16 +17,24 @@ if not exist "%GODOT%" (
 )
 if not exist "assets\custom_idle" mkdir "assets\custom_idle"
 set "IDLE_NEW=0"
-if not exist "assets\custom_idle\Idle.fbx" (
-    if exist "%USERPROFILE%\Downloads\Idle.fbx" (
-        copy /Y "%USERPROFILE%\Downloads\Idle.fbx" "assets\custom_idle\Idle.fbx" >nul
-        set "IDLE_NEW=1"
+rem Add any Mixamo FBX with Idle in its filename (excluding transitional clips).
+rem Keeps downloaded FBXs on the user's machine; do not redistribute.
+for %%F in ("%USERPROFILE%\Downloads\*Idle*.fbx" "%USERPROFILE%\Downloads\*idle*.fbx" "%USERPROFILE%\Desktop\*Idle*.fbx" "%USERPROFILE%\Desktop\*idle*.fbx") do (
+    if exist "%%~fF" (
+        echo(%%~nxF | findstr /i /c:" to " /c:"transition" >nul
+        if errorlevel 1 (
+            if not exist "assets\custom_idle\%%~nxF" (
+                echo Found Mixamo idle: %%~nxF
+                copy /Y "%%~fF" "assets\custom_idle\%%~nxF" >nul
+                set "IDLE_NEW=1"
+            )
+        )
     )
 )
 if "%IDLE_NEW%"=="1" (
-    echo Importing real standing idle animation...
+    echo Importing native Mixamo idle animations...
     "%GODOT%" --headless --editor --path . --import
-    if errorlevel 1 echo Warning: Idle.fbx import failed.
+    if errorlevel 1 echo Warning: one or more FBX imports failed.
 )
 echo [2/2] Launching game...
 "%GODOT%" --path .
