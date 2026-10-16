@@ -343,11 +343,11 @@ func _physics_process(dt):
 	tree.advance(step)
 	combat.update(step, combat_targets)
 	if player_controlled and not boxing_assets.available.is_empty():
-		var boxing_blend = 0.0
-		if combat.attack_time < combat.DURATION:
-			var normalized = combat.attack_time / combat.DURATION
-			boxing_blend = smoothstep(0.0, 0.12, normalized) * (1.0 - smoothstep(0.73, 1.0, normalized))
+		var standing = smooth_gait(clamp((0.9 - speed) / 0.65, 0.0, 1.0))
+		var boxing_blend = standing if not crouch.active() else 0.0
 		tree.set("parameters/BoxingOverlay/blend_amount", boxing_blend)
+		if combat.attack_time >= combat.DURATION and boxing_assets.available.has("Fight_Idle"):
+			tree.set("parameters/BoxingChoice/transition_request", "Fight_Idle")
 	combat.pose()
 	combat.update_flash()
 	feet.use_full_support = crouch_driving or crouch.active()
