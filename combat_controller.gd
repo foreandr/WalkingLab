@@ -1,10 +1,9 @@
 extends RefCounted
-# Additive, procedural combat poses on the current Y Bot skeleton.
-# Replace with same-rig authored clips later; hit timing and targeting can remain.
-const PUNCH_DURATION = 0.34
-const COMBO_WINDOW = 0.65
-const RANGE = 1.12
-const HIT_RADIUS = 0.49
+# Skeletal combat overlay for the Mixamo Y Bot. No alternate skeleton is loaded.
+const DURATION = 0.38
+const COMBO_WINDOW = 0.72
+const MAX_REACH = 2.05
+const FLASH_DURATION = 0.32
 var host
 var skeleton: Skeleton3D
 var joints = {}
@@ -15,99 +14,163 @@ var hit_done = false
 var reaction_time = 10.0
 var reaction_side = 1.0
 var reaction_height = 1.45
-var reaction_force = 0.0
+var reaction_region = "chest"
 var idle_clock = 0.0
+var guard_weight = 0.0
+var flash_time = 0.0
+var flash_region = ""
+var markers = {}
+
+const REGIONS = {
+	"head": ["head", Vector3(0, 0.12, 0), 0.17],
+	"left_shoulder": ["leftarm", Vector3.ZERO, 0.18],
+	"right_shoulder": ["rightarm", Vector3.ZERO, 0.18],
+	"chest": ["spine2", Vector3(0, 0.10, -0.10), 0.29],
+	"back": ["spine2", Vector3(0, 0.10, 0.13), 0.27]
+}
 
 func setup(owner):
 	host = owner
 	skeleton = owner.skeleton
 	for i in range(skeleton.get_bone_count()):
 		var name = String(skeleton.get_bone_name(i)).to_lower().replace("mixamorig", "").replace(":", "").replace("_", "")
-		for key in ["spine", "spine1", "spine2", "neck", "head", "leftshoulder", "rightshoulder", "leftarm", "rightarm", "leftforearm", "rightforearm"]:
-			if name == key:
-				joints[key] = i
+		for key in ["hips", "spine", "spine1", "spine2", "neck", "head", "leftshoulder", "rightshoulder", "leftarm", "rightarm", "leftforearm", "rightforearm"]:
+			if name == key: joints[key] = i
+	for region in REGIONS:
+		var indicator = MeshInstance3D.new()
+		var mesh = SphereMesh.new()
+		mesh.radius = REGIONS[region][2]
+		mesh.height = mesh.radius * 2.0
+		indicator.mesh = mesh
+		var mat = StandardMaterial3D.new()
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.albedo_color = Color(1.0, 0.04, 0.025, 0.0)
+		mat.no_depth_test = false
+		indicator.material_override = mat
+		indicator.visible = false
+		host.actor.add_child(indicator)
+		markers[region] = indicator
 	print("COMBAT_JOINTS ", joints.keys())
+
+func bone_index(key: String) -> int:
+	return int(joints.get(key, -1))
+
+func rotate_bone(key: String, axis: Vector3, angle: float):
+	var index = bone_index(key)
+	if index < 0: return
+	skeleton.set_bone_pose_rotation(index, skeleton.get_bone_pose_rotation(index) * Quaternion(axis, angle))
+
+func region_point(region: String) -> Vector3:
+	var definition = REGIONS[region]
+	var i = bone_index(definition[0])
+	if i < 0:
+		return host.actor.global_position + Vector3.UP * (1.6 if region == "head" else 1.3)
+	return skeleton.global_transform * skeleton.get_bone_global_pose(i) * definition[1]
 
 func punch():
 	if not host.player_controlled or host.crouch.active(): return
-	if attack_time < PUNCH_DURATION * 0.54: return
+	if attack_time < DURATION * 0.58: return
 	attack_index = (attack_index + 1) % 4 if combo_timer > 0.0 else 0
 	attack_time = 0.0
 	combo_timer = COMBO_WINDOW
 	hit_done = false
 
-func receive_hit(hit_point: Vector3, incoming: Vector3):
+func receive_hit(region: String, incoming: Vector3):
 	reaction_time = 0.0
-	reaction_height = hit_point.y - host.actor.global_position.y
+	reaction_region = region
+	reaction_height = region_point(region).y - host.actor.global_position.y
 	reaction_side = 1.0 if host.actor.global_basis.x.dot(incoming) >= 0.0 else -1.0
-	reaction_force = 1.0
-	# The visible reaction is skeletal; the body's capsule remains stable.
+	flash_region = region
+	flash_time = FLASH_DURATION
+	print("HIT_REGION ", host.name, " ", region)
 
 func update(dt: float, targets: Array):
 	idle_clock += dt
 	attack_time += dt
 	reaction_time += dt
 	combo_timer = maxf(0.0, combo_timer - dt)
-	if attack_time > PUNCH_DURATION or hit_done: return
-	if attack_time < PUNCH_DURATION * 0.38: return
+	flash_time = maxf(0.0, flash_time - dt)
+	guard_weight = move_toward(guard_weight, 1.0 if host.player_controlled and not host.crouch.active() else 0.0, dt * 6.0)
+	if attack_time > DURATION or hit_done or not host.player_controlled: return
+	if attack_time < DURATION * 0.43: return
 	hit_done = true
-	var hand = "left" if attack_index % 2 == 0 else "right"
-	var hand_bone = get_bone("leftforearm" if hand == "left" else "rightforearm")
-	var strike_origin = host.actor.global_position + Vector3.UP * 1.35
-	if hand_bone >= 0:
-		strike_origin = skeleton.global_transform * skeleton.get_bone_global_pose(hand_bone).origin
+	var origin = host.actor.global_position + Vector3.UP * 1.4
 	var forward = -host.actor.global_basis.z
-	var candidate = null
-	var nearest = INF
+	var ray_origin = host.camera.project_ray_origin(host.camera.get_viewport().get_visible_rect().size * 0.5)
+	var ray_direction = host.camera.project_ray_normal(host.camera.get_viewport().get_visible_rect().size * 0.5)
+	var best_target = null
+	var best_region = ""
+	var best_score = INF
 	for target in targets:
 		if target == host: continue
 		var delta = target.actor.global_position - host.actor.global_position
-		var along = delta.dot(forward)
-		if along < 0.15 or along > RANGE + 0.55: continue
-		var side_distance = (delta - forward * along).length()
-		if side_distance > HIT_RADIUS + 0.3: continue
-		if delta.length_squared() < nearest:
-			nearest = delta.length_squared()
-			candidate = target
-	if candidate != null:
-		var head_high = attack_index % 4 != 2
-		var impact = candidate.actor.global_position + Vector3.UP * (1.56 if head_high else 1.23)
-		candidate.combat.receive_hit(impact, forward)
-		print("PUNCH_HIT ", host.name, " -> ", candidate.name, " height=", impact.y)
-
-func get_bone(key: String) -> int:
-	return int(joints.get(key, -1))
-
-func additive(key: String, axis: Vector3, radians: float):
-	var i = get_bone(key)
-	if i < 0: return
-	var previous = skeleton.get_bone_pose_rotation(i)
-	skeleton.set_bone_pose_rotation(i, previous * Quaternion(axis.normalized(), radians))
+		if delta.length() > MAX_REACH + 0.3: continue
+		if delta.dot(forward) < 0.0: continue
+		for region in REGIONS:
+			var point = target.combat.region_point(region)
+			var along = (point - ray_origin).dot(ray_direction)
+			if along <= 0.0: continue
+			var miss = (point - (ray_origin + ray_direction * along)).length()
+			var allowed = float(REGIONS[region][2]) + 0.12
+			if miss > allowed: continue
+			var score = miss / allowed
+			if score < best_score:
+				best_score = score
+				best_target = target
+				best_region = region
+	if best_target != null:
+		best_target.combat.receive_hit(best_region, forward)
 
 func pose():
-	# Called strictly after AnimationTree.advance(), before the ground support pass.
-	var breathe = sin(idle_clock * 1.7) * 0.008
-	additive("spine2", Vector3.RIGHT, breathe)
-	if attack_time <= PUNCH_DURATION:
-		var t = clampf(attack_time / PUNCH_DURATION, 0.0, 1.0)
-		var extension = sin(PI * pow(t, 0.72))
+	# Called after the animation tree applies its current pose.
+	var breathing = sin(idle_clock * 1.8) * 0.012
+	rotate_bone("spine2", Vector3.RIGHT, breathing)
+	var g = guard_weight
+	if g > 0.001:
+		# High guard, elbows tucked, torso slightly bladed.
+		rotate_bone("spine1", Vector3.UP, 0.12 * g)
+		rotate_bone("leftarm", Vector3.RIGHT, -0.70 * g)
+		rotate_bone("rightarm", Vector3.RIGHT, -0.70 * g)
+		rotate_bone("leftforearm", Vector3.RIGHT, -1.12 * g)
+		rotate_bone("rightforearm", Vector3.RIGHT, -1.12 * g)
+		rotate_bone("leftshoulder", Vector3.UP, -0.13 * g)
+		rotate_bone("rightshoulder", Vector3.UP, 0.13 * g)
+	if attack_time < DURATION:
+		var t = clampf(attack_time / DURATION, 0.0, 1.0)
+		var drive = smoothstep(0.02, 0.42, t) * (1.0 - smoothstep(0.48, 1.0, t))
 		var side = -1.0 if attack_index % 2 == 0 else 1.0
-		var arm = "left" if side < 0 else "right"
-		# Guard -> shoulder drive -> extension -> guarded recovery.
-		additive(arm + "arm", Vector3.RIGHT, -0.8 * extension)
-		additive(arm + "forearm", Vector3.RIGHT, -0.5 * extension)
-		additive("spine1", Vector3.UP, side * 0.22 * extension)
-		additive("spine2", Vector3.RIGHT, -0.10 * extension)
-	if reaction_time < 0.44:
-		var u = clampf(reaction_time / 0.44, 0.0, 1.0)
-		var snap = sin(PI * pow(u, 0.65)) * reaction_force
-		var head_hit = reaction_height >= 1.38
-		additive("spine1", Vector3.RIGHT, 0.18 * snap)
-		additive("spine2", Vector3.UP, reaction_side * 0.18 * snap)
-		if head_hit:
-			additive("neck", Vector3.RIGHT, 0.17 * snap)
-			additive("head", Vector3.RIGHT, 0.28 * snap)
-			additive("head", Vector3.UP, reaction_side * 0.16 * snap)
+		var arm = "left" if side < 0.0 else "right"
+		var other = "right" if side < 0.0 else "left"
+		var power = 1.0 if attack_index % 2 == 0 else 1.15
+		rotate_bone("spine1", Vector3.UP, side * 0.35 * drive)
+		rotate_bone("spine2", Vector3.UP, side * 0.18 * drive)
+		rotate_bone("spine2", Vector3.RIGHT, -0.10 * drive)
+		rotate_bone(arm + "arm", Vector3.RIGHT, -1.05 * drive * power)
+		rotate_bone(arm + "forearm", Vector3.RIGHT, 0.85 * drive)
+		rotate_bone(arm + "shoulder", Vector3.UP, side * 0.12 * drive)
+		rotate_bone(other + "forearm", Vector3.RIGHT, -0.15 * drive)
+	if reaction_time < 0.5:
+		var t = clampf(reaction_time / 0.5, 0.0, 1.0)
+		var recoil = sin(PI * pow(t, 0.65))
+		rotate_bone("spine1", Vector3.RIGHT, 0.18 * recoil)
+		rotate_bone("spine2", Vector3.UP, reaction_side * 0.20 * recoil)
+		if reaction_region == "head":
+			rotate_bone("neck", Vector3.RIGHT, 0.18 * recoil)
+			rotate_bone("head", Vector3.RIGHT, 0.27 * recoil)
+			rotate_bone("head", Vector3.UP, reaction_side * 0.23 * recoil)
 		else:
-			additive("spine2", Vector3.RIGHT, 0.21 * snap)
-			additive("leftshoulder" if reaction_side < 0.0 else "rightshoulder", Vector3.RIGHT, 0.25 * snap)
+			rotate_bone("spine2", Vector3.RIGHT, 0.18 * recoil)
+			if reaction_region == "left_shoulder" or reaction_region == "right_shoulder":
+				rotate_bone("leftshoulder" if reaction_region == "left_shoulder" else "rightshoulder", Vector3.RIGHT, 0.3 * recoil)
+
+func update_flash():
+	for region in markers:
+		var indicator: MeshInstance3D = markers[region]
+		if region != flash_region or flash_time <= 0.0:
+			indicator.visible = false
+			continue
+		indicator.visible = true
+		indicator.global_position = region_point(region)
+		var material: StandardMaterial3D = indicator.material_override
+		material.albedo_color = Color(1.0, 0.025, 0.02, 0.77 * pow(flash_time / FLASH_DURATION, 1.4))
