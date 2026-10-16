@@ -201,7 +201,7 @@ func _ready():
 		crosshair.text = "+"
 		crosshair.add_theme_font_size_override("font_size", 28)
 		crosshair.add_theme_color_override("font_color", Color(1, 1, 1, 0.94))
-		crosshair.set_anchors_preset(Control.PRESET_CENTER)
+		crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		crosshair.position = Vector2(632, 344)
 		canvas.add_child(crosshair)
 	update_camera()
