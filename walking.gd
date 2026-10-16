@@ -35,6 +35,7 @@ var hud: Label
 var feet = preload("res://foot_ground.gd").new()
 var crouch = preload("res://crouch_controller.gd").new()
 var jump = preload("res://jump_controller.gd").new()
+var stance = preload("res://stance_controller.gd").new()
 var camera_focus_height = 1.05
 var clock = 0.0
 var speed = 0.0
@@ -158,6 +159,7 @@ func _ready():
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
 	graph.connect_node("Cadence",0,"Direction")
 	crouch.setup(self,player,graph)
+	if player_controlled: stance.install(self,player,graph)
 	print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
 	visual.add_child(tree)
@@ -193,7 +195,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Shift sprint | Ctrl walk | C crouch | Space jump | Right-drag orbit"
+		controls.text = "WASD move | Shift sprint | Ctrl walk | C crouch | Space jump | Left-click fight idle | Right-click normal idle | Right-drag orbit"
 		var crosshair = Label.new()
 		crosshair.text = "+"
 		crosshair.add_theme_font_size_override("font_size", 28)
@@ -331,6 +333,7 @@ func _physics_process(dt):
 	tree.set("parameters/Direction/blend_amount",direction_weight)
 	tree.set("parameters/Cadence/scale",speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
+	if player_controlled: stance.update(step,speed,crouch.active())
 	tree.advance(step)
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve()
@@ -484,6 +487,9 @@ func _unhandled_input(event):
 			if event.keycode==KEY_C: crouch.toggle()
 			if event.keycode==KEY_SPACE: jump.request_jump()
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		if event is InputEventMouseButton and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT: stance.request(true)
+			if event.button_index == MOUSE_BUTTON_RIGHT: stance.request(false)
 		if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 			orbit -= event.relative.x*0.006
 			elevation = clamp(elevation-event.relative.y*0.004,-0.8,0.15)
