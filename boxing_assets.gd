@@ -69,4 +69,5 @@ func install(owner: Node3D, player: AnimationPlayer, graph: AnimationNodeBlendTr
 	graph.add_node("BoxingOverlay", overlay)
 	graph.connect_node("BoxingOverlay", 0, "Posture")
 	graph.connect_node("BoxingOverlay", 1, "BoxingChoice")
+	graph.disconnect_node("output", 0)
 	graph.connect_node("output", 0, "BoxingOverlay")
