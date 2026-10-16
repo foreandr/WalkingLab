@@ -40,7 +40,12 @@ func install(owner: Node3D, player: AnimationPlayer, graph: AnimationNodeBlendTr
 		if clip_names.is_empty():
 			source.free()
 			continue
-		var clip = source_player.get_animation(clip_names[0]).duplicate(true)
+		var source_name = clip_names[0]
+		for candidate in clip_names:
+			if String(candidate) != "RESET":
+				source_name = candidate
+				break
+		var clip = source_player.get_animation(source_name).duplicate(true)
 		for index in range(clip.get_track_count() - 1, -1, -1):
 			var track_path = clip.track_get_path(index)
 			if track_path.get_subname_count() == 0:
