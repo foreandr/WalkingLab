@@ -6,7 +6,7 @@ extends Node3D
 var spawn_point = Vector3(0,0,40)
 var route_center = Vector3.ZERO
 var route_radius = 40.0
-var character_tint = Color("d5d9dd")
+var character_tint = Color.WHITE
 var manual_input = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
@@ -113,7 +113,7 @@ func _ready():
 	install_backwards(player)
 	print("MIXAMO_CLIPS ",player.get_animation_list())
 	var white = StandardMaterial3D.new()
-	white.albedo_color = character_tint
+	white.albedo_color = Color.WHITE
 	white.roughness = 0.8
 	for part in visual.find_children("*","MeshInstance3D",true,false): part.material_override = white
 	var space = AnimationNodeBlendSpace1D.new()
@@ -196,7 +196,14 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Shift sprint | Ctrl walk | C crouch | Space jump | Left-click punch | V AI showcase | Tab watch AI | Right-drag camera"
+		controls.text = "WASD move | Shift sprint | Ctrl walk | C crouch | Space jump | Left-click punch | Right-drag orbit"
+		var crosshair = Label.new()
+		crosshair.text = "+"
+		crosshair.add_theme_font_size_override("font_size", 28)
+		crosshair.add_theme_color_override("font_color", Color(1, 1, 1, 0.94))
+		crosshair.set_anchors_preset(Control.PRESET_CENTER)
+		crosshair.position = Vector2(632, 344)
+		canvas.add_child(crosshair)
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func smooth_gait(t: float) -> float:
@@ -252,6 +259,7 @@ func _physics_process(dt):
 		combat.update(dt, combat_targets)
 		combat.pose()
 		feet.resolve()
+		combat.update_flash()
 		return
 	if paused: return
 	var step = dt*(0.35 if slow else 1.0)
@@ -332,8 +340,10 @@ func _physics_process(dt):
 	tree.advance(step)
 	combat.update(step, combat_targets)
 	combat.pose()
+	combat.update_flash()
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve()
+	combat.update_flash()
 	crouch.update_capsule(step)
 	if test and frame%60==0: min_body = min(min_body,feet.lowest(feet.all_samples))
 	min_sole = min(min_sole,feet.minimum)
