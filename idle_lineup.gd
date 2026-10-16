@@ -1,34 +1,86 @@
 extends Node3D
-# A ten-pose inspection lineup built from ANIMATIONS THAT ALREADY MOVE THIS RIG.
-# All destination paths are copied from the imported animations; no guessed bones.
-const LABELS = ["Relaxed A", "Relaxed B", "Neutral", "Open", "Grounded", "Casual", "Alert", "Firm", "Loose", "Athletic"]
-const CLIPS = ["NewWalk","PreviousWalk","NewWalk","PreviousWalk","EasyRun","NewWalk","PreviousWalk","EasyRun","NewWalk","PreviousWalk"]
-const TIMES = [0.05,0.12,0.23,0.31,0.43,0.52,0.61,0.70,0.80,0.90]
+# Ten real, continuously playing stationary idle loops.
+# The Y Bot skeleton is driven using paths copied from its own proven animation.
+# Each loop averages a full gait cycle for a balanced neutral standing base, then
+# adds independent breathing/weight-shift motion. No gait clip is played.
+const LABELS = ["Neutral", "Relaxed", "Wide", "Upright", "Confident", "Guard", "At Ease", "Ready", "Solid", "Calm"]
+# (arm angle, elbow adjustment, chest breathing, sway, cycle seconds)
+const STYLES = [
+	[0.00,0.00,0.018,0.012,3.0],
+	[0.11,0.02,0.030,0.023,3.7],
+	[-0.13,0.04,0.025,0.018,3.2],
+	[0.02,-0.04,0.025,0.012,3.8],
+	[0.13,0.10,0.032,0.021,3.3],
+	[-0.10,0.23,0.040,0.027,2.8],
+	[0.10,0.05,0.021,0.026,4.1],
+	[-0.05,0.15,0.045,0.028,2.7],
+	[-0.16,0.12,0.032,0.012,3.5],
+	[0.04,0.00,0.014,0.018,4.4]
+]
+func base_rotation(source: Animation, track: int) -> Quaternion:
+	# Average opposite phases of the SAME full cycle. This cancels the
+	# left/right stride and arm swing that made the old lineup look like running.
+	var a = source.rotation_track_interpolate(track, source.length * 0.25)
+	var b = source.rotation_track_interpolate(track, source.length * 0.75)
+	return a.slerp(b,0.5).normalized()
 
-func make_idle(source: Animation, sample: float) -> Animation:
-	var result = Animation.new()
-	result.length = 2.0
-	result.loop_mode = Animation.LOOP_LINEAR
-	var at = source.length * sample
+func base_position(source: Animation, track: int) -> Vector3:
+	var a = source.position_track_interpolate(track, source.length * 0.25)
+	var b = source.position_track_interpolate(track, source.length * 0.75)
+	return (a+b)*0.5
+
+func make_idle(source: Animation, index: int) -> Animation:
+	var style = STYLES[index]
+	var length = float(style[4])
+	var idle = Animation.new()
+	idle.length = length
+	idle.loop_mode = Animation.LOOP_LINEAR
 	for i in range(source.get_track_count()):
-		var count = source.track_get_key_count(i)
-		if count == 0: continue
+		if source.track_get_key_count(i) == 0: continue
 		var kind = source.track_get_type(i)
-		if kind not in [Animation.TYPE_ROTATION_3D, Animation.TYPE_SCALE_3D, Animation.TYPE_POSITION_3D]: continue
-		var bonepath = source.track_get_path(i)
-		# Retain original animation paths exactly: these tracks are already validated.
-		var dst = result.add_track(kind)
-		result.track_set_path(dst,bonepath)
-		var value
-		match kind:
-			Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(i,at)
-			Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(i,at)
-			Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(i,at)
-		# Freeze positions to remove movement; very small variation is introduced
-		# only where verified bone track paths already exist.
-		result.track_insert_key(dst,0.0,value)
-		result.track_insert_key(dst,2.0,value)
-	return result
+		if kind not in [Animation.TYPE_POSITION_3D,Animation.TYPE_ROTATION_3D,Animation.TYPE_SCALE_3D]: continue
+		var path = source.track_get_path(i)
+		var bone = String(path).to_lower()
+		var dst = idle.add_track(kind)
+		idle.track_set_path(dst,path)
+		if kind == Animation.TYPE_ROTATION_3D:
+			var neutral = base_rotation(source,i)
+			var offset = Quaternion.IDENTITY
+			var motion_axis = Vector3.ZERO
+			var angle = 0.0
+			if bone.contains("leftarm") and not bone.contains("forearm"):
+				angle = float(style[0])
+				motion_axis = Vector3(0,0,float(style[2]))
+			elif bone.contains("rightarm") and not bone.contains("forearm"):
+				angle = -float(style[0])
+				motion_axis = Vector3(0,0,-float(style[2]))
+			elif bone.contains("leftforearm"):
+				angle = float(style[1])
+				motion_axis = Vector3(0,float(style[2])*0.4,0)
+			elif bone.contains("rightforearm"):
+				angle = -float(style[1])
+				motion_axis = Vector3(0,-float(style[2])*0.4,0)
+			elif bone.contains("spine"):
+				motion_axis = Vector3(float(style[2]),float(style[3])*0.3,0)
+			elif bone.contains("head") or bone.contains("neck"):
+				motion_axis = Vector3(-float(style[2])*0.25,0,float(style[3])*0.25)
+			if absf(angle) > 0.001:
+				offset = Quaternion(Vector3(0,0,1),angle)
+			for frame in range(9):
+				var time = float(frame)*length/8.0
+				var oscillation = sin(float(frame)*TAU/8.0)
+				var movement = Quaternion.from_euler(motion_axis*oscillation)
+				idle.rotation_track_insert_key(dst,time,(neutral*offset*movement).normalized())
+		elif kind == Animation.TYPE_POSITION_3D:
+			var pos = base_position(source,i)
+			# Eliminate gait translation. Keep the character planted.
+			for frame in range(9):
+				idle.position_track_insert_key(dst,float(frame)*length/8.0,pos)
+		elif kind == Animation.TYPE_SCALE_3D:
+			var scale_value = source.scale_track_interpolate(i,source.length*0.5)
+			idle.scale_track_insert_key(dst,0.0,scale_value)
+			idle.scale_track_insert_key(dst,length,scale_value)
+	return idle
 
 func _ready():
 	for index in range(10):
@@ -37,15 +89,13 @@ func _ready():
 		model.rotation.y = PI
 		add_child(model)
 		var players = model.find_children("*","AnimationPlayer",true,false)
-		if players.is_empty():
-			push_warning("NO_IDLE_PREVIEW_ANIMATION_PLAYER "+str(index+1))
-			continue
+		if players.is_empty(): continue
 		var animator: AnimationPlayer = players[0]
-		var name = CLIPS[index]
+		var name = "NewWalk"
 		if not animator.has_animation(name):
-			push_warning("NO_IDLE_PREVIEW_SOURCE "+name)
+			push_warning("IDLE_SOURCE_MISSING "+name)
 			continue
-		var idle = make_idle(animator.get_animation(name), TIMES[index])
+		var idle = make_idle(animator.get_animation(name),index)
 		var library = AnimationLibrary.new()
 		library.add_animation("Standing",idle)
 		animator.add_animation_library("preview",library)
@@ -70,5 +120,5 @@ func _ready():
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.position = Vector3(0,2.12,0)
 		model.add_child(label)
-		print("IDLE_PREVIEW ",index+1," ",name," frame=",TIMES[index]," tracks=",idle.get_track_count())
-	print("IDLE_LINEUP_READY 10 verified-path standing poses")
+		print("STANDING_IDLE ",index+1," loops=",idle.length," tracks=",idle.get_track_count())
+	print("IDLE_LINEUP_READY 10 continuously playing stationary idles")
