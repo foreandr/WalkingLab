@@ -2,11 +2,10 @@ extends Node3D
 @export var player_controlled = false
 @export var actor_only = false
 @export var autonomous_only = false
-@export var stationary_only = false
 var spawn_point = Vector3(0,0,40)
 var route_center = Vector3.ZERO
 var route_radius = 40.0
-var character_tint = Color.WHITE
+var character_tint = Color("d5d9dd")
 var manual_input = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
@@ -34,8 +33,6 @@ var camera: Camera3D
 var hud: Label
 var feet = preload("res://foot_ground.gd").new()
 var crouch = preload("res://crouch_controller.gd").new()
-var jump = preload("res://jump_controller.gd").new()
-var stance = preload("res://stance_controller.gd").new()
 var camera_focus_height = 1.05
 var clock = 0.0
 var speed = 0.0
@@ -111,7 +108,7 @@ func _ready():
 	install_backwards(player)
 	print("MIXAMO_CLIPS ",player.get_animation_list())
 	var white = StandardMaterial3D.new()
-	white.albedo_color = Color.WHITE
+	white.albedo_color = character_tint
 	white.roughness = 0.8
 	for part in visual.find_children("*","MeshInstance3D",true,false): part.material_override = white
 	var space = AnimationNodeBlendSpace1D.new()
@@ -159,7 +156,6 @@ func _ready():
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
 	graph.connect_node("Cadence",0,"Direction")
 	crouch.setup(self,player,graph)
-	if player_controlled: stance.install(self,player,graph)
 	print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
 	visual.add_child(tree)
@@ -195,14 +191,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Shift sprint | Ctrl walk | C crouch | Space jump | Left-click fight idle | Right-click normal idle | Right-drag orbit"
-		var crosshair = Label.new()
-		crosshair.text = "+"
-		crosshair.add_theme_font_size_override("font_size", 28)
-		crosshair.add_theme_color_override("font_color", Color(1, 1, 1, 0.94))
-		crosshair.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		crosshair.position = Vector2(632, 344)
-		canvas.add_child(crosshair)
+		controls.text = "WASD move | Hold Shift to build sprint | Ctrl walk | C crouch | V AI showcase | Tab watch AI | Right-drag camera"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func smooth_gait(t: float) -> float:
@@ -253,10 +242,6 @@ func begin_direction_change(target_backward: bool):
 	turn_start_forward = blend
 	turn_start_back = back_blend
 func _physics_process(dt):
-	if stationary_only:
-		tree.advance(dt)
-		feet.resolve()
-		return
 	if paused: return
 	var step = dt*(0.35 if slow else 1.0)
 	clock += step
@@ -287,19 +272,19 @@ func _physics_process(dt):
 		signed_speed = crouch.forward_speed
 	elif player_controlled:
 		var target_speed = manual_target_speed()
-		signed_speed = move_toward(signed_speed,target_speed,step*(18.0 if target_speed * signed_speed < 0.0 else (12.0 if target_speed == 0.0 else 9.0)))
+		signed_speed = move_toward(signed_speed,target_speed,step*(8.0 if target_speed==0.0 else 6.0))
 		backward = signed_speed<0.0
 		direction_weight = move_toward(direction_weight,1.0 if backward else 0.0,step*4.0)
 		blend = speed_band(SPEEDS,abs(signed_speed))
 		back_blend = speed_band(BACK_SPEEDS,abs(signed_speed))
 	elif turning:
 		turn_time += step
-		var weight = smooth_gait(clamp(turn_time/0.65,0.0,1.0))
+		var weight = smooth_gait(clamp(turn_time/4.0,0.0,1.0))
 		blend = lerp(turn_start_forward,0.0,weight)
 		back_blend = lerp(turn_start_back,0.0,weight)
 		direction_weight = lerp(turn_start_weight,1.0 if turn_target else 0.0,weight)
 		signed_speed = lerp(turn_start_speed,-BACK_SPEEDS[0] if turn_target else SPEEDS[0],weight)
-		if turn_time>=0.65:
+		if turn_time>=4.0:
 			turning = false
 			backward = turn_target
 			mode_clock = 0.0
@@ -333,7 +318,6 @@ func _physics_process(dt):
 	tree.set("parameters/Direction/blend_amount",direction_weight)
 	tree.set("parameters/Cadence/scale",speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
-	if player_controlled: stance.update(step,speed,crouch.active())
 	tree.advance(step)
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve()
@@ -360,16 +344,10 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
-	if player_controlled:
-		jump.before_move(step, actor, crouch.active())
-	else:
-		actor.velocity.y = -0.3
+	actor.velocity.y = -0.3
 	actor.move_and_slide()
-	if player_controlled:
-		jump.after_move(step, actor)
-		jump.apply_visual(step, visual, wrapf(manual_heading - actor.rotation.y, -PI, PI), speed)
 	# This arena has a flat floor at zero, including at wall contacts.
-	if actor.position.y<0.0 and (not player_controlled or jump.mode != "airborne"):
+	if actor.position.y<0.0:
 		actor.position.y = 0.0
 		actor.velocity.y = 0.0
 	if backward and not turning and not crouch_driving:
@@ -418,65 +396,22 @@ func speed_band(values: Array, value: float) -> float:
 		if value<=values[index+1]: return clamp(float(index)+(value-values[index])/(values[index+1]-values[index]),0.0,float(values.size()-1))
 	return float(values.size()-1)
 func make_standing_idle(player: AnimationPlayer):
-	# Prefer the user's own Mixamo Idle.fbx, imported by RUN.bat.
-	# The original standing pose remains the safe fallback.
 	var source = player.get_animation("crouch/Stand")
-	var custom_loaded = false
-	var idle_path = "res://assets/custom_idle/Idle.fbx"
-	if ResourceLoader.exists(idle_path):
-		var packed = load(idle_path)
-		if packed is PackedScene:
-			var instance = packed.instantiate()
-			var anim_players = instance.find_children("*", "AnimationPlayer", true, false)
-			var skeletons = instance.find_children("*", "Skeleton3D", true, false)
-			if not anim_players.is_empty() and not skeletons.is_empty():
-				var source_player: AnimationPlayer = anim_players[0]
-				var source_skeleton: Skeleton3D = skeletons[0]
-				var match_count = 0
-				for i in range(skeleton.get_bone_count()):
-					if source_skeleton.find_bone(skeleton.get_bone_name(i)) >= 0:
-						match_count += 1
-				if match_count == skeleton.get_bone_count():
-					for name in source_player.get_animation_list():
-						if name != "RESET":
-							source = source_player.get_animation(name).duplicate(true)
-							var target_path = player.get_node(player.root_node).get_path_to(skeleton)
-							for i in range(source.get_track_count() - 1, -1, -1):
-								var track_path = source.track_get_path(i)
-								if track_path.get_subname_count() == 0:
-									source.remove_track(i)
-									continue
-								var bone = String(track_path.get_subname(0))
-								if skeleton.find_bone(bone) < 0:
-									source.remove_track(i)
-									continue
-								source.track_set_path(i, NodePath(String(target_path) + ":" + bone))
-							custom_loaded = true
-							print("CUSTOM_IDLE_LOADED ", name)
-							break
-				else:
-					push_warning("Custom Idle.fbx skeleton differs; keeping safe standing pose.")
-			instance.free()
 	var idle = Animation.new()
-	if custom_loaded:
-		idle = source.duplicate(true)
-	else:
-		# Freeze the end of Stand; do not loop a get-up animation.
-		idle.length = 1.0
-		for track in range(source.get_track_count()):
-			if source.track_get_key_count(track) == 0: continue
-			var kind = source.track_get_type(track)
-			var value
-			match kind:
-				Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(track, source.length)
-				Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(track, source.length)
-				Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(track, source.length)
-				_: value = source.track_get_key_value(track, source.track_get_key_count(track) - 1)
-			var target = idle.add_track(kind)
-			idle.track_set_path(target, source.track_get_path(track))
-			idle.track_insert_key(target, 0.0, value)
-			idle.track_insert_key(target, 1.0, value)
+	idle.length = 1.0
 	idle.loop_mode = Animation.LOOP_LINEAR
+	for track in range(source.get_track_count()):
+		var kind = source.track_get_type(track)
+		var value
+		match kind:
+			Animation.TYPE_POSITION_3D: value = source.position_track_interpolate(track,source.length)
+			Animation.TYPE_ROTATION_3D: value = source.rotation_track_interpolate(track,source.length)
+			Animation.TYPE_SCALE_3D: value = source.scale_track_interpolate(track,source.length)
+			_: value = source.track_get_key_value(track,source.track_get_key_count(track)-1)
+		var target = idle.add_track(kind)
+		idle.track_set_path(target,source.track_get_path(track))
+		idle.track_insert_key(target,0.0,value)
+		idle.track_insert_key(target,1.0,value)
 	var library = AnimationLibrary.new()
 	library.add_animation("StandIdle",idle)
 	player.add_animation_library("manual",library)
@@ -485,11 +420,7 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_C: crouch.toggle()
-			if event.keycode==KEY_SPACE: jump.request_jump()
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-		if event is InputEventMouseButton and event.pressed:
-			if event.button_index == MOUSE_BUTTON_LEFT: stance.request(true)
-			if event.button_index == MOUSE_BUTTON_RIGHT: stance.request(false)
 		if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 			orbit -= event.relative.x*0.006
 			elevation = clamp(elevation-event.relative.y*0.004,-0.8,0.15)

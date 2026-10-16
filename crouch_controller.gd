@@ -79,7 +79,7 @@ func setup(owner_node, player: AnimationPlayer, graph: AnimationNodeBlendTree):
 	posture_blend.sync = true
 	graph.add_node("Posture",posture_blend)
 	var standing_source = "Cadence"
-	if host.player_controlled or host.stationary_only:
+	if host.player_controlled:
 		host.make_standing_idle(player)
 		var idle = AnimationNodeAnimation.new()
 		idle.animation = "manual/StandIdle"
@@ -188,11 +188,10 @@ func update(dt: float) -> bool:
 		forward_speed = host.signed_speed
 	else:
 		var before = phase_time
-		var transition_rate = 2.2 if state in ["Enter", "Stand", "Launch", "recover", "brake", "settle"] else 1.0
-		phase_time += dt * transition_rate
+		phase_time += dt
 		match state:
 			"brake":
-				var braking_time = clamp(held_velocity.length()/7.0,0.25,0.85)
+				var braking_time = clamp(held_velocity.length()/4.0,0.55,2.5)
 				var weight = smooth_step(phase_time/braking_time)
 				forward_speed = held_velocity.y*(1.0-weight)
 				lateral_speed = 0.0
@@ -237,11 +236,11 @@ func update(dt: float) -> bool:
 					if move_direction>0.8: seen["CrouchBack"] = true
 				if exit_request!="": request_exit(exit_request,false)
 			"settle":
-				var weight = smooth_step(phase_time/0.36)
+				var weight = smooth_step(phase_time/0.65)
 				move_weight = 1.0-weight
 				lateral_speed = held_velocity.x*(1.0-weight)
 				forward_speed = held_velocity.y*(1.0-weight)
-				if phase_time>=0.36:
+				if phase_time>=0.65:
 					pick_action(exit_kind)
 					change_state(exit_kind)
 			"Stand", "Launch":
@@ -273,12 +272,12 @@ func update(dt: float) -> bool:
 					exit_request = ""
 					change_state("recover")
 			"recover":
-				var weight = smooth_step(phase_time/0.55)
+				var weight = smooth_step(phase_time/1.0)
 				posture = 1.0-weight
 				var target_speed = (host.manual_target_speed() if host.player_controlled and exit_kind!="Launch" else (-host.BACK_SPEEDS[0] if host.backward else host.SPEEDS[int(host.blend)]))
 				forward_speed = lerp(recovery_start.y,target_speed,weight)
 				lateral_speed = recovery_start.x*(1.0-weight)
-				if phase_time>=0.55:
+				if phase_time>=1.0:
 					posture = 0.0
 					change_state("standing")
 					host.turning = false
