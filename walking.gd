@@ -38,6 +38,8 @@ var jump_velocity: float = 0.0
 var jump_phase: float = 0.0
 var jump_pose: float = 0.0
 var jump_requested: bool = false
+const JUMP_PREP_TIME: float = 0.12
+var jump_prep_remaining: float = -1.0
 var jump_thighs: Array[int] = []
 var jump_calves: Array[int] = []
 var camera_sensitivity: float = 1.0
@@ -496,10 +498,17 @@ func _physics_process(dt):
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
 	if player_controlled:
-		if jump_requested and actor.is_on_floor() and not crouch.active():
-			jump_velocity = jump_power
-			jump_phase = 0.0
+		if jump_requested and actor.is_on_floor() and not crouch.active() and jump_prep_remaining < 0.0:
+			jump_prep_remaining = JUMP_PREP_TIME
 		jump_requested = false
+		if jump_prep_remaining >= 0.0:
+			if not actor.is_on_floor() or crouch.active():
+				jump_prep_remaining = -1.0
+			else:
+				jump_prep_remaining -= step
+				if jump_prep_remaining < 0.0:
+					jump_velocity = jump_power
+					jump_phase = 0.0
 		jump_velocity -= 18.0 * step
 		actor.velocity.y = jump_velocity
 	else:
@@ -906,12 +915,16 @@ func apply_jump_pose(dt: float) -> void:
 	# Takeoff tuck, airborne hold and soft landing blend independently.
 	var airborne: bool = jump_velocity > 0.1 or not actor.is_on_floor()
 	var desired: float = 1.0 if airborne else 0.0
+	# Subtle 120 ms compression before the actual physics impulse.
+	var prep: float = 0.0
+	if jump_prep_remaining >= 0.0:
+		prep = sin(PI * (1.0-jump_prep_remaining/JUMP_PREP_TIME) * 0.5)
 	jump_pose = move_toward(jump_pose,desired,dt*(8.0 if airborne else 6.0))
-	if jump_pose < 0.002: return
-	var knee_bend: float = 0.43 * smooth_gait(jump_pose)
+	if jump_pose < 0.002 and prep < 0.002: return
+	var knee_bend: float = 0.43 * smooth_gait(jump_pose) + 0.18 * prep
 	for thigh in jump_thighs:
 		var q: Quaternion = skeleton.get_bone_pose_rotation(thigh)
-		skeleton.set_bone_pose_rotation(thigh,(q * Quaternion(Vector3.RIGHT,-0.26*jump_pose)).normalized())
+		skeleton.set_bone_pose_rotation(thigh,(q * Quaternion(Vector3.RIGHT,-0.26*jump_pose - 0.12*prep)).normalized())
 	for calf in jump_calves:
 		var q: Quaternion = skeleton.get_bone_pose_rotation(calf)
 		skeleton.set_bone_pose_rotation(calf,(q * Quaternion(Vector3.RIGHT,knee_bend)).normalized())
