@@ -190,7 +190,7 @@ func update(dt: float) -> bool:
 		forward_speed = host.signed_speed
 	else:
 		var before = phase_time
-		phase_time += dt
+		phase_time += dt * (10.0 if state in ["settle","Stand","recover"] and exit_kind == "Stand" else 1.0)
 		match state:
 			"brake":
 				var braking_time = clamp(held_velocity.length()/4.0,0.55,2.5)
