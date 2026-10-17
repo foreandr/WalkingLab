@@ -4,6 +4,8 @@ extends Node3D
 @export var autonomous_only = false
 @export var stationary_only = false
 var idle_variants: Array[String] = []
+var jab_ready := false
+var jab_cooldown := 0.0
 var was_moving_for_idle := false
 var spawn_point = Vector3(0,0,40)
 var route_center = Vector3.ZERO
@@ -167,6 +169,7 @@ func _ready():
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
 	graph.connect_node("Cadence",0,"Direction")
 	crouch.setup(self,player,graph)
+	if player_controlled: install_left_jab(player,graph)
 	if player_controlled or stationary_only: choose_random_idle()
 	print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
@@ -262,6 +265,7 @@ func _physics_process(dt):
 		return
 	var step = dt*(0.35 if slow else 1.0)
 	clock += step
+	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	var active = {}
 	var old_blend = blend
 	var old_back_blend = back_blend
@@ -538,6 +542,107 @@ func make_standing_idle(player: AnimationPlayer):
 		idle_variants.append("manual/Fallback")
 	player.add_animation_library("manual",library)
 
+func install_left_jab(player: AnimationPlayer, graph: AnimationNodeBlendTree) -> void:
+	# One imported, upper-body-only Mixamo punch. Preserve the original rig,
+	# locomotion, feet, hip orientation, and random standing idle selection.
+	var path = "res://assets/custom_idle/Punching.fbx"
+	if not ResourceLoader.exists(path):
+		push_warning("LEFT_JAB_MISSING: place Punching.fbx in Downloads and run RUN.bat")
+		return
+	var packed = load(path)
+	if not packed is PackedScene: return
+	var root = packed.instantiate()
+	var animators = root.find_children("*","AnimationPlayer",true,false)
+	var rigs = root.find_children("*","Skeleton3D",true,false)
+	if animators.is_empty() or rigs.is_empty():
+		root.free()
+		push_warning("LEFT_JAB_FBX_NO_SKELETON")
+		return
+	var source_rig: Skeleton3D = rigs[0]
+	var source_bones := {}
+	for i in range(source_rig.get_bone_count()):
+		source_bones[normalized_idle_bone(String(source_rig.get_bone_name(i)))] = i
+	var dest_bones := {}
+	for i in range(skeleton.get_bone_count()):
+		dest_bones[normalized_idle_bone(String(skeleton.get_bone_name(i)))] = i
+	var valid_paths := {}
+	var reference: Animation = player.get_animation("NewWalk")
+	for i in range(reference.get_track_count()):
+		if reference.track_get_type(i) != Animation.TYPE_ROTATION_3D: continue
+		var p = reference.track_get_path(i)
+		if p.get_subname_count() == 0: continue
+		var n = normalized_idle_bone(String(p.get_subname(p.get_subname_count()-1)))
+		valid_paths[n] = p
+	var chosen: Animation = null
+	var best := 0
+	for animator in animators:
+		for name in animator.get_animation_list():
+			if name == "RESET": continue
+			var candidate: Animation = animator.get_animation(name)
+			var moving := 0
+			for i in range(candidate.get_track_count()):
+				if candidate.track_get_type(i) != Animation.TYPE_ROTATION_3D or candidate.track_get_key_count(i) < 2: continue
+				var first: Quaternion = candidate.track_get_key_value(i,0)
+				var mid: Quaternion = candidate.track_get_key_value(i,int(candidate.track_get_key_count(i)/2))
+				if absf(first.dot(mid)) < 0.99999: moving += 1
+			if moving > best:
+				best = moving
+				chosen = candidate
+	if chosen == null:
+		root.free()
+		push_warning("LEFT_JAB_NO_ANIMATED_TAKE")
+		return
+	var clip = Animation.new()
+	clip.length = chosen.length
+	clip.loop_mode = Animation.LOOP_NONE
+	var tracks := 0
+	for i in range(chosen.get_track_count()):
+		if chosen.track_get_type(i) != Animation.TYPE_ROTATION_3D: continue
+		var p = chosen.track_get_path(i)
+		if p.get_subname_count() == 0: continue
+		var n = normalized_idle_bone(String(p.get_subname(p.get_subname_count()-1)))
+		# Leave legs, pelvis and translation strictly on the locomotion controller.
+		if n == "hips" or n.contains("leg") or n.contains("foot") or n.contains("toe"): continue
+		if not valid_paths.has(n) or not source_bones.has(n) or not dest_bones.has(n): continue
+		var from_index: int = source_bones[n]
+		var to_index: int = dest_bones[n]
+		var from_rest: Quaternion = source_rig.get_bone_rest(from_index).basis.get_rotation_quaternion()
+		var to_rest: Quaternion = skeleton.get_bone_rest(to_index).basis.get_rotation_quaternion()
+		var correction = (to_rest.inverse()*from_rest).normalized()
+		var track = clip.add_track(Animation.TYPE_ROTATION_3D)
+		clip.track_set_path(track,valid_paths[n])
+		for k in range(chosen.track_get_key_count(i)):
+			var q: Quaternion = chosen.track_get_key_value(i,k)
+			clip.rotation_track_insert_key(track,chosen.track_get_key_time(i,k),(correction*q*correction.inverse()).normalized())
+		tracks += 1
+	root.free()
+	if tracks < 6:
+		push_warning("LEFT_JAB_TOO_FEW_TRACKS " + str(tracks))
+		return
+	var lib := AnimationLibrary.new()
+	lib.add_animation("LeftJab",clip)
+	player.add_animation_library("combat",lib)
+	var jab_node := AnimationNodeAnimation.new()
+	jab_node.animation = "combat/LeftJab"
+	graph.add_node("JabClip",jab_node)
+	var shot := AnimationNodeOneShot.new()
+	shot.fadein_time = 0.09
+	shot.fadeout_time = 0.16
+	graph.add_node("JabOneShot",shot)
+	graph.connect_node("JabOneShot",0,"Posture")
+	graph.connect_node("JabOneShot",1,"JabClip")
+	graph.disconnect_node("output",0)
+	graph.connect_node("output",0,"JabOneShot")
+	jab_ready = true
+	print("LEFT_JAB_READY duration=",clip.length," upper_body_tracks=",tracks)
+
+func throw_left_jab() -> void:
+	if not jab_ready or jab_cooldown > 0.0: return
+	if crouch.active(): return
+	tree.set("parameters/JabOneShot/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	jab_cooldown = 0.4
+	print("LEFT_JAB_TRIGGERED")
+
 func choose_random_idle():
 	if idle_variants.is_empty() or crouch.standing_idle_node == null: return
 	var current: String = String(crouch.standing_idle_node.animation)
@@ -557,6 +662,7 @@ func _unhandled_input(event):
 			orbit -= event.relative.x*0.006
 			elevation = clamp(elevation-event.relative.y*0.004,-0.8,0.15)
 		if event is InputEventMouseButton and event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT: throw_left_jab()
 			if event.button_index==MOUSE_BUTTON_WHEEL_UP: distance = max(3.0,distance-0.4)
 			if event.button_index==MOUSE_BUTTON_WHEEL_DOWN: distance = min(22.0,distance+0.4)
 		return
