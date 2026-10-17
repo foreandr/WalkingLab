@@ -1129,8 +1129,10 @@ func update_flight_orientation(dt: float) -> void:
 	# Head-first along camera aiming direction; physical collider remains upright.
 	var target_pitch: float = 0.0
 	if flight_enabled:
-		target_pitch = clampf(PI*0.5-elevation,0.08,PI-0.08)
-		if actor.velocity.length() < 0.5: target_pitch = 1.35
+		# Hover upright using the normal idle; tilt only when actually steering.
+		var steering: bool = manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL) if player_controlled else actor.velocity.length() > 0.7
+		if steering:
+			target_pitch = clampf(PI*0.5-elevation,0.08,PI-0.08)
 	flight_visual_pitch = move_toward(flight_visual_pitch,target_pitch,dt*(3.5 if flight_enabled else 8.0))
 	visual.rotation.x = flight_visual_pitch
 	# Rig pivot is at the feet. Raise the visible mesh as it pitches so
@@ -1162,8 +1164,10 @@ func apply_jump_pose(dt: float) -> void:
 		if flight_idle_active: print("FLIGHT_IDLE_EXIT ",name)
 		flight_idle_active = false
 	flight_idle_time += dt
-	flight_pose_weight = move_toward(flight_pose_weight,1.0 if flight_enabled else 0.0,dt*3.0)
-	flight_idle_weight = move_toward(flight_idle_weight,0.0 if flight_moving else 1.0,dt*4.0)
+	flight_idle_weight = move_toward(flight_idle_weight,1.0 if flight_enabled and not flight_moving else 0.0,dt*3.2)
+	# Ground idle animation remains active beneath this layer; fade the
+	# flying clip OUT completely when hovering so that idle can be seen.
+	flight_pose_weight = move_toward(flight_pose_weight,1.0 if flight_enabled and flight_moving else 0.0,dt*3.2)
 	var clip: Dictionary = {}
 	var moment: float = 0.0
 	var blend_weight: float = 0.0
@@ -1208,8 +1212,8 @@ func apply_jump_pose(dt: float) -> void:
 			var q: Quaternion = skeleton.get_bone_pose_rotation(bone)
 			var target: Quaternion = sample_jump_curve(entry["keys"],moment)
 			if flight_enabled and clip == flying_clip:
-				var hover_rotation: Quaternion = sample_jump_curve(entry["keys"],idle_moment)
-				target = target.slerp(hover_rotation,flight_idle_weight)
+				# Flight motion only; idle is supplied by the existing idle animation tree.
+				pass
 			skeleton.set_bone_pose_rotation(bone,q.slerp(target,blend_weight))
 	elif clip.is_empty() and prep > 0.001:
 		# No inverted procedural knee bends if the supplied clips are missing.
