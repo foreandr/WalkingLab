@@ -3,8 +3,8 @@ $projectRoot = [IO.Path]::GetFullPath((Get-Location).Path).TrimEnd('\')
 $running = @(Get-CimInstance Win32_Process | Where-Object {
     $_.Name -match '^Godot.*\.exe$' -and
     $_.CommandLine -and
-    $_.CommandLine.Contains($projectRoot) -and
-    $_.CommandLine -match '(?i)(--path|--editor|--import)'
+    (($_.CommandLine.Contains($projectRoot) -and $_.CommandLine -match '(?i)(--path|--editor|--import)') -or
+     ((Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue).MainWindowTitle -like '*WalkingLab*'))
 })
 foreach ($process in $running) {
     Write-Host ("Closing previous WalkingLab process " + $process.ProcessId)
