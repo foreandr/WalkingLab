@@ -221,6 +221,9 @@ func _ready():
 	white.albedo_color = character_tint
 	white.roughness = 0.8
 	for part in visual.find_children("*","MeshInstance3D",true,false): part.material_override = white
+	# The damage shader must be installed after the default material,
+	# otherwise the default material masks every injury color.
+	damage_system.apply_damage_material()
 	var space = AnimationNodeBlendSpace1D.new()
 	space.min_space = 0.0
 	space.max_space = float(NAMES.size()-1)
