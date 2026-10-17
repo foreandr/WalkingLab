@@ -62,6 +62,18 @@ func _ready():
 	static_dummy.actor.rotation.y = PI
 	make_label(static_dummy.actor,"YELLOW",Color("e5bc2d"))
 	mannequins.append(static_dummy)
+	var fire_dummy = preload("res://walking.gd").new()
+	fire_dummy.name = "OrangeFireCaster"
+	fire_dummy.autonomous_only = true
+	fire_dummy.actor_only = true
+	fire_dummy.ai_abilities = true
+	fire_dummy.animation_test_mode = "fire"
+	fire_dummy.spawn_point = Vector3(-7.0,0,3.0)
+	fire_dummy.character_tint = Color("ff8b25")
+	add_child(fire_dummy)
+	fire_dummy.actor.rotation.y = PI
+	make_label(fire_dummy.actor,"ORANGE",Color("ff8b25"))
+	mannequins.append(fire_dummy)
 	ai = mannequins[0]
 	ai_label = null
 
