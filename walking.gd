@@ -37,21 +37,10 @@ var character_tint = Color("d5d9dd")
 var manual_input = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
-var jump_velocity: float = 0.0
-var jump_phase: float = 0.0
-var jump_animation_time: float = -1.0
 var flight_takeoff_time: float = -1.0
 const FLIGHT_TAKEOFF_POSE_DURATION: float = 0.38
-var jump_pose: float = 0.0
-var jump_requested: bool = false
-const JUMP_PREP_TIME: float = 0.52
-var jump_prep_remaining: float = -1.0
-var jump_thighs: Array[int] = []
-var jump_calves: Array[int] = []
-var jump_clips: Array[Dictionary] = []
 var flying_clip: Dictionary = {}
 var flying_idle_clip: Dictionary = {}
-var chosen_jump_index: int = -1
 var flight_animation_time: float = 0.0
 var flight_visual_pitch: float = 0.0
 var flight_pose_weight: float = 0.0
@@ -70,7 +59,6 @@ const FLIGHT_LAUNCH_SPEED: float = 14.0
 const FLIGHT_LAND_HEIGHT: float = 0.42
 const FLIGHT_SPEED: float = 7.0
 var camera_sensitivity: float = 1.0
-var jump_power: float = 6.0
 var fireball_speed_scale: float = 1.0
 var options_panel: PanelContainer
 # Seconds per smooth 6 -> 8 -> 10 -> 12 m/s sprint stage.
@@ -256,10 +244,9 @@ func _ready():
 			if bone_label == "rightarm": jab_right_arm = bone_i
 			if bone_label == "rightforearm": jab_right_forearm = bone_i
 			if bone_label == "righthand": jab_right_hand = bone_i
-			if bone_label in ["leftupleg","rightupleg","leftthigh","rightthigh"]: jump_thighs.append(bone_i)
-			if bone_label in ["leftleg","rightleg","leftcalf","rightcalf"]: jump_calves.append(bone_i)
+
 		print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
-	if player_controlled or ai_abilities or ai_mode == "fly": load_jump_clips()
+	if player_controlled or ai_abilities or ai_mode == "fly": load_flight_clips()
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
@@ -344,13 +331,13 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	column.add_child(heading)
 	add_setting_slider(column,"Camera sensitivity",0.3,2.5,1.0,0.1,"camera")
 	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
-	add_setting_slider(column,"Jump strength",4.0,8.5,jump_power,0.5,"jump")
+
 	add_setting_slider(column,"Fireball speed",0.5,2.0,1.0,0.1,"fireball")
 	var controls_heading := Button.new()
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move\nAlt + W: Sprint\nCtrl: Walk / descend in flight\nSpace: Jump / ascend in flight\nMB3 + drag: Camera rotation\nMB2: No camera action\nShift: Switch selected arm\nLeft click: Arm reach\n1: Fire | 2: Water | 3: Flight\nC: Crouch | F11: Fullscreen"
+	controls_details.text = "WASD: Move\nAlt + W: Sprint\nCtrl: Walk / descend in flight\nSpace: Ascend in flight\nMB3 + drag: Camera rotation\nMB2: No camera action\nShift: Switch selected arm\nLeft click: Arm reach\n1: Fire | 2: Water | 3: Flight\nC: Crouch | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
@@ -372,7 +359,7 @@ func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: 
 		match setting:
 			"camera": camera_sensitivity = value
 			"fov": camera.fov = value
-			"jump": jump_power = value
+
 			"fireball": fireball_speed_scale = value
 	)
 
@@ -472,7 +459,7 @@ func _physics_process(dt):
 		flight_enabled = true
 		flight_launch_remaining = FLIGHT_LAUNCH_DURATION
 		flight_takeoff_time = 0.0
-		chosen_jump_index = 0 if not jump_clips.is_empty() else -1
+		
 		flight_clearance_time = 1.0
 	var active = {}
 	var old_blend = blend
@@ -561,12 +548,12 @@ func _physics_process(dt):
 		was_moving_for_idle = moving_now
 	tree.advance(step)
 	if player_controlled or ai_abilities or ai_mode == "fly":
-		apply_jump_pose(step)
+		apply_flight_pose(step)
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
-	feet.use_full_support = (crouch_driving or crouch.active()) and not ((player_controlled or ai_abilities or ai_mode == "fly") and (flight_enabled or jump_velocity > 0.1 or not actor.is_on_floor()))
-	feet.resolve(player_controlled and speed < 0.12 and not crouch.active() and not flight_enabled and jump_velocity <= 0.0 and actor.is_on_floor())
+	feet.use_full_support = (crouch_driving or crouch.active()) and not ((player_controlled or ai_abilities or ai_mode == "fly") and (flight_enabled or not actor.is_on_floor()))
+	feet.resolve(player_controlled and speed < 0.12 and not crouch.active() and not flight_enabled and actor.is_on_floor())
 	crouch.update_capsule(step)
 	if test and frame%60==0: min_body = min(min_body,feet.lowest(feet.all_samples))
 	min_sole = min(min_sole,feet.minimum)
@@ -597,9 +584,6 @@ func _physics_process(dt):
 	if player_controlled or ai_abilities or ai_mode == "fly": actor.floor_snap_length = 0.0 if flight_enabled else 0.12
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		if flight_enabled:
-			jump_requested = false
-			jump_prep_remaining = -1.0
-			jump_velocity = 0.0
 			if ai_abilities or ai_mode == "fly":
 				actor.velocity.y = (1.0 if ai_mode == "fly" and actor.position.y < 5.0 else sin(clock*0.9)*0.6)*FLIGHT_SPEED
 			else:
@@ -616,16 +600,7 @@ func _physics_process(dt):
 				actor.velocity.y = maxf(actor.velocity.y,FLIGHT_LAUNCH_SPEED*launch_weight)
 				flight_launch_remaining = maxf(0.0,flight_launch_remaining-step)
 		else:
-			actor.velocity.y = jump_velocity
-		if not flight_enabled and jump_requested and actor.is_on_floor() and not crouch.active() and jump_prep_remaining < 0.0:
-			jump_prep_remaining = -1.0
-			chosen_jump_index = 0 if not jump_clips.is_empty() else -1
-			jump_animation_time = 0.0
-			jump_velocity = jump_power
-		jump_requested = false
-		if not flight_enabled:
-			jump_velocity -= 18.0 * step
-			actor.velocity.y = jump_velocity
+			actor.velocity.y = -0.3
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
@@ -638,15 +613,11 @@ func _physics_process(dt):
 		if not floor_hit.is_empty() and Vector3(floor_hit["normal"]).y > 0.72 and flight_clearance_time <= 0.0:
 			flight_enabled = false
 			flight_launch_remaining = 0.0
-			jump_velocity = -0.1
 			actor.floor_snap_length = 0.12
 			print("FLIGHT_AUTO_LANDED")
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		update_flight_orientation(step)
-	if (player_controlled or ai_abilities or ai_mode == "fly") and not flight_enabled:
-		jump_velocity = actor.velocity.y
-		if actor.is_on_floor() and jump_velocity <= 0.0:
-			jump_velocity = 0.0
+
 	# This arena has a flat floor at zero, including at wall contacts.
 	if actor.position.y<0.0:
 		actor.position.y = 0.0
@@ -1049,10 +1020,9 @@ func adjust_jab_arm() -> void:
 	# Keep Godot bone transforms synchronized for foot solver and skinning.
 	skeleton.force_update_all_bone_transforms()
 
-func load_jump_clips() -> void:
-	# Mixamo jump takes are supplied locally, never approximated by rotating
-	# knee joints the wrong way. Cache mapped rotation curves per clip.
-	for filename in ["Jumping.fbx","Flying (1).fbx","Warrior Idle.fbx"]:
+func load_flight_clips() -> void:
+
+	for filename in ["Flying (1).fbx","Warrior Idle.fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path): continue
 		var packed = load(resource_path)
@@ -1078,8 +1048,8 @@ func load_jump_clips() -> void:
 				var track_path: NodePath = selected.track_get_path(t)
 				if track_path.get_subname_count() == 0: continue
 				var bone_label: String = normalized_idle_bone(String(track_path.get_subname(track_path.get_subname_count()-1)))
-				# Only legs; original locomotion owns the upper body and arms.
-				# The one imported jump animation controls the whole body.
+
+
 				if bone_label == "hips": continue
 				var src_index: int = -1
 				var dst_index: int = -1
@@ -1100,16 +1070,14 @@ func load_jump_clips() -> void:
 					flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				elif filename == "Warrior Idle.fbx":
 					flying_idle_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
-				else:
-					jump_clips.append({"file":filename,"length":maxf(selected.length,0.001),"curves":curves})
-				print("JUMP_CLIP_READY ",filename," tracks=",curves.size()," duration=",selected.length)
+				print("FLIGHT_CLIP_READY ",filename," tracks=",curves.size()," duration=",selected.length)
 		root.free()
 	if flying_clip.is_empty():
 		push_warning("FLIGHT_ANIMATION_MISSING: res://assets/custom_idle/Flying (1).fbx not imported or no matching bones. Flight hover will use fallback pose.")
 	else:
 		print("FLIGHT_ANIMATION_LOADED ",name," tracks=",flying_clip["curves"].size())
 
-func sample_jump_curve(keys: Array, time: float) -> Quaternion:
+func sample_flight_curve(keys: Array, time: float) -> Quaternion:
 	if keys.size() == 1 or time <= float(keys[0]["time"]): return keys[0]["rot"]
 	for n in range(1,keys.size()):
 		if time <= float(keys[n]["time"]):
@@ -1135,55 +1103,27 @@ func update_flight_orientation(dt: float) -> void:
 	# the head and chest do not cut through the ground at low altitude.
 	visual.position.y = 0.95 * sin(flight_visual_pitch)
 
-func apply_jump_pose(dt: float) -> void:
-	# Only the imported Jumping.fbx animates an ordinary jump, played
-	# once at original speed. No procedural squat, pose phase remapping,
-	# random alternate jump, or second leg animation.
-	var active_clip: Dictionary = {}
-	var sample_time: float = 0.0
-	var influence: float = 1.0
-	if flight_enabled:
-		if flight_takeoff_time >= 0.0 and flight_takeoff_time < FLIGHT_TAKEOFF_POSE_DURATION and not jump_clips.is_empty():
-			flight_takeoff_time += dt
-			active_clip = jump_clips[0]
-			sample_time = minf(flight_takeoff_time,float(active_clip["length"]))
-			influence = clampf((FLIGHT_TAKEOFF_POSE_DURATION-flight_takeoff_time)/0.14,0.0,1.0)
-		else:
-			var intentional_motion: bool = manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL) if player_controlled else actor.velocity.length() > 0.7
-			flight_idle_weight = move_toward(flight_idle_weight,0.0 if intentional_motion else 1.0,dt*4.0)
-			if not flying_clip.is_empty():
-				active_clip = flying_clip
-				flight_animation_time += dt*0.65
-				sample_time = fmod(flight_animation_time,float(active_clip["length"]))
-			elif not flying_idle_clip.is_empty():
-				active_clip = flying_idle_clip
-				sample_time = 0.0
-			influence = 1.0
-	else:
-		if jump_animation_time < 0.0 or jump_clips.is_empty(): return
-		active_clip = jump_clips[0]
-		jump_animation_time += dt
-		sample_time = minf(jump_animation_time,float(active_clip["length"]))
-		# Finish after playback; don't start a second animation on landing.
-		if jump_animation_time >= float(active_clip["length"]):
-			jump_animation_time = -1.0
-			return
-	if active_clip.is_empty(): return
-	for entry in active_clip["curves"]:
+func apply_flight_pose(dt: float) -> void:
+	if not flight_enabled: return
+	var moving: bool = (manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL)) if player_controlled else actor.velocity.length() > 0.7
+	flight_idle_weight = move_toward(flight_idle_weight,0.0 if moving else 1.0,dt*4.0)
+	flight_animation_time += dt*0.65
+	flight_idle_time += dt
+	var source: Dictionary = flying_clip if not flying_clip.is_empty() else flying_idle_clip
+	if source.is_empty(): return
+	var moment: float = fmod(flight_animation_time,float(source["length"]))
+	for entry in source["curves"]:
 		var bone: int = entry["bone"]
-		if flight_enabled and cast_elapsed >= 0.0:
+		if cast_elapsed >= 0.0:
 			var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
 			if bone_name.begins_with(cast_arm_name) and (bone_name.contains("arm") or bone_name.contains("hand") or bone_name.contains("shoulder")): continue
-		var pose: Quaternion = sample_jump_curve(entry["keys"],sample_time)
-		if flight_enabled and not flying_idle_clip.is_empty() and active_clip == flying_clip:
-			var idle_time: float = fmod(flight_idle_time,float(flying_idle_clip["length"]))
+		var pose: Quaternion = sample_flight_curve(entry["keys"],moment)
+		if not flying_idle_clip.is_empty() and source == flying_clip:
 			for idle_entry in flying_idle_clip["curves"]:
 				if int(idle_entry["bone"]) == bone:
-					pose = pose.slerp(sample_jump_curve(idle_entry["keys"],idle_time),flight_idle_weight)
+					pose = pose.slerp(sample_flight_curve(idle_entry["keys"],fmod(flight_idle_time,float(flying_idle_clip["length"]))),flight_idle_weight)
 					break
-		var original: Quaternion = skeleton.get_bone_pose_rotation(bone)
-		skeleton.set_bone_pose_rotation(bone,original.slerp(pose,influence))
-	flight_idle_time += dt
+		skeleton.set_bone_pose_rotation(bone,pose)
 	skeleton.force_update_all_bone_transforms()
 
 func throw_left_jab() -> void:
@@ -1335,21 +1275,17 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_C: crouch.toggle()
-			if event.keycode==KEY_SPACE and not flight_enabled: jump_requested = true
+
 			if event.keycode==KEY_3:
 				flight_enabled = not flight_enabled
 				if flight_enabled:
 					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
 					flight_takeoff_time = 0.0
-					chosen_jump_index = 0 if not jump_clips.is_empty() else -1
 					flight_clearance_time = 1.0
 					flight_animation_time = 0.0
 					flight_pose_weight = 0.0
 				else:
 					flight_launch_remaining = 0.0
-				jump_requested = false
-				jump_prep_remaining = -1.0
-				jump_velocity = 0.0
 				print("FLIGHT_ENABLED ",flight_enabled)
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode==KEY_1: cast_fireball()
