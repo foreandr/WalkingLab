@@ -40,6 +40,7 @@ var manual_sprint_clock = 0.0
 var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
 var squat_amount: float = 0.0
+var squat_key_down: bool = false
 const SQUAT_DEPTH: float = 1.15
 const SQUAT_BLEND_SPEED: float = 1.8
 var debug_tick: float = 0.0
@@ -456,7 +457,7 @@ func _physics_process(dt):
 		return
 	var step = dt*(0.35 if slow else 1.0)
 	if player_controlled:
-		var want_squat: bool = Input.is_key_pressed(KEY_SPACE) and not flight_enabled
+		var want_squat: bool = (squat_key_down or Input.is_physical_key_pressed(KEY_SPACE)) and not flight_enabled
 		squat_amount = move_toward(squat_amount,1.0 if want_squat else 0.0,step*SQUAT_BLEND_SPEED)
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
@@ -570,7 +571,7 @@ func _physics_process(dt):
 			if state != last_debug_state:
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
-			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" animation=pelvis_only"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
+			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" animation=pelvis_only"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
@@ -1312,6 +1313,9 @@ func choose_random_idle():
 func _unhandled_input(event):
 	if autonomous_only: return
 	if player_controlled:
+		if event is InputEventKey and event.keycode == KEY_SPACE:
+			squat_key_down = event.pressed
+			if not event.echo: debug_player("SQUAT_KEY","pressed="+str(event.pressed))
 		if event is InputEventKey and event.pressed and not event.echo:
 			debug_player("KEY_DOWN",OS.get_keycode_string(event.keycode)+" grounded="+str(actor.is_on_floor())+" flying="+str(flight_enabled)+" crouch="+str(crouch.active()))
 			if event.keycode==KEY_SPACE and not flight_enabled and (not actor.is_on_floor() or crouch.active()):
@@ -1350,7 +1354,7 @@ func _unhandled_input(event):
 			if event.button_index==MOUSE_BUTTON_WHEEL_DOWN: distance = min(22.0,distance+0.4)
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode==KEY_SPACE: paused = not paused
+		if event.keycode==KEY_P: paused = not paused
 		if event.keycode==KEY_T: slow = not slow
 		if event.keycode==KEY_W: walk_target = 1.0-walk_target
 		if event.keycode==KEY_B:
