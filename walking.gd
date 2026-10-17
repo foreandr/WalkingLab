@@ -243,7 +243,7 @@ func _ready():
 			if bone_label in ["leftupleg","rightupleg","leftthigh","rightthigh"]: jump_thighs.append(bone_i)
 			if bone_label in ["leftleg","rightleg","leftcalf","rightcalf"]: jump_calves.append(bone_i)
 		print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
-	if player_controlled or ai_abilities: load_jump_clips()
+	if player_controlled or ai_abilities or ai_mode == "fly": load_jump_clips()
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
@@ -533,7 +533,7 @@ func _physics_process(dt):
 		if was_moving_for_idle and not moving_now: choose_random_idle()
 		was_moving_for_idle = moving_now
 	tree.advance(step)
-	if player_controlled or ai_abilities:
+	if player_controlled or ai_abilities or ai_mode == "fly":
 		apply_jump_pose(step)
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
@@ -1091,6 +1091,9 @@ func update_flight_orientation(dt: float) -> void:
 		if actor.velocity.length() < 0.5: target_pitch = 1.35
 	flight_visual_pitch = move_toward(flight_visual_pitch,target_pitch,dt*(3.5 if flight_enabled else 8.0))
 	visual.rotation.x = flight_visual_pitch
+	# Rig pivot is at the feet. Raise the visible mesh as it pitches so
+	# the head and chest do not cut through the ground at low altitude.
+	visual.position.y = 0.95 * sin(flight_visual_pitch)
 
 func apply_jump_pose(dt: float) -> void:
 	var airborne: bool = flight_enabled or jump_velocity > 0.1 or not actor.is_on_floor()
@@ -1275,7 +1278,7 @@ func _unhandled_input(event):
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))):
 			orbit -= event.relative.x*0.006*camera_sensitivity
-			elevation = clamp(elevation-event.relative.y*0.004*camera_sensitivity,-0.8,0.15)
+			elevation = clamp(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
 		if event is InputEventMouseButton and event.pressed:
 			if event.button_index == MOUSE_BUTTON_LEFT: throw_left_jab()
 			if event.button_index==MOUSE_BUTTON_WHEEL_UP: distance = max(3.0,distance-0.4)
