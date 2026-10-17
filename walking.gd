@@ -312,7 +312,7 @@ func _physics_process(dt):
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
-	jab_aim_strength = move_toward(jab_aim_strength,1.0 if jab_aim_remaining > 0.0 else 0.0,step*10.0)
+	jab_aim_strength = move_toward(jab_aim_strength,1.0 if player_controlled else 0.0,step*8.0)
 	if player_controlled: update_cursor_aim()
 	var active = {}
 	var old_blend = blend
@@ -663,6 +663,9 @@ func install_left_jab(player: AnimationPlayer, graph: AnimationNodeBlendTree) ->
 		var n = normalized_idle_bone(String(p.get_subname(p.get_subname_count()-1)))
 		# Leave legs, pelvis and translation strictly on the locomotion controller.
 		if n == "hips" or n.contains("leg") or n.contains("foot") or n.contains("toe"): continue
+		# The left arm is NOT animated by the punch clip. Its pose is
+		# exclusively guided by the mouse-directed two-joint IK.
+		if n.begins_with("left") and (n.contains("arm") or n.contains("hand") or n.contains("shoulder") or n.contains("finger") or n.contains("thumb")): continue
 		if not valid_paths.has(n) or not source_bones.has(n) or not dest_bones.has(n): continue
 		var from_index: int = source_bones[n]
 		var to_index: int = dest_bones[n]
@@ -755,14 +758,17 @@ func adjust_jab_arm() -> void:
 	var aim_point = eye + ray * depth
 	var direction = (aim_point-shoulder).normalized()
 	if direction.length_squared() < 0.5: return
-	var distance_to_goal = reach * 0.93
+	# Mouse movement controls aim continuously. Clicking extends the hand
+	# along that SAME ray and retracts it, without competing FBX arm keys.
+	var elapsed = clampf(0.45-jab_aim_remaining,0.0,0.45)
+	var punch = 0.0
+	if jab_aim_remaining > 0.0:
+		punch = smoothstep(0.0,0.14,elapsed)*(1.0-smoothstep(0.23,0.43,elapsed))
+	var distance_to_goal = reach * lerpf(0.60,0.94,punch)
 	var goal_world = shoulder + direction * distance_to_goal
 	var goal_local: Vector3 = skeleton.global_transform.affine_inverse() * goal_world
-	# Jab phases: ease toward the target during extension, then release back
-	# to the authored recovery frames instead of snapping the arm.
-	var elapsed = clampf(0.45-jab_aim_remaining,0.0,0.45)
-	var phase = smoothstep(0.03,0.18,elapsed)*(1.0-smoothstep(0.25,0.43,elapsed))
-	var influence = phase*jab_aim_strength
+	# IK is the sole driver of left-arm aim; the punch changes only reach.
+	var influence = jab_aim_strength
 	if influence < 0.002: return
 	for iteration in range(3):
 		rotate_arm_joint_toward(jab_left_forearm,jab_left_hand,goal_local,influence)
