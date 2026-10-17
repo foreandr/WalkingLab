@@ -57,6 +57,7 @@ var flight_pose_weight: float = 0.0
 var flight_idle_weight: float = 0.0
 var flight_idle_time: float = 0.0
 var flight_idle_active: bool = false
+var flight_clip_warning_shown: bool = false
 var speed_streaks: Control
 var streak_clock: float = 0.0
 var ai_action_clock: float = 0.0
@@ -1107,6 +1108,10 @@ func load_jump_clips() -> void:
 					jump_clips.append({"file":filename,"length":maxf(selected.length,0.001),"curves":curves})
 				print("JUMP_CLIP_READY ",filename," tracks=",curves.size()," duration=",selected.length)
 		root.free()
+	if flying_clip.is_empty():
+		push_warning("FLIGHT_ANIMATION_MISSING: res://assets/custom_idle/Flying (1).fbx not imported or no matching bones. Flight hover will use fallback pose.")
+	else:
+		print("FLIGHT_ANIMATION_LOADED ",name," tracks=",flying_clip["curves"].size())
 
 func sample_jump_curve(keys: Array, time: float) -> Quaternion:
 	if keys.size() == 1 or time <= float(keys[0]["time"]): return keys[0]["rot"]
@@ -1146,6 +1151,9 @@ func apply_jump_pose(dt: float) -> void:
 			flight_moving = manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL)
 		else:
 			flight_moving = actor.velocity.length() > 0.7
+	if flight_enabled and flying_clip.is_empty() and not flight_clip_warning_shown:
+		flight_clip_warning_shown = true
+		push_warning("FLIGHT_IDLE_FALLBACK ACTIVE for " + name + ": Flying (1).fbx unavailable")
 	if flight_enabled and not flight_moving and not flight_idle_active:
 		flight_idle_time = 0.0
 		flight_idle_active = true
@@ -1160,7 +1168,7 @@ func apply_jump_pose(dt: float) -> void:
 	var moment: float = 0.0
 	var blend_weight: float = 0.0
 	var idle_moment: float = 0.0
-	if flight_enabled and flight_takeoff_time >= 0.0 and flight_takeoff_time < FLIGHT_TAKEOFF_POSE_DURATION and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
+	if flight_enabled and not flying_clip.is_empty() and flight_takeoff_time >= 0.0 and flight_takeoff_time < FLIGHT_TAKEOFF_POSE_DURATION and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
 		clip = jump_clips[chosen_jump_index]
 		flight_takeoff_time += dt
 		var takeoff_alpha: float = clampf(flight_takeoff_time/FLIGHT_TAKEOFF_POSE_DURATION,0.0,1.0)
@@ -1180,7 +1188,7 @@ func apply_jump_pose(dt: float) -> void:
 		# time interpolation across a looping clip can cause sudden snaps.
 		moment = moving_moment
 		blend_weight = flight_pose_weight
-	elif jump_animation_time >= 0.0 and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
+	elif not flight_enabled and jump_animation_time >= 0.0 and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
 		# Advance this ONE clip monotonically. The old pose-weight logic
 		# repeatedly sampled the squat and caused a double-crouch.
 		clip = jump_clips[chosen_jump_index]
