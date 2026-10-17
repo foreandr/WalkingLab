@@ -2,20 +2,10 @@
 setlocal
 cd /d "%~dp0"
 title WalkingLab
-rem Upload unpushed game logs before syncing; never stage user code here.
-call :push_logs
-echo [1/2] Preserving local edits and pulling latest changes...
-rem Git can consider imported assets or local metadata modified.
-rem Save tracked changes without deleting them; untracked FBXs and logs remain untouched.
-git stash push -m "WalkingLab automatic backup before pull"
+echo [1/2] Synchronizing prior logs and latest game code...
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync_logs.ps1"
 if errorlevel 1 (
- echo Git backup failed; local files were not discarded.
- pause
- exit /b 1
-)
-git pull --ff-only origin main
-if errorlevel 1 (
- echo Git pull failed.
+ echo Git synchronization needs attention. No files were discarded.
  pause
  exit /b 1
 )
@@ -81,7 +71,9 @@ if "%IDLE_NEW%"=="1" (
 echo [2/2] Launching game with timestamped logging...
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\run_logged.ps1" -GodotPath "%GODOT%"
 set "GAME_EXIT=%ERRORLEVEL%"
-call :push_logs
+echo Uploading latest run log...
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync_logs.ps1"
+if errorlevel 1 echo Warning: log upload failed; saved locally for next launch.
 if not "%GAME_EXIT%"=="0" (
  echo Game exited with code %GAME_EXIT%. See most recent file in logs.
  pause
@@ -89,16 +81,3 @@ if not "%GAME_EXIT%"=="0" (
 )
 exit /b 0
 
-:push_logs
-if not exist "logs" exit /b 0
-git add -- "logs/*.log"
-git diff --cached --quiet
-if not errorlevel 1 exit /b 0
-git commit -m "WalkingLab player debug run logs" -- logs
-if errorlevel 1 (
- echo Warning: failed to commit run log.
- exit /b 0
-)
-git push origin main
-if errorlevel 1 echo Warning: log push failed; will retry on next launch after syncing.
-exit /b 0
