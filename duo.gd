@@ -19,7 +19,7 @@ func _ready():
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(1400.0,0.2,1400.0)
+	floor_box.size = Vector3(64.0,0.2,64.0)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -27,65 +27,24 @@ func _ready():
 	player.name = "PlayerMan"
 	player.player_controlled = true
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,13)
+	player.spawn_point = Vector3(0,0,7)
 	player.character_tint = Color("101114")
 	add_child(player)
 	player.camera.current = true
+	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	var tests = [
-		{"name":"Flight15","mode":"flight","speed":15.0,"pos":Vector3(-4.0,0,3.0),"label":"BLUE","color":"2266ff"},
-		{"name":"Flight20","mode":"flight","speed":20.0,"pos":Vector3(4.0,0,3.0),"label":"RED","color":"e32a35"},
-		{"name":"JumpTest","mode":"jump","speed":7.0,"pos":Vector3(0.0,0,3.0),"label":"GREEN","color":"26b04b"}
-	]
-	for entry in tests:
-		var dummy = preload("res://walking.gd").new()
-		dummy.name = entry["name"]
-		dummy.autonomous_only = true
-		dummy.actor_only = true
-		dummy.animation_test_mode = entry["mode"]
-		dummy.animation_test_speed = entry["speed"]
-		dummy.spawn_point = entry["pos"]
-		dummy.character_tint = Color(entry["color"])
-		add_child(dummy)
-		dummy.actor.rotation.y = PI
-		make_label(dummy.actor,entry["label"],Color(entry["color"]))
-		mannequins.append(dummy)
-	var static_dummy = preload("res://walking.gd").new()
-	static_dummy.name = "StaticMannequin"
-	static_dummy.autonomous_only = true
-	static_dummy.stationary_only = true
-	static_dummy.actor_only = true
-	static_dummy.spawn_point = Vector3(7.0,0,3.0)
-	static_dummy.character_tint = Color("e5bc2d")
-	add_child(static_dummy)
-	static_dummy.actor.rotation.y = PI
-	make_label(static_dummy.actor,"YELLOW",Color("e5bc2d"))
-	mannequins.append(static_dummy)
-	var fire_dummy = preload("res://walking.gd").new()
-	fire_dummy.name = "OrangeFireCaster"
-	fire_dummy.autonomous_only = true
-	fire_dummy.stationary_only = true
-	fire_dummy.actor_only = true
-	fire_dummy.ai_abilities = true
-	fire_dummy.animation_test_mode = "fire"
-	fire_dummy.spawn_point = Vector3(-7.0,0,3.0)
-	fire_dummy.character_tint = Color("ff8b25")
-	add_child(fire_dummy)
-	fire_dummy.actor.rotation.y = PI
-	make_label(fire_dummy.actor,"ORANGE",Color("ff8b25"))
-	mannequins.append(fire_dummy)
-	var hunter = preload("res://walking.gd").new()
-	hunter.name = "PurpleHunter"
-	hunter.autonomous_only = true
-	hunter.actor_only = true
-	hunter.ai_abilities = true
-	hunter.animation_test_mode = "hunter"
-	hunter.spawn_point = Vector3(0.0,0.0,-5.0)
-	hunter.character_tint = Color("9444e5")
-	add_child(hunter)
-	make_label(hunter.actor,"PURPLE",Color("9444e5"))
-	mannequins.append(hunter)
+	var opponent = preload("res://walking.gd").new()
+	opponent.name = "VioletOpponent"
+	opponent.autonomous_only = true
+	opponent.actor_only = true
+	opponent.stationary_only = true
+	opponent.spawn_point = Vector3(0,0,0)
+	opponent.character_tint = Color("7962cb")
+	add_child(opponent)
+	opponent.actor.rotation.y = PI
+	make_label(opponent.actor,"VIOLET",Color("a795ed"))
+	mannequins.append(opponent)
 	ai = mannequins[0]
 	ai_label = null
 
@@ -147,9 +106,9 @@ func make_boundary():
 		var angle = i*TAU/64.0
 		var collision = CollisionShape3D.new()
 		var shape = BoxShape3D.new()
-		shape.size = Vector3(TAU*580.0/64.0+0.15,3.0,0.5)
+		shape.size = Vector3(TAU*25.0/64.0+0.15,3.0,0.5)
 		collision.shape = shape
-		collision.position = Vector3(sin(angle)*580.0,1.5,cos(angle)*580.0)
+		collision.position = Vector3(sin(angle)*25.0,1.5,cos(angle)*25.0)
 		collision.rotation.y = angle
 		boundary.add_child(collision)
 func _physics_process(dt):
