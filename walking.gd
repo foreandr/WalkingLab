@@ -40,7 +40,7 @@ var jump_velocity: float = 0.0
 var jump_phase: float = 0.0
 var jump_pose: float = 0.0
 var jump_requested: bool = false
-const JUMP_PREP_TIME: float = 0.32
+const JUMP_PREP_TIME: float = 0.52
 var jump_prep_remaining: float = -1.0
 var jump_thighs: Array[int] = []
 var jump_calves: Array[int] = []
@@ -48,6 +48,7 @@ var jump_clips: Array[Dictionary] = []
 var flying_clip: Dictionary = {}
 var chosen_jump_index: int = -1
 var flight_animation_time: float = 0.0
+var flight_visual_pitch: float = 0.0
 var ai_action_clock: float = 0.0
 var flight_enabled: bool = false
 const FLIGHT_SPEED: float = 7.0
@@ -539,6 +540,8 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
+	if player_controlled or ai_abilities:
+		update_flight_orientation(step)
 	if (player_controlled or ai_abilities) and not flight_enabled:
 		jump_velocity = actor.velocity.y
 		if actor.is_on_floor() and jump_velocity <= 0.0:
@@ -1001,6 +1004,21 @@ func sample_jump_curve(keys: Array, time: float) -> Quaternion:
 			return q1.slerp(q2,fraction)
 	return keys[keys.size()-1]["rot"]
 
+func update_flight_orientation(dt: float) -> void:
+	# Tilt ONLY the visual skeleton into a head-first Superman silhouette.
+	# Keep the upright CharacterBody3D collider and camera independent.
+	var target_pitch: float = 0.0
+	if flight_enabled:
+		var horizontal: float = Vector2(actor.velocity.x,actor.velocity.z).length()
+		if horizontal > 0.15 or absf(actor.velocity.y) > 0.15:
+			target_pitch = -atan2(horizontal,actor.velocity.y)
+			# Do not invert the mesh while diving; a deep forward pitch suffices.
+			target_pitch = clampf(target_pitch,-2.5,-0.05)
+		else:
+			target_pitch = -1.25
+	flight_visual_pitch = move_toward(flight_visual_pitch,target_pitch,dt*2.7)
+	visual.rotation.x = flight_visual_pitch
+
 func apply_jump_pose(dt: float) -> void:
 	var airborne: bool = flight_enabled or jump_velocity > 0.1 or not actor.is_on_floor()
 	var prep: float = 0.0
@@ -1018,9 +1036,9 @@ func apply_jump_pose(dt: float) -> void:
 	elif chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
 		# One randomly selected jump take for BOTH anticipation and airborne.
 		clip = jump_clips[chosen_jump_index]
-		var normalized: float = prep*0.35 if prep > 0.0 else 0.35+jump_pose*0.60
+		var normalized: float = smoothstep(0.0,1.0,prep)*0.52 if prep > 0.0 else 0.52+jump_pose*0.43
 		moment = normalized*float(clip["length"])
-		blend_weight = clampf(maxf(prep,jump_pose),0.0,1.0)
+		blend_weight = clampf(maxf(prep*2.2,jump_pose),0.0,1.0)
 	if not clip.is_empty() and blend_weight > 0.001:
 		for entry in clip["curves"]:
 			var bone: int = entry["bone"]
