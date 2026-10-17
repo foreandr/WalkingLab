@@ -60,36 +60,50 @@ func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	body.add_child(label)
 	return label
 func build_weapon_display() -> void:
-	# Original, unmodified CC0 mesh assets from Kenney's 3D packs.
-	# They are installed by RUN.bat before Godot starts.
+	# External CC0 weapons only: no primitive geometry and no material overrides.
+	# The real-weapon pack contains finished steel/handle materials and its
+	# original scenes are flat on +Y-up ground. Kenney is a textured fallback.
 	var assets = [
-		{"name":"Sword","x":-2.4,"file":"weapon-sword.glb"},
-		{"name":"One-handed Axe","x":0.0,"file":"tool-axe.glb"},
-		{"name":"Dagger","x":2.4,"file":"knife_sharp.glb"}
+		{"name":"Arming Sword","x":-3.6,"z":10.0,"file":"arming_sword.glb"},
+		{"name":"Knightly Sword","x":-1.8,"z":9.8,"file":"knightly_sword.glb"},
+		{"name":"Greatsword","x":0.0,"z":10.0,"file":"greatsword.glb","optional":true},
+		{"name":"Bearded Axe","x":1.8,"z":9.8,"file":"bearded_axe.glb","fallback":"res://assets/kenney_weapons/survival/tool-axe.glb"},
+		{"name":"Rondel Dagger","x":3.6,"z":10.0,"file":"rondel_dagger.glb","fallback":"res://assets/kenney_weapons/weapon/knife_sharp.glb"}
 	]
 	for entry in assets:
-		var path = "res://assets/kenney_weapons/" + String(entry["file"])
+		var path = "res://assets/real_weapons/" + String(entry["file"])
+		var using_kenney = false
 		if not ResourceLoader.exists(path):
-			push_warning("WEAPON_ASSET_MISSING " + path)
-			continue
+			if entry.has("fallback") and ResourceLoader.exists(String(entry["fallback"])):
+				path = String(entry["fallback"])
+				using_kenney = true
+			elif entry.get("optional",false):
+				continue
+			else:
+				push_warning("WEAPON_ASSET_MISSING " + path)
+				continue
 		var packed = load(path)
 		if not packed is PackedScene:
 			push_warning("WEAPON_ASSET_NOT_SCENE " + path)
 			continue
 		var scene: Node3D = packed.instantiate()
 		scene.name = String(entry["name"])
-		scene.position = Vector3(float(entry["x"]),0.15,10.0)
-		# Rotate the imported mesh onto the floor; geometry stays original.
-		scene.rotation.x = PI * 0.5
+		scene.position = Vector3(float(entry["x"]),0.045,float(entry["z"]))
+		if using_kenney:
+			# Old Kenney files have a different authoring orientation.
+			scene.rotation.x = PI * 0.5
+			scene.position.y = 0.15
 		add_child(scene)
 		var title := Label3D.new()
+		title.name = String(entry["name"]) + "Label"
 		title.text = String(entry["name"])
-		title.font_size = 34
-		title.pixel_size = 0.006
+		title.font_size = 32
+		title.pixel_size = 0.004
+		title.modulate = Color("e5e3d9")
 		title.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		title.position = Vector3(0,0.65,0)
-		title.rotation.x = -PI * 0.5
-		scene.add_child(title)
+		title.no_depth_test = false
+		title.position = Vector3(float(entry["x"]),0.40,float(entry["z"])+0.60)
+		add_child(title)
 
 func make_boundary():
 	var boundary = StaticBody3D.new()
