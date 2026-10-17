@@ -438,7 +438,7 @@ func _physics_process(dt):
 	update_camera()
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nRight drag camera  |  Tab watch AI\nAim prefers front; push cursor toward screen edge to reach behind" % [player_state,speed]
+		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nRight drag camera  |  Tab watch AI\nAim stays in front: shoulders and elbows avoid the torso" % [player_state,speed]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
@@ -498,7 +498,7 @@ func make_standing_idle(player: AnimationPlayer):
 		destination_paths[n] = target_path
 	var library = AnimationLibrary.new()
 	idle_variants.clear()
-	var wanted = ["Neutral Idle.fbx"]
+	var wanted = ["Idle (3).fbx"]
 	for filename in wanted:
 		var path = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(path): continue
@@ -562,8 +562,8 @@ func make_standing_idle(player: AnimationPlayer):
 							break
 					idle.rotation_track_insert_key(out,0.0,upright)
 					idle.rotation_track_insert_key(out,idle.length,upright)
-				elif filename == "Neutral Idle.fbx" and (n.begins_with("spine") or n == "neck" or n == "head"):
-					# Idle0 contains a pronounced backwards bend after retargeting.
+				elif filename == "Idle (3).fbx" and (n.begins_with("spine") or n == "neck" or n == "head"):
+					# Keep the imported idle upright on the destination skeleton.
 					# Use the proven upright Y Bot torso/head orientation only for
 					# these joints; keep its arms and other motion as imported.
 					var neutral: Quaternion = Quaternion.IDENTITY
@@ -579,7 +579,7 @@ func make_standing_idle(player: AnimationPlayer):
 						idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
 				tracks += 1
 			if tracks >= 12:
-				var id = "Idle0"
+				var id = "Idle3"
 				library.add_animation(id,idle)
 				idle_variants.append("manual/"+id)
 				print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
@@ -587,7 +587,7 @@ func make_standing_idle(player: AnimationPlayer):
 				print("IDLE_REJECTED ",filename," mapped_tracks=",tracks)
 		root.free()
 	if idle_variants.is_empty():
-		push_warning("No imported Mixamo idles matched. Using fallback pose.")
+		push_warning("Idle3 not found or incompatible: copy Idle (3).fbx to Downloads and rerun RUN.bat; using fallback pose.")
 		var fallback = Animation.new()
 		fallback.length = 1.0
 		fallback.loop_mode = Animation.LOOP_LINEAR
@@ -768,17 +768,15 @@ func adjust_jab_arm() -> void:
 	var aim_point = eye + ray * depth
 	var direction: Vector3 = (aim_point-shoulder).normalized()
 	if direction.length_squared() < 0.5: return
-	# Mouse aim strongly prefers the FRONT hemisphere. Reaching behind the
-	# shoulder is still possible by deliberately moving to the screen edge.
-	# Evaluate the aim in actor-local space: -Z is forward, +Z is behind.
-	var local_direction: Vector3 = actor.global_basis.inverse() * direction
-	if local_direction.z > -0.08:
-		var bounds: Vector2 = get_viewport().get_visible_rect().size
-		var screen_x: float = clampf(cursor.x / maxf(bounds.x, 1.0) * 2.0 - 1.0, -1.0, 1.0)
-		var behind_intent: float = smoothstep(0.72, 0.98, absf(screen_x))
-		var front_direction: Vector3 = Vector3(local_direction.x, local_direction.y, minf(local_direction.z, -0.08)).normalized()
-		local_direction = front_direction.lerp(local_direction, behind_intent).normalized()
-		direction = (actor.global_basis * local_direction).normalized()
+	# A HARD forward half-space limit. No mouse position can reach the back.
+	# The right hand stays on the character's right, the left on the left.
+	# This also stops the target ray pulling a wrist THROUGH the chest.
+	var actor_space: Vector3 = actor.global_basis.inverse() * direction
+	var side: float = 1.0 if controlled_arm == "right" else -1.0
+	actor_space.x = maxf(actor_space.x * side, 0.26) * side
+	actor_space.z = minf(actor_space.z, -0.30)
+	actor_space = actor_space.normalized()
+	direction = (actor.global_basis * actor_space).normalized()
 	# Mouse movement controls aim continuously. Clicking extends the hand
 	# along that SAME ray and retracts it, without competing FBX arm keys.
 	var elapsed = clampf(0.45-jab_aim_remaining,0.0,0.45)
@@ -787,13 +785,38 @@ func adjust_jab_arm() -> void:
 		punch = smoothstep(0.0,0.14,elapsed)*(1.0-smoothstep(0.23,0.43,elapsed))
 	var distance_to_goal = reach * lerpf(0.60,0.94,punch)
 	var goal_world = shoulder + direction * distance_to_goal
+	# Guard the actual goal against entering the torso volume.
+	var actor_goal: Vector3 = actor.global_transform.affine_inverse() * goal_world
+	var side_sign: float = 1.0 if controlled_arm == "right" else -1.0
+	actor_goal.x = maxf(actor_goal.x * side_sign, 0.31) * side_sign
+	actor_goal.z = minf(actor_goal.z, -0.22)
+	goal_world = actor.global_transform * actor_goal
 	var goal_local: Vector3 = skeleton.global_transform.affine_inverse() * goal_world
 	# IK is the sole driver of left-arm aim; the punch changes only reach.
 	var influence = jab_aim_strength
 	if influence < 0.002: return
-	for iteration in range(3):
-		rotate_arm_joint_toward(forearm,hand,goal_local,influence)
+	# Solve the upper arm first. The elbow is kept outside the torso, not
+	# merely the wrist: a wrist-only target can still fold through the ribs.
+	var base_arm: Quaternion = skeleton.get_bone_pose_rotation(arm)
+	var base_forearm: Quaternion = skeleton.get_bone_pose_rotation(forearm)
+	for iteration in range(5):
 		rotate_arm_joint_toward(arm,hand,goal_local,influence)
+		rotate_arm_joint_toward(forearm,hand,goal_local,influence)
+		skeleton.force_update_all_bone_transforms()
+		var elbow_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(forearm).origin
+		var hand_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand).origin
+		var elbow_actor: Vector3 = actor.global_transform.affine_inverse() * elbow_world
+		var hand_actor: Vector3 = actor.global_transform.affine_inverse() * hand_world
+		var safe_side: float = 1.0 if controlled_arm == "right" else -1.0
+		# The forearm must not thread across the midline or behind the torso.
+		if elbow_actor.x * safe_side >= 0.20 and elbow_actor.z <= 0.12 and hand_actor.x * safe_side >= 0.24 and hand_actor.z <= 0.05:
+			continue
+		# Reject unsafe CCD rotation, keeping the last collision-free pose.
+		skeleton.set_bone_pose_rotation(arm,base_arm)
+		skeleton.set_bone_pose_rotation(forearm,base_forearm)
+		skeleton.force_update_all_bone_transforms()
+		break
+	# Keep Godot bone transforms synchronized for foot solver and skinning.
 	skeleton.force_update_all_bone_transforms()
 
 func throw_left_jab() -> void:
@@ -805,7 +828,7 @@ func throw_left_jab() -> void:
 	print("ARM_REACH ",controlled_arm)
 
 func choose_random_idle():
-	# Historical name retained for existing callers. Idle0 is fixed for all actors.
+	# Historical name retained for existing callers. Idle3 is fixed for all actors.
 	if idle_variants.is_empty() or crouch.standing_idle_node == null: return
 	var chosen: String = idle_variants[0]
 	if String(crouch.standing_idle_node.animation) == chosen: return
