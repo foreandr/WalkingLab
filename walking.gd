@@ -578,6 +578,11 @@ func _physics_process(dt):
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		apply_flight_pose(step)
 	if player_controlled and not flight_enabled:
+		# Restore normal leg proportions each frame before the optional squeeze.
+		for bone in range(skeleton.get_bone_count()):
+			var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
+			if bone_name == "leftupleg" or bone_name == "rightupleg" or bone_name == "leftleg" or bone_name == "rightleg":
+				skeleton.set_bone_pose_scale(bone,Vector3.ONE)
 		apply_jump_windup_pose()
 	if player_controlled:
 		debug_tick += step
