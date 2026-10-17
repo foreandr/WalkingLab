@@ -1011,11 +1011,11 @@ func update_flight_orientation(dt: float) -> void:
 	if flight_enabled:
 		var horizontal: float = Vector2(actor.velocity.x,actor.velocity.z).length()
 		if horizontal > 0.15 or absf(actor.velocity.y) > 0.15:
-			target_pitch = -atan2(horizontal,actor.velocity.y)
+			target_pitch = atan2(horizontal,actor.velocity.y)
 			# Do not invert the mesh while diving; a deep forward pitch suffices.
-			target_pitch = clampf(target_pitch,-2.5,-0.05)
+			target_pitch = clampf(target_pitch,0.05,2.5)
 		else:
-			target_pitch = -1.25
+			target_pitch = 1.25
 	flight_visual_pitch = move_toward(flight_visual_pitch,target_pitch,dt*2.7)
 	visual.rotation.x = flight_visual_pitch
 
