@@ -598,7 +598,10 @@ func _physics_process(dt):
 		adjust_jab_arm()
 		update_cast_motion(step)
 	feet.use_full_support = (crouch_driving or crouch.active()) and not ((player_controlled or ai_abilities or ai_mode == "fly") and (flight_enabled or not actor.is_on_floor()))
-	feet.resolve(player_controlled and speed < 0.12 and not crouch.active() and not flight_enabled and actor.is_on_floor() and squat_amount < 0.001)
+	if not flight_enabled and actor.is_on_floor():
+		feet.resolve(true)
+	else:
+		visual.position.y = 0.0
 	crouch.update_capsule(step)
 	if test and frame%60==0: min_body = min(min_body,feet.lowest(feet.all_samples))
 	min_sole = min(min_sole,feet.minimum)
@@ -659,10 +662,12 @@ func _physics_process(dt):
 			actor.velocity.y = vertical_jump_speed
 	else:
 		actor.velocity.y = -0.3
-	var flight_impact_speed: float = actor.velocity.length() if player_controlled and flight_enabled and actor.velocity.y < 0.0 else 0.0
+	var flight_impact_speed: float = -actor.velocity.y if player_controlled and flight_enabled and actor.velocity.y < 0.0 else 0.0
 	actor.move_and_slide()
 	if player_controlled and not flight_enabled and actor.is_on_floor():
 		vertical_jump_speed = 0.0
+		if movement_clip_name == "Jumping Up.fbx":
+			movement_clip_name = ""
 	if flight_clearance_time > 0.0: flight_clearance_time = maxf(0.0,flight_clearance_time-step)
 	if player_controlled and flight_enabled and flight_launch_remaining <= 0.0 and actor.velocity.y <= 0.0:
 		# Only land while approaching the floor, never on launch or ascent.
@@ -695,7 +700,7 @@ func _physics_process(dt):
 	if player_controlled: update_speed_streaks(step)
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU | %s | %.1f m/s | SPRINT %.1fs | TARGET %.1f m/s\nControls: Settings > Controls" % [player_state,speed,manual_sprint_clock,manual_target_speed()]
+		hud.text = "YOU | %s | %.1f m/s | SPRINT %.1fs | TARGET %.1f m/s\nControls: Settings > Controls" % ["FLYING" if flight_enabled else player_state,actor.velocity.length() if flight_enabled else Vector2(actor.velocity.x,actor.velocity.z).length(),manual_sprint_clock,manual_target_speed()]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
@@ -1184,7 +1189,8 @@ func apply_movement_clip(dt: float) -> void:
 	if movement_clip_name == "" or not movement_clips.has(movement_clip_name): return
 	var clip: Dictionary = movement_clips[movement_clip_name]
 	var length: float = float(clip["length"])
-	movement_clip_time += dt
+	var running_during_landing: bool = (movement_clip_name == "Landing.fbx" or movement_clip_name == "Hard Landing.fbx") and manual_input.length() > 0.1
+	movement_clip_time += dt * (3.5 if running_during_landing else 1.0)
 	var end_blend: float = clampf((length-movement_clip_time)/0.20,0.0,1.0)
 	var start_blend: float = clampf(movement_clip_time/0.12,0.0,1.0)
 	var weight: float = minf(start_blend,end_blend)
