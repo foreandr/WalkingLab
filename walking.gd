@@ -1254,7 +1254,8 @@ func update_flight_orientation(dt: float) -> void:
 	# Head-first along camera aiming direction; physical collider remains upright.
 	var target_pitch: float = 0.0
 	if flight_enabled:
-		# Hover upright using the normal idle; tilt only when actually steering.
+		target_pitch = deg_to_rad(30.0)
+		# Hover leans forward by 30 degrees; steering keeps head-first alignment.
 		var steering: bool = manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL) if player_controlled else actor.velocity.length() > 0.7
 		if steering:
 			target_pitch = clampf(PI*0.5-elevation,0.08,PI-0.08)
