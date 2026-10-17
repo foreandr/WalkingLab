@@ -482,13 +482,23 @@ func update_hunter_mannequin(dt: float) -> void:
 	if distance > 17.0: direction = horizontal.normalized()
 	elif distance < 11.0: direction = -horizontal.normalized()
 	elif distance > 0.01: direction = Vector3(-horizontal.z,0.0,horizontal.x).normalized()*0.45
-	flight_enabled = target_flying or target_body.global_position.y > 2.5
+	# Use flight as a pursuit tool even when the player is on foot.
+	# Hysteresis avoids toggling flight on and off near a single threshold.
+	var must_fly: bool = target_flying or target_body.global_position.y > 2.5
+	var takeoff_for_chase: bool = distance > 30.0 and desired_speed > SPEEDS[2]
+	if not flight_enabled:
+		flight_enabled = must_fly or takeoff_for_chase
+	elif not must_fly and distance < 18.0:
+		flight_enabled = false
 	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
 	if flight_enabled:
-		var vertical_error: float = target_body.global_position.y+1.0-actor.global_position.y
-		direction.y = clampf(vertical_error/5.0,-1.0,1.0)
+		# Climb to cruising altitude when chasing a grounded player.
+		var cruise_height: float = target_body.global_position.y + (0.7 if distance < 21.0 else 4.0)
+		var vertical_error: float = cruise_height-actor.global_position.y
+		direction.y = clampf(vertical_error/4.0,-1.0,1.0)
 		if direction.length_squared() > 0.001: direction = direction.normalized()
-		actor.velocity = actor.velocity.move_toward(direction*desired_speed,dt*32.0)
+		var flight_chase_speed: float = maxf(desired_speed,FLIGHT_SPEED+5.0)
+		actor.velocity = actor.velocity.move_toward(direction*flight_chase_speed,dt*32.0)
 	else:
 		actor.velocity.x = move_toward(actor.velocity.x,direction.x*desired_speed,dt*24.0)
 		actor.velocity.z = move_toward(actor.velocity.z,direction.z*desired_speed,dt*24.0)
