@@ -2,6 +2,8 @@
 setlocal
 cd /d "%~dp0"
 title WalkingLab
+rem Release previous game/log handles before Git touches logs.
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\close_old_instances.ps1"
 echo [1/2] Synchronizing prior logs and latest game code...
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync_logs.ps1"
 if errorlevel 1 (
@@ -69,6 +71,7 @@ if "%IDLE_NEW%"=="1" (
     if errorlevel 1 echo Warning: one or more FBX imports failed.
 )
 echo [2/2] Launching game with timestamped logging...
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\close_old_instances.ps1"
 rem Start logger detached and return to PowerShell immediately.
 rem Closing the game window triggers log upload; no batch job remains to confirm.
 start "" /min powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "scripts\run_logged.ps1" -GodotPath "%GODOT%"
