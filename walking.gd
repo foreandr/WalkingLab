@@ -561,6 +561,8 @@ func _physics_process(dt):
 		if was_moving_for_idle and not moving_now: choose_random_idle()
 		was_moving_for_idle = moving_now
 	tree.advance(step)
+	if player_controlled and not flight_enabled:
+		visual.position.y = 0.0
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		apply_flight_pose(step)
 	if player_controlled and not flight_enabled:
@@ -1147,19 +1149,17 @@ func apply_jump_windup_pose() -> void:
 	# Both knees flex slowly before the actual physics impulse.
 	var p: float = clampf(jump_windup_time/JUMP_WINDUP_SECONDS,0.0,1.0)
 	var bend: float = p*p*(3.0-2.0*p)
+	# Lower the whole visible rig, not merely lift its knees toward the chest.
+	visual.position.y = -0.38*bend
 	for i in range(skeleton.get_bone_count()):
 		var name: String = normalized_idle_bone(String(skeleton.get_bone_name(i)))
 		var angle: float = 0.0
-		if name == "hips":
-			var start_position: Vector3 = skeleton.get_bone_pose_position(i)
-			skeleton.set_bone_pose_position(i,start_position+Vector3.DOWN*0.42*bend)
-			continue
 		if name == "leftupleg" or name == "rightupleg":
 			angle = 0.9*bend
 		elif name == "leftleg" or name == "rightleg":
 			angle = -1.55*bend
 		elif name == "spine":
-			angle = -0.22*bend
+			angle = deg_to_rad(10.0)*bend
 		else:
 			continue
 		var base: Quaternion = skeleton.get_bone_pose_rotation(i)
