@@ -24,19 +24,19 @@ vec3 damage_color(float health) {
 }
 void fragment() {
 	vec3 p = world_surface;
-	float best = region_distance(p,torso_world,0.43);
+	float best = region_distance(p,torso_world,0.80);
 	float health = region_hp.y;
-	float d = region_distance(p,head_world,0.29);
+	float d = region_distance(p,head_world,0.53);
 	if (d < best) { best=d; health=region_hp.x; }
-	d = region_distance(p,left_arm_world,0.35);
+	d = region_distance(p,left_arm_world,0.63);
 	if (d < best) { best=d; health=region_hp.z; }
-	d = region_distance(p,right_arm_world,0.35);
+	d = region_distance(p,right_arm_world,0.63);
 	if (d < best) { best=d; health=leg_hp.x; }
-	d = region_distance(p,left_leg_world,0.43);
+	d = region_distance(p,left_leg_world,0.72);
 	if (d < best) { best=d; health=leg_hp.y; }
-	d = region_distance(p,right_leg_world,0.43);
+	d = region_distance(p,right_leg_world,0.72);
 	if (d < best) { best=d; health=leg_hp.z; }
-	float coverage = 1.0 - smoothstep(0.85,1.7,best);
+	float coverage = 1.0 - smoothstep(0.9,1.22,best);
 	ALBEDO = mix(base_color.rgb,damage_color(health),coverage);
 	ROUGHNESS = 0.8;
 }
