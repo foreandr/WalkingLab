@@ -412,13 +412,13 @@ func _physics_process(dt):
 			var desired = camera_forward*manual_input.y+camera_right*manual_input.x
 			if manual_input.y< -0.1: desired = -desired
 			manual_heading = atan2(-desired.x,-desired.z)
-		if not Input.is_action_pressed("sprint"): manual_launch_lock = false
+		if not (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)): manual_launch_lock = false
 		if Input.is_action_just_pressed("sprint") and crouch.active():
 			manual_launch_lock = true
 			crouch.sprint()
 	var crouch_driving = crouch.update(step)
 	if player_controlled:
-		var building_sprint = not crouch_driving and not crouch.active() and not manual_launch_lock and Input.is_action_pressed("sprint") and not Input.is_action_pressed("walk") and manual_input.y>0.1
+		var building_sprint = not crouch_driving and not crouch.active() and not manual_launch_lock and (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not Input.is_action_pressed("walk") and manual_input.y>0.1
 		if not building_sprint:
 			manual_sprint_clock = 0.0
 		else:
@@ -554,7 +554,7 @@ func _physics_process(dt):
 	update_camera()
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Space jump / rise | Ctrl descend in flight | 3 fly toggle | Settings: top-right cog\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed]
+		hud.text = "YOU  |  %s  |  %.1f m/s  |  SPRINT %.1fs  |  TARGET %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Space jump / rise | Ctrl descend in flight | 3 fly toggle | Settings: top-right cog\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed,manual_sprint_clock,manual_target_speed()]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
@@ -581,7 +581,7 @@ func _process(_dt):
 		get_tree().quit(0 if max_lift<0.15 and min_sole>=0.0059 and min_body>=0.0 else 1)
 func manual_target_speed() -> float:
 	if manual_input.length()<0.01: return 0.0
-	var sprinting = Input.is_action_pressed("sprint") and not manual_launch_lock
+	var sprinting = (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not manual_launch_lock
 	if manual_input.y< -0.1: return -BACK_SPEEDS[2] if sprinting else -BACK_SPEEDS[1]
 	if Input.is_action_pressed("walk"): return SPEEDS[0]
 	if not sprinting or manual_input.y<=0.1: return SPEEDS[2]
