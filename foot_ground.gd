@@ -95,7 +95,7 @@ func resolve(ground_idle: bool = false):
 	var bottom = full_support_lowest() if use_full_support else lowest()
 	# Retargeted FBX hip heights can differ by more than 0.65 m.
 	# The previous clamp left the soles floating even with a correct measurement.
-	lift = -0.025-bottom if ground_idle else maxf(0.0,0.006-bottom)
+	lift = -0.035-bottom if ground_idle else maxf(0.0,0.006-bottom)
 	visual.position.y = lift
 	skeleton.force_update_all_bone_transforms()
 	minimum = bottom+lift
