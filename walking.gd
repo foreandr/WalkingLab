@@ -37,8 +37,6 @@ var character_tint = Color("d5d9dd")
 var manual_input = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
-var flight_takeoff_time: float = -1.0
-const FLIGHT_TAKEOFF_POSE_DURATION: float = 0.38
 var flying_clip: Dictionary = {}
 var flying_idle_clip: Dictionary = {}
 var flight_animation_time: float = 0.0
@@ -458,7 +456,6 @@ func _physics_process(dt):
 	if ai_mode == "fly" and not flight_enabled:
 		flight_enabled = true
 		flight_launch_remaining = FLIGHT_LAUNCH_DURATION
-		flight_takeoff_time = 0.0
 		
 		flight_clearance_time = 1.0
 	var active = {}
@@ -1280,7 +1277,6 @@ func _unhandled_input(event):
 				flight_enabled = not flight_enabled
 				if flight_enabled:
 					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
-					flight_takeoff_time = 0.0
 					flight_clearance_time = 1.0
 					flight_animation_time = 0.0
 					flight_pose_weight = 0.0
