@@ -12,15 +12,6 @@ func _ready():
 		var key = InputEventKey.new()
 		key.keycode = entry[1]
 		InputMap.action_add_event(entry[0],key)
-	ai = preload("res://walking.gd").new()
-	ai.name = "AutonomousMan"
-	ai.autonomous_only = true
-	ai.stationary_only = true
-	ai.route_center = Vector3(0,0,0)
-	ai.route_radius = 20.0
-	ai.spawn_point = Vector3(-1.8,0,6)
-	ai.character_tint = Color("e1d5c2")
-	add_child(ai)
 	player = preload("res://walking.gd").new()
 	player.name = "PlayerMan"
 	player.player_controlled = true
@@ -29,24 +20,29 @@ func _ready():
 	player.character_tint = Color("bdcedf")
 	add_child(player)
 	player.camera.current = true
-	ai_label = make_label(ai.actor,"MANNEQUIN",Color("ffbf69"))
 	player_label = make_label(player.actor,"YOU",Color("ff2020"))
 	make_boundary()
-	# Keep only two CPU characters: one static reference and one
-	# autonomous character with the same fire, water and flight abilities.
-	ai.actor.rotation.y = PI
-	mannequins.append(ai)
-	var caster = preload("res://walking.gd").new()
-	caster.name = "SpellcasterAI"
-	caster.autonomous_only = true
-	caster.stationary_only = true
-	caster.actor_only = true
-	caster.spawn_point = Vector3(1.8,0,6)
-	caster.character_tint = Color("c9d2cc")
-	add_child(caster)
-	caster.actor.rotation.y = PI
-	make_label(caster.actor,"MANNEQUIN",Color("ffbf69"))
-	mannequins.append(caster)
+	var tests = [
+		{"name":"Flight15","mode":"flight","speed":15.0,"pos":Vector3(-4.0,0,3.0),"label":"FLIGHT 15 m/s"},
+		{"name":"Flight20","mode":"flight","speed":20.0,"pos":Vector3(4.0,0,3.0),"label":"FLIGHT 20 m/s"},
+		{"name":"JumpTest","mode":"jump","speed":7.0,"pos":Vector3(0.0,0,3.0),"label":"JUMP LOOP"}
+	]
+	for entry in tests:
+		var dummy = preload("res://walking.gd").new()
+		dummy.name = entry["name"]
+		dummy.autonomous_only = true
+		dummy.actor_only = true
+		dummy.animation_test_mode = entry["mode"]
+		dummy.animation_test_speed = entry["speed"]
+		dummy.spawn_point = entry["pos"]
+		dummy.character_tint = Color("e1d5c2")
+		add_child(dummy)
+		dummy.actor.rotation.y = PI
+		make_label(dummy.actor,entry["label"],Color("ffbf69"))
+		mannequins.append(dummy)
+	ai = mannequins[0]
+	ai_label = make_label(ai.actor,"",Color("ffbf69"))
+
 func spawn_moving_cpus() -> void:
 	# Two walkers, two high-speed runners, two immediate flyers.
 	var assignments := [
@@ -114,7 +110,7 @@ func _physics_process(dt):
 	if ai==null or player==null: return
 	ai_label.position.y = ai.crouch.capsule.height+0.3
 	player_label.position.y = player.crouch.capsule.height+0.3
-	ai_label.text = "MANNEQUIN"
+	ai_label.text = ""
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
