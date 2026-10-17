@@ -53,6 +53,7 @@ var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
 var backward_flying_clip: Dictionary = {}
 var selected_spell_target: CharacterBody3D = null
+var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
 var movement_clip_name: String = ""
 var combat_dead: bool = false
@@ -1624,6 +1625,13 @@ func selected_target_aim_point() -> Vector3:
 				return target_position
 	return get_cursor_world_target()
 
+func clear_spell_lock() -> void:
+	selected_spell_target = null
+	if is_instance_valid(lock_marker):
+		lock_marker.queue_free()
+	lock_marker = null
+	if player_controlled: debug_player("TARGET_UNLOCKED","cursor aim")
+
 func select_hovered_target() -> void:
 	if camera == null: return
 	var pointer: Vector2 = get_viewport().get_mouse_position()
@@ -1632,11 +1640,29 @@ func select_hovered_target() -> void:
 	var ray: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(origin,origin+direction*200.0)
 	ray.exclude = [actor.get_rid()]
 	var result: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
-	if result.is_empty(): return
-	var hit: Object = result.get("collider")
-	if hit is CharacterBody3D and hit != actor:
-		selected_spell_target = hit as CharacterBody3D
-		debug_player("TARGET_SELECTED",selected_spell_target.name)
+	var hovered: CharacterBody3D = null
+	if not result.is_empty():
+		var hit: Object = result.get("collider")
+		if hit is CharacterBody3D and hit != actor:
+			hovered = hit as CharacterBody3D
+	# F toggles the current lock off, or switches to the hovered target.
+	if hovered == null or hovered == selected_spell_target:
+		clear_spell_lock()
+		return
+	clear_spell_lock()
+	selected_spell_target = hovered
+	lock_marker = Label3D.new()
+	lock_marker.name = "SpellLockMarker"
+	lock_marker.text = "◆ LOCKED ◆"
+	lock_marker.font_size = 54
+	lock_marker.pixel_size = 0.006
+	lock_marker.modulate = Color("ffdd55")
+	lock_marker.outline_size = 12
+	lock_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	lock_marker.no_depth_test = true
+	lock_marker.position = Vector3.UP*2.75
+	selected_spell_target.add_child(lock_marker)
+	if player_controlled: debug_player("TARGET_LOCKED",selected_spell_target.name)
 
 func cast_spell(element: String) -> void:
 	# Passive animation until casting; fire uses the same arm thrust.
