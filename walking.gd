@@ -43,7 +43,8 @@ var squat_amount: float = 0.0
 var squat_key_down: bool = false
 var squat_hold_seconds: float = 0.0
 const SQUAT_MAX_CHARGE_SECONDS: float = 2.0
-const SQUAT_MAX_HOP_IMPULSE: float = 7.0
+const SQUAT_MAX_HOP_IMPULSE: float = 9.9
+const AIR_JUMP_TRAVEL_MULTIPLIER: float = 1.41421356
 const SQUAT_HOP_IMPULSE: float = 3.0
 const SQUAT_BLEND_SPEED: float = 1.8
 var debug_tick: float = 0.0
@@ -63,6 +64,8 @@ var speed_streaks: Control
 var streak_clock: float = 0.0
 var ai_action_clock: float = 0.0
 var flight_enabled: bool = false
+var flight_windup_remaining: float = 0.0
+const FLIGHT_WINDUP_SECONDS: float = 0.35
 var flight_launch_remaining: float = 0.0
 var flight_clearance_time: float = 0.0
 const FLIGHT_LAUNCH_DURATION: float = 0.65
@@ -460,9 +463,17 @@ func _physics_process(dt):
 		return
 	var step = dt*(0.35 if slow else 1.0)
 	if player_controlled:
-		var want_squat: bool = (squat_key_down or Input.is_physical_key_pressed(KEY_SPACE)) and not flight_enabled
+		var want_squat: bool = ((squat_key_down or Input.is_physical_key_pressed(KEY_SPACE)) and flight_windup_remaining <= 0.0) or flight_windup_remaining > 0.0
 		squat_amount = move_toward(squat_amount,1.0 if want_squat else 0.0,step*SQUAT_BLEND_SPEED)
-		if want_squat: squat_hold_seconds = minf(squat_hold_seconds+step,SQUAT_MAX_CHARGE_SECONDS)
+		if want_squat and flight_windup_remaining <= 0.0: squat_hold_seconds = minf(squat_hold_seconds+step,SQUAT_MAX_CHARGE_SECONDS)
+		if flight_windup_remaining > 0.0:
+			flight_windup_remaining = maxf(0.0,flight_windup_remaining-step)
+			if flight_windup_remaining <= 0.0:
+				flight_enabled = true
+				flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+				flight_clearance_time = 1.0
+				squat_amount = 0.0
+				debug_player("FLIGHT_TAKEOFF","windup complete")
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
@@ -609,6 +620,9 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
+	if player_controlled and not flight_enabled and not actor.is_on_floor():
+		actor.velocity.x *= AIR_JUMP_TRAVEL_MULTIPLIER
+		actor.velocity.z *= AIR_JUMP_TRAVEL_MULTIPLIER
 	if player_controlled or ai_abilities or ai_mode == "fly": actor.floor_snap_length = 0.0 if flight_enabled else 0.12
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		if flight_enabled:
@@ -1146,11 +1160,16 @@ func debug_player(event_type: String, details: String) -> void:
 
 func apply_jump_windup_pose() -> void:
 	if squat_amount <= 0.0 or flight_enabled: return
-	# Visible squat diagnostic: compress the complete rig toward its planted feet.
-	# A root translation put the character underground where the ground hid it.
-	# No knee or thigh joint rotations; restore normal scale when Space is released.
+	# Shorten only the leg bones; keep torso, arms and head full-sized.
+	# Lower the hips to follow the compressed legs.
 	var bend: float = squat_amount*squat_amount*(3.0-2.0*squat_amount)
-	visual.scale.y = lerpf(1.0,0.66,bend)
+	for bone in range(skeleton.get_bone_count()):
+		var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
+		if bone_name == "hips":
+			skeleton.set_bone_pose_position(bone,skeleton.get_bone_pose_position(bone)+Vector3.DOWN*0.48*bend)
+		elif bone_name == "leftupleg" or bone_name == "rightupleg" or bone_name == "leftleg" or bone_name == "rightleg":
+			skeleton.set_bone_pose_scale(bone,Vector3(1.0,lerpf(1.0,0.66,bend),1.0))
+	skeleton.force_update_all_bone_transforms()
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
@@ -1334,16 +1353,23 @@ func _unhandled_input(event):
 				debug_player("CROUCH","toggle")
 
 			if event.keycode==KEY_3:
-				flight_enabled = not flight_enabled
 				if flight_enabled:
+					flight_enabled = false
+					flight_windup_remaining = 0.0
+					flight_launch_remaining = 0.0
+				elif flight_windup_remaining > 0.0:
+					flight_windup_remaining = 0.0
+				elif actor.is_on_floor():
+					flight_windup_remaining = FLIGHT_WINDUP_SECONDS
 					flight_acceleration_time = 0.0
 					vertical_jump_speed = 0.0
-					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
-					flight_clearance_time = 1.0
 					flight_animation_time = 0.0
 					flight_pose_weight = 0.0
+					debug_player("FLIGHT_WINDUP","squeeze before launch")
 				else:
-					flight_launch_remaining = 0.0
+					flight_enabled = true
+					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+					flight_clearance_time = 1.0
 				print("FLIGHT_ENABLED ",flight_enabled)
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode==KEY_1: cast_fireball()
