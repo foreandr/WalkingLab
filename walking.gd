@@ -506,6 +506,17 @@ func make_standing_idle(player: AnimationPlayer):
 							break
 					idle.rotation_track_insert_key(out,0.0,upright)
 					idle.rotation_track_insert_key(out,idle.length,upright)
+				elif filename == "Neutral Idle.fbx" and (n.begins_with("spine") or n == "neck" or n == "head"):
+					# Idle0 contains a pronounced backwards bend after retargeting.
+					# Use the proven upright Y Bot torso/head orientation only for
+					# these joints; keep its arms and other motion as imported.
+					var neutral: Quaternion = Quaternion.IDENTITY
+					for template_track in range(source_template.get_track_count()):
+						if source_template.track_get_type(template_track) == Animation.TYPE_ROTATION_3D and source_template.track_get_path(template_track) == destination_paths[n]:
+							neutral = source_template.rotation_track_interpolate(template_track, source_template.length * 0.48)
+							break
+					idle.rotation_track_insert_key(out,0.0,neutral)
+					idle.rotation_track_insert_key(out,idle.length,neutral)
 				else:
 					for k in range(motion.track_get_key_count(t)):
 						var rot: Quaternion = motion.track_get_key_value(t,k)
