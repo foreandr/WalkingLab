@@ -28,6 +28,21 @@ func setup(body: CharacterBody3D, rig: Skeleton3D) -> void:
 				bone_map[region] = i
 				break
 	update_damage_colors()
+	for region in REGIONS:
+		var marker := MeshInstance3D.new()
+		marker.name = "Hitbox_" + region
+		var sphere := SphereMesh.new()
+		sphere.radius = 0.32 if region == "head" else (0.48 if region == "torso" else 0.34)
+		sphere.height = sphere.radius * 2.0
+		marker.mesh = sphere
+		var material := StandardMaterial3D.new()
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.albedo_color = Color(0.1,0.86,1.0,0.13)
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.no_depth_test = true
+		marker.material_override = material
+		owner_actor.add_child(marker)
+		markers[region] = marker
 
 func bone_position(region: String) -> Vector3:
 	var index: int = int(bone_map[region])
@@ -38,6 +53,7 @@ func _process(_dt: float) -> void:
 	if skeleton == null or not is_instance_valid(skeleton): return
 	for region in REGIONS:
 		shader_material.set_shader_parameter(region+"_world",bone_position(region))
+		(markers[region] as MeshInstance3D).global_position = bone_position(region)
 
 func update_damage_colors() -> void:
 	shader_material.set_shader_parameter("region_hp",Vector3(float(hp["head"]),float(hp["torso"]),float(hp["left_arm"])))
@@ -53,7 +69,7 @@ func region_at(world_point: Vector3) -> String:
 		if distance_to_bone < nearest_distance:
 			nearest_distance = distance_to_bone
 			nearest = region
-	if nearest_distance < 0.28: return nearest
+	if nearest_distance < 0.54: return nearest
 	var local: Vector3 = owner_actor.global_transform.affine_inverse() * world_point
 	if local.y >= 1.52: return "head"
 	if local.y >= 0.95:
@@ -67,7 +83,8 @@ func receive_hit(world_point: Vector3, amount: float) -> void:
 	if dead: return
 	var region: String = region_at(world_point)
 	hp[region] = maxf(0.0,float(hp[region])-amount)
-	show_damage_number(world_point,amount)
+	show_damage_number(world_point,amount,region)
+	flash_hit_region(region)
 	var remaining: float = float(hp[region])
 	update_damage_colors()
 	print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
@@ -79,9 +96,16 @@ func receive_hit(world_point: Vector3, amount: float) -> void:
 			owner_actor.get_parent().combat_die(region)
 		print("[DEFEATED] ",owner_actor.get_parent().name," ",region)
 
-func show_damage_number(point: Vector3, amount: float) -> void:
+func flash_hit_region(region: String) -> void:
+	var marker: MeshInstance3D = markers[region]
+	var mat: StandardMaterial3D = marker.material_override
+	mat.albedo_color = Color(1.0,0.95,0.18,0.78)
+	var flash := create_tween()
+	flash.tween_property(mat,"albedo_color",Color(0.1,0.86,1.0,0.13),0.3)
+
+func show_damage_number(point: Vector3, amount: float, region: String) -> void:
 	var label := Label3D.new()
-	label.text = "-%d" % int(round(amount))
+	label.text = "%s  -%d" % [region.to_upper().replace("_"," "),int(round(amount))]
 	label.font_size = 48
 	label.pixel_size = 0.007
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
