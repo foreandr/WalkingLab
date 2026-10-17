@@ -438,7 +438,7 @@ func make_standing_idle(player: AnimationPlayer):
 		destination_paths[n] = target_path
 	var library = AnimationLibrary.new()
 	idle_variants.clear()
-	var wanted = ["Neutral Idle.fbx","Idle(2).fbx","Idle (2).fbx","Offensive Idle.fbx","Idle (1)(1).fbx","Standing W_Briefcase Idle.fbx","Idle.fbx","Idle (1).fbx"]
+	var wanted = ["Neutral Idle.fbx","Idle (2).fbx","Idle (1)(1).fbx"]
 	for filename in wanted:
 		var path = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(path): continue
@@ -508,7 +508,7 @@ func make_standing_idle(player: AnimationPlayer):
 						idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
 				tracks += 1
 			if tracks >= 12:
-				var id = "Idle" + str(idle_variants.size())
+				var id = "Idle" + str([0,1,4][idle_variants.size()])
 				library.add_animation(id,idle)
 				idle_variants.append("manual/"+id)
 				print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
