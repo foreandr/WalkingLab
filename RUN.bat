@@ -69,15 +69,7 @@ if "%IDLE_NEW%"=="1" (
     if errorlevel 1 echo Warning: one or more FBX imports failed.
 )
 echo [2/2] Launching game with timestamped logging...
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\run_logged.ps1" -GodotPath "%GODOT%"
-set "GAME_EXIT=%ERRORLEVEL%"
-echo Uploading latest run log...
-powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\sync_logs.ps1"
-if errorlevel 1 echo Warning: log upload failed; saved locally for next launch.
-if not "%GAME_EXIT%"=="0" (
- echo Game exited with code %GAME_EXIT%. See most recent file in logs.
- pause
- exit /b %GAME_EXIT%
-)
+rem Start logger detached and return to PowerShell immediately.
+rem Closing the game window triggers log upload; no batch job remains to confirm.
+start "" /min powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "scripts\run_logged.ps1" -GodotPath "%GODOT%"
 exit /b 0
-
