@@ -71,10 +71,12 @@ func receive_hit(world_point: Vector3, amount: float) -> void:
 	var remaining: float = float(hp[region])
 	update_damage_colors()
 	print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
+	if not dead and owner_actor.get_parent().has_method("combat_react"):
+		owner_actor.get_parent().combat_react(region,amount,remaining)
 	if remaining <= 0.0 and region in ["head","torso"]:
 		dead = true
-		owner_actor.get_parent().set_process_input(false)
-		owner_actor.get_parent().set_physics_process(false)
+		if owner_actor.get_parent().has_method("combat_die"):
+			owner_actor.get_parent().combat_die(region)
 		print("[DEFEATED] ",owner_actor.get_parent().name," ",region)
 
 func show_damage_number(point: Vector3, amount: float) -> void:
@@ -91,3 +93,9 @@ func show_damage_number(point: Vector3, amount: float) -> void:
 	motion.tween_property(label,"global_position",point+Vector3.UP*1.5,0.9)
 	motion.tween_property(label,"modulate:a",0.0,0.9)
 	motion.chain().tween_callback(label.queue_free)
+
+func movement_penalty() -> float:
+	var legs: float = minf(float(hp["left_leg"]),float(hp["right_leg"]))
+	if legs <= 0.0: return 0.35
+	if legs < 40.0: return 0.65
+	return 1.0
