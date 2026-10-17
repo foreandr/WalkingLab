@@ -1053,8 +1053,9 @@ func ai_target_position() -> Vector3:
 	if cast_element == "water" and test_basin != null:
 		return Vector3(5.5,0.3,8.5)
 	var opponent: Node3D = get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
-	if opponent != null and opponent.actor != null:
-		return opponent.actor.global_position + Vector3.UP * 1.2
+	if opponent != null:
+		var opponent_body: Node3D = opponent.get("actor") as Node3D
+		if opponent_body != null: return opponent_body.global_position + Vector3.UP * 1.2
 	return actor.global_position - actor.global_basis.z*15.0
 
 func update_ai_abilities(dt: float) -> void:
