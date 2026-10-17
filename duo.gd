@@ -41,7 +41,7 @@ func _ready():
 		make_label(dummy.actor,entry["label"],Color("ffbf69"))
 		mannequins.append(dummy)
 	ai = mannequins[0]
-	ai_label = make_label(ai.actor,"",Color("ffbf69"))
+	ai_label = null
 
 func spawn_moving_cpus() -> void:
 	# Two walkers, two high-speed runners, two immediate flyers.
@@ -108,9 +108,9 @@ func make_boundary():
 		boundary.add_child(collision)
 func _physics_process(dt):
 	if ai==null or player==null: return
-	ai_label.position.y = ai.crouch.capsule.height+0.3
+	if ai_label != null: ai_label.position.y = ai.crouch.capsule.height+0.3
 	player_label.position.y = player.crouch.capsule.height+0.3
-	ai_label.text = ""
+	if ai_label != null: ai_label.text = ""
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
