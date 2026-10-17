@@ -1,12 +1,12 @@
 extends Node3D
 # Gameplay water volume: persistent litres per container or local ground patch.
 # A cheap height-field pool, not a full Navier-Stokes solver.
-const BASIN_CENTER := Vector3(5.5,0.0,8.5)
-const INSIDE_WIDTH := 3.0
-const INSIDE_DEPTH := 3.0
-const WALL_HEIGHT := 2.1
-const GROUND_CELL := 1.2
-const MAX_CELLS := 256
+const BASIN_CENTER = Vector3(5.5,0.0,8.5)
+const INSIDE_WIDTH = 3.0
+const INSIDE_DEPTH = 3.0
+const WALL_HEIGHT = 2.1
+const GROUND_CELL = 1.2
+const MAX_CELLS = 256
 var basin_litres: float = 0.0
 var surface: MeshInstance3D
 var ground_pools: Dictionary = {}
