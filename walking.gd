@@ -16,6 +16,13 @@ var jab_right_forearm := -1
 var jab_right_hand := -1
 var controlled_arm := "right"
 var jab_aim_strength := 0.0
+const CAST_DURATION: float = 0.30
+const CAST_RELEASE: float = 0.17
+var cast_elapsed: float = -1.0
+var cast_released: bool = false
+var cast_arm_name: String = ""
+var cast_last_hand: Vector3 = Vector3.ZERO
+var cast_hand_velocity: Vector3 = Vector3.ZERO
 var cursor_reticle: Control
 var was_moving_for_idle := false
 var spawn_point = Vector3(0,0,40)
@@ -399,7 +406,9 @@ func _physics_process(dt):
 		if was_moving_for_idle and not moving_now: choose_random_idle()
 		was_moving_for_idle = moving_now
 	tree.advance(step)
-	if player_controlled: adjust_jab_arm()
+	if player_controlled:
+		adjust_jab_arm()
+		update_cast_motion(step)
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve(player_controlled and speed < 0.12 and not crouch.active())
 	crouch.update_capsule(step)
@@ -748,9 +757,10 @@ func rotate_arm_joint_toward(bone: int, hand: int, goal: Vector3, weight: float)
 func adjust_jab_arm() -> void:
 	# Fist-directed two-bone IK, layered over the original Mixamo jab.
 	# The actor, pelvis, torso and both legs remain completely untouched.
-	var arm = jab_right_arm if controlled_arm == "right" else jab_left_arm
-	var forearm = jab_right_forearm if controlled_arm == "right" else jab_left_forearm
-	var hand = jab_right_hand if controlled_arm == "right" else jab_left_hand
+	var aiming_arm: String = cast_arm_name if cast_elapsed >= 0.0 else controlled_arm
+	var arm = jab_right_arm if aiming_arm == "right" else jab_left_arm
+	var forearm = jab_right_forearm if aiming_arm == "right" else jab_left_forearm
+	var hand = jab_right_hand if aiming_arm == "right" else jab_left_hand
 	if arm < 0 or forearm < 0 or hand < 0: return
 	if jab_aim_strength < 0.001: return
 	skeleton.force_update_all_bone_transforms()
@@ -767,7 +777,7 @@ func adjust_jab_arm() -> void:
 	var cursor: Vector2 = get_viewport().get_mouse_position()
 	var nx: float = clampf(cursor.x / maxf(bounds.x,1.0) * 2.0 - 1.0,-1.0,1.0)
 	var ny: float = clampf(1.0 - cursor.y / maxf(bounds.y,1.0) * 2.0,-1.0,1.0)
-	var side_sign: float = 1.0 if controlled_arm == "right" else -1.0
+	var side_sign: float = 1.0 if aiming_arm == "right" else -1.0
 	# Each hand can sweep across the centre line without ever moving behind it.
 	# Scale horizontal travel to the actual arm length, not a screen-pixel radius.
 	var horizontal: float = nx * reach * 0.80
@@ -778,6 +788,17 @@ func adjust_jab_arm() -> void:
 	# A small amount of front-side mesh overlap is preferable to frozen aim.
 	var safe_front: float = maxf(0.43,reach * 0.56) if crossing else maxf(0.40,reach * 0.49)
 	var goal_actor := Vector3(horizontal,clampf(height,0.42,2.15),-safe_front)
+	# A fast selected-arm wind-up, forward thrust and recovery.
+	if cast_elapsed >= 0.0:
+		var phase: float = cast_elapsed / CAST_DURATION
+		var extension: float = 0.0
+		if phase < 0.22:
+			extension = -0.05 * smoothstep(0.0,0.22,phase)
+		elif phase < 0.58:
+			extension = lerpf(-0.05,0.36,smoothstep(0.22,0.58,phase))
+		else:
+			extension = 0.36 * (1.0-smoothstep(0.58,1.0,phase))
+		goal_actor.z -= extension
 	# Clicking does not push the hand into or away from the chest.
 	var goal_world: Vector3 = actor.global_transform * goal_actor
 	var goal_local: Vector3 = skeleton.global_transform.affine_inverse() * goal_world
@@ -822,37 +843,64 @@ func throw_left_jab() -> void:
 	print("ARM_REACH ",controlled_arm)
 
 func cast_fireball() -> void:
-	# Visuals are the imported MIT-licensed 3D fire particle scene, NOT a
-	# generated primitive or a hand-written fire shader.
-	var vfx_path = "res://assets/external_vfx/fire.tscn"
-	if not ResourceLoader.exists(vfx_path):
-		push_warning("FIREBALL_VFX_MISSING " + vfx_path)
-		return
-	var arm: int = jab_right_arm if controlled_arm == "right" else jab_left_arm
-	var hand: int = jab_right_hand if controlled_arm == "right" else jab_left_hand
-	if arm < 0 or hand < 0: return
+	# No mana or separate body animation. Brief cast action, one arm only.
+	if cast_elapsed >= 0.0 or crouch.active(): return
+	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return
+	cast_arm_name = controlled_arm
+	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
+	if hand_id < 0: return
 	skeleton.force_update_all_bone_transforms()
-	var shoulder_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(arm).origin
-	var hand_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand).origin
-	var direction_actor: Vector3 = actor.global_basis.inverse() * (hand_world - shoulder_world).normalized()
-	# Use the current wrist aiming direction, but never fire backwards.
-	direction_actor.z = minf(direction_actor.z,-0.25)
-	direction_actor = direction_actor.normalized()
-	var travel: Vector3 = (actor.global_basis * direction_actor).normalized()
-	var projectile = Node3D.new()
+	cast_last_hand = skeleton.global_transform * skeleton.get_bone_global_pose(hand_id).origin
+	cast_hand_velocity = Vector3.ZERO
+	cast_elapsed = 0.0
+	cast_released = false
+
+func update_cast_motion(dt: float) -> void:
+	if cast_elapsed < 0.0: return
+	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
+	if hand_id < 0:
+		cast_elapsed = -1.0
+		return
+	skeleton.force_update_all_bone_transforms()
+	var hand_now: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand_id).origin
+	if dt > 0.00001:
+		var instantaneous: Vector3 = (hand_now - cast_last_hand) / dt
+		cast_hand_velocity = cast_hand_velocity.lerp(instantaneous,0.65)
+	cast_last_hand = hand_now
+	cast_elapsed += dt
+	if not cast_released and cast_elapsed >= CAST_RELEASE:
+		cast_released = true
+		release_fireball(hand_now)
+	if cast_elapsed >= CAST_DURATION:
+		cast_elapsed = -1.0
+		cast_arm_name = ""
+
+func release_fireball(hand_world: Vector3) -> void:
+	var arm_id: int = jab_right_arm if cast_arm_name == "right" else jab_left_arm
+	if arm_id < 0: return
+	var shoulder_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(arm_id).origin
+	var raw_direction: Vector3 = (hand_world - shoulder_world).normalized()
+	var local_direction: Vector3 = actor.global_basis.inverse() * raw_direction
+	local_direction.z = minf(local_direction.z,-0.20)
+	var travel: Vector3 = (actor.global_basis * local_direction.normalized()).normalized()
+	# Measure actual animated hand velocity and project it along the shot.
+	var launch_speed: float = clampf(cast_hand_velocity.dot(travel),3.0,25.0)
+	var projectile := Node3D.new()
 	projectile.name = "Fireball"
 	get_tree().current_scene.add_child(projectile)
-	projectile.global_position = hand_world + travel * 0.25
-	var visual_effect = load(vfx_path).instantiate()
-	projectile.add_child(visual_effect)
-	if visual_effect is GPUParticles3D:
-		visual_effect.emitting = true
-		visual_effect.restart()
+	projectile.global_position = hand_world + travel * 0.20
+	# Existing third-party VFX, not procedurally built fire.
+	var fire_visual: GPUParticles3D = preload("res://assets/external_vfx/fire.tscn").instantiate()
+	projectile.add_child(fire_visual)
+	fire_visual.emitting = true
+	fire_visual.restart()
 	var mover = preload("res://assets/external_vfx/fireball_motion.gd").new()
 	mover.name = "Motion"
 	mover.travel_direction = travel
+	mover.travel_speed = launch_speed
+	mover.owner_rid = actor.get_rid()
 	projectile.add_child(mover)
-	print("FIREBALL_CAST ",controlled_arm)
+	print("FIREBALL_RELEASE ",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
 
 func choose_random_idle():
 	# Historical name retained for existing callers. Idle (3).fbx preferred for everyone; never swap.
@@ -869,7 +917,8 @@ func _unhandled_input(event):
 			if event.keycode==KEY_C: crouch.toggle()
 			if event.keycode==KEY_1: cast_fireball()
 			if event.keycode==KEY_SHIFT:
-				controlled_arm = "left" if controlled_arm == "right" else "right"
+				if cast_elapsed < 0.0:
+					controlled_arm = "left" if controlled_arm == "right" else "right"
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))):
