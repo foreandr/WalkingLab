@@ -318,7 +318,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Space jump | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fire / 2 water / 3 fly"
+		controls.text = ""
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func install_options_menu(canvas: CanvasLayer) -> void:
@@ -343,6 +343,14 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
 	add_setting_slider(column,"Jump strength",4.0,8.5,jump_power,0.5,"jump")
 	add_setting_slider(column,"Fireball speed",0.5,2.0,1.0,0.1,"fireball")
+	var controls_heading := Button.new()
+	controls_heading.text = "Controls  ▾"
+	column.add_child(controls_heading)
+	var controls_details := Label.new()
+	controls_details.text = "WASD: Move\nAlt + W: Sprint\nCtrl: Walk / descend in flight\nSpace: Jump / ascend in flight\nMB3 + drag: Camera rotation\nMB2: No camera action\nShift: Switch selected arm\nLeft click: Arm reach\n1: Fire | 2: Water | 3: Flight\nC: Crouch | F11: Fullscreen"
+	controls_details.visible = false
+	column.add_child(controls_details)
+	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
 	cog.pressed.connect(func(): options_panel.visible = not options_panel.visible)
 
 func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: float, initial: float, increment: float, setting: String) -> void:
@@ -389,11 +397,11 @@ func draw_speed_streaks() -> void:
 	for i in range(count):
 		var angle: float = float(i)*2.39996323
 		var cycle: float = fposmod(float(i)*0.6180339+streak_clock*(0.2+intensity*2.2),1.0)
-		var radius: float = lerpf(0.20,0.79,cycle)
+		var radius: float = lerpf(0.40,0.94,cycle)
 		var offset := Vector2(cos(angle),sin(angle))
 		var edge: Vector2 = center+offset*radius*region.y
-		var length: float = (14.0+115.0*intensity)*(0.3+cycle)
-		speed_streaks.draw_line(edge-offset*length,edge,Color(0.8,0.9,1.0,0.13+intensity*0.58),1.0+intensity*1.2,true)
+		var length: float = (32.0+190.0*intensity)*(0.6+cycle)
+		speed_streaks.draw_line(edge-offset*length,edge,Color(0.93,0.96,1.0,0.40+intensity*0.52),1.7+intensity*1.6,true)
 
 func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
@@ -657,7 +665,7 @@ func _physics_process(dt):
 	if player_controlled: update_speed_streaks(step)
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU  |  %s  |  %.1f m/s  |  SPRINT %.1fs  |  TARGET %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Space jump / rise | Ctrl descend in flight | 3 fly toggle | Settings: top-right cog\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed,manual_sprint_clock,manual_target_speed()]
+		hud.text = "YOU | %s | %.1f m/s | SPRINT %.1fs | TARGET %.1f m/s\nControls: Settings > Controls" % [player_state,speed,manual_sprint_clock,manual_target_speed()]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
@@ -1129,9 +1137,9 @@ func apply_jump_pose(dt: float) -> void:
 	if jump_prep_remaining >= 0.0 and not flight_enabled:
 		prep = clampf(1.0-jump_prep_remaining/JUMP_PREP_TIME,0.0,1.0)
 	jump_pose = move_toward(jump_pose,1.0 if airborne else 0.0,dt*7.0)
-	var flight_moving: bool = flight_enabled and actor.velocity.length() > 0.7
+	var flight_moving: bool = flight_enabled and (manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL)) if player_controlled else flight_enabled and actor.velocity.length() > 0.7
 	flight_pose_weight = move_toward(flight_pose_weight,1.0 if flight_enabled else 0.0,dt*3.0)
-	flight_idle_weight = move_toward(flight_idle_weight,0.0 if flight_moving else 1.0,dt*2.0)
+	flight_idle_weight = move_toward(flight_idle_weight,0.0 if flight_moving else 1.0,dt*3.0)
 	var clip: Dictionary = {}
 	var moment: float = 0.0
 	var blend_weight: float = 0.0
@@ -1147,7 +1155,7 @@ func apply_jump_pose(dt: float) -> void:
 		# Hover holds a restful frame; moving flight cycles at a fixed pace,
 		# independently of velocity and of the ground running cadence.
 		var moving_moment: float = fmod(flight_animation_time,float(clip["length"]))
-		var idle_moment: float = float(clip["length"])*0.32
+		var idle_moment: float = fmod(flight_animation_time*0.32,float(clip["length"]))
 		moment = lerpf(moving_moment,idle_moment,flight_idle_weight)
 		blend_weight = flight_pose_weight
 	elif jump_animation_time >= 0.0 and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
@@ -1157,7 +1165,7 @@ func apply_jump_pose(dt: float) -> void:
 		jump_animation_time += dt
 		var in_prep: bool = jump_prep_remaining >= 0.0
 		var fraction: float = clampf(jump_animation_time/JUMP_PREP_TIME,0.0,1.0) if in_prep else clampf((jump_animation_time-JUMP_PREP_TIME)/0.72,0.0,1.0)
-		moment = float(clip["length"])*lerpf(0.02,0.51,fraction) if in_prep else float(clip["length"])*lerpf(0.51,0.98,fraction)
+		moment = float(clip["length"])*lerpf(0.02,0.49,fraction) if in_prep else float(clip["length"])*0.49
 		blend_weight = minf(1.0,jump_animation_time/0.12) if in_prep else (jump_pose if not actor.is_on_floor() else 0.0)
 		if not in_prep and actor.is_on_floor() and jump_animation_time > JUMP_PREP_TIME+0.10:
 			jump_animation_time = -1.0
@@ -1348,9 +1356,9 @@ func _unhandled_input(event):
 					controlled_arm = "left" if controlled_arm == "right" else "right"
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-		if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))):
-			orbit -= clampf(event.relative.x,-45.0,45.0)*0.006*camera_sensitivity
-			elevation = clamp(elevation-clampf(event.relative.y,-45.0,45.0)*0.004*camera_sensitivity,-1.20,1.20)
+		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
+			orbit = wrapf(orbit-event.relative.x*0.004*camera_sensitivity,-PI,PI)
+			elevation = clampf(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
 		if event is InputEventMouseButton and event.pressed:
 			if event.button_index == MOUSE_BUTTON_LEFT: throw_left_jab()
 			if event.button_index==MOUSE_BUTTON_WHEEL_UP: distance = max(3.0,distance-0.4)
