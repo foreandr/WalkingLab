@@ -31,6 +31,10 @@ var actor: CharacterBody3D
 var visual: Node3D
 var native_idle_model: Node3D
 var native_idle_playing := false
+var native_idle_source_rig: Skeleton3D
+var native_idle_driver: AnimationPlayer
+var native_idle_bones: Array = []
+var native_idle_weight := 0.0
 var skeleton: Skeleton3D
 var tree: AnimationTree
 var camera: Camera3D
@@ -324,7 +328,7 @@ func _physics_process(dt):
 	tree.set("parameters/Cadence/scale",speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	tree.advance(step)
-	if player_controlled: update_native_idle(speed, crouch_driving or crouch.active())
+	if player_controlled: update_native_idle(speed, crouch_driving or crouch.active(), step)
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve()
 	crouch.update_capsule(step)
@@ -404,21 +408,15 @@ func speed_band(values: Array, value: float) -> float:
 		if value<=values[index+1]: return clamp(float(index)+(value-values[index])/(values[index+1]-values[index]),0.0,float(values.size()-1))
 	return float(values.size()-1)
 func install_native_idle() -> void:
-	# Keep the original imported skinned character and skeleton together.
-	# This is the exact working playback path used by mannequin #1.
-	var path := "res://assets/custom_idle/Idle.fbx"
-	if not ResourceLoader.exists(path):
-		push_warning("PLAYER_NATIVE_IDLE_MISSING " + path)
-		return
-	var packed = load(path)
-	if not packed is PackedScene:
-		push_warning("PLAYER_NATIVE_IDLE_NOT_SCENE")
-		return
+	# Source FBX is a hidden animation DRIVER, never a replacement mesh.
+	var filename := "res://assets/custom_idle/Idle.fbx"
+	if not ResourceLoader.exists(filename): return
+	var packed = load(filename)
+	if not packed is PackedScene: return
 	var model: Node3D = packed.instantiate()
-	var animators = model.find_children("*", "AnimationPlayer", true, false)
-	var meshes = model.find_children("*", "MeshInstance3D", true, false)
-	if animators.is_empty() or meshes.is_empty():
-		push_warning("PLAYER_NATIVE_IDLE_NO_RIG")
+	var animators = model.find_children("*","AnimationPlayer",true,false)
+	var rigs = model.find_children("*","Skeleton3D",true,false)
+	if animators.is_empty() or rigs.is_empty():
 		model.free()
 		return
 	var best_score := 0
@@ -433,45 +431,63 @@ func install_native_idle() -> void:
 			for track in range(clip.get_track_count()):
 				if clip.track_get_type(track) != Animation.TYPE_ROTATION_3D: continue
 				if clip.track_get_key_count(track) < 2: continue
-				var start_q: Quaternion = clip.track_get_key_value(track, 0)
-				for sample in [1, int(clip.track_get_key_count(track) / 2), clip.track_get_key_count(track) - 1]:
-					var next_q: Quaternion = clip.track_get_key_value(track, sample)
-					if absf(start_q.dot(next_q)) < 0.99999:
-						moving += 1
-						break
+				var initial: Quaternion = clip.track_get_key_value(track,0)
+				var last: Quaternion = clip.track_get_key_value(track,clip.track_get_key_count(track)-1)
+				var middle: Quaternion = clip.track_get_key_value(track,int(clip.track_get_key_count(track)/2))
+				if absf(initial.dot(last)) < 0.99999 or absf(initial.dot(middle)) < 0.99999:
+					moving += 1
 			if moving > best_score:
 				best_score = moving
 				chosen = animator
 				take = name
 	if chosen == null:
-		push_warning("PLAYER_NATIVE_IDLE_NO_ANIMATED_ROTATIONS")
+		model.free()
+		push_warning("YBOT_IDLE_NO_MOTION")
+		return
+	var source_rig: Skeleton3D = rigs[0]
+	var source_map := {}
+	for i in range(source_rig.get_bone_count()):
+		source_map[normalized_idle_bone(String(source_rig.get_bone_name(i)))] = i
+	native_idle_bones.clear()
+	for i in range(skeleton.get_bone_count()):
+		var name = normalized_idle_bone(String(skeleton.get_bone_name(i)))
+		if source_map.has(name):
+			native_idle_bones.append([i,source_map[name]])
+	if native_idle_bones.size() < 15:
+		push_warning("YBOT_IDLE_RIG_MISMATCH matched=" + str(native_idle_bones.size()))
 		model.free()
 		return
-	var animation: Animation = chosen.get_animation(take)
-	animation.loop_mode = Animation.LOOP_LINEAR
-	model.name = "NativeMixamoStandingIdle"
-	model.rotation.y = PI
+	model.name = "HiddenMixamoIdleDriver"
 	actor.add_child(model)
-	for item in animators: item.stop()
-	for part in meshes:
-		var material = StandardMaterial3D.new()
-		material.albedo_color = character_tint
-		material.roughness = 0.8
-		part.material_override = material
+	for mesh in model.find_children("*","MeshInstance3D",true,false):
+		mesh.visible = false
+	for animator in animators: animator.stop()
+	var clip: Animation = chosen.get_animation(take)
+	clip.loop_mode = Animation.LOOP_LINEAR
 	chosen.play(take)
 	native_idle_model = model
-	native_idle_model.visible = false
-	print("PLAYER_NATIVE_IDLE_READY take=", take, " moving_bones=", best_score, " length=", animation.length)
+	native_idle_source_rig = source_rig
+	native_idle_driver = chosen
+	print("YBOT_IDLE_RETARGET_READY take=",take," matched_bones=",native_idle_bones.size()," moving_tracks=",best_score)
 
-func update_native_idle(velocity: float, crouched: bool) -> void:
-	if native_idle_model == null: return
-	# Switch visibility only when nearly stationary. Running uses the original
-	# Y Bot model and original untouched gait controller.
-	var should_idle = velocity < (0.25 if native_idle_playing else 0.10) and not crouched
-	if should_idle == native_idle_playing: return
-	native_idle_playing = should_idle
-	native_idle_model.visible = should_idle
-	visual.visible = not should_idle
+func update_native_idle(velocity: float, crouched: bool, dt: float) -> void:
+	if native_idle_source_rig == null: return
+	var target_weight := 1.0 if velocity < 0.12 and not crouched else 0.0
+	native_idle_weight = move_toward(native_idle_weight,target_weight,dt*5.0)
+	# The original Y Bot remains the sole visible character.
+	# Source bone pose = source rest * animated source pose delta.
+	# Destination bone pose = destination rest * corresponding source local delta,
+	# which preserves the target skeleton's bind axes.
+	for pair in native_idle_bones:
+		var destination: int = pair[0]
+		var source: int = pair[1]
+		var source_rest = native_idle_source_rig.get_bone_rest(source).basis.get_rotation_quaternion()
+		var target_rest = skeleton.get_bone_rest(destination).basis.get_rotation_quaternion()
+		var source_local = native_idle_source_rig.get_bone_pose_rotation(source)
+		var source_delta = source_local
+		# Convert the animation delta into the target's parent/rest coordinates.
+		var rotated_delta = (target_rest.inverse() * source_rest * source_delta * source_rest.inverse() * target_rest).normalized()
+		skeleton.set_bone_pose_rotation(destination,Quaternion.IDENTITY.slerp(rotated_delta,native_idle_weight))
 
 func normalized_idle_bone(name: String) -> String:
 	return name.to_lower().replace("mixamorig", "").replace(":", "").replace("_", "").replace(" ", "")
