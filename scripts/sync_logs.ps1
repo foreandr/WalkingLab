@@ -3,7 +3,13 @@ function Invoke-Git([string[]]$GitArgs) {
     & git.exe @GitArgs
     if ($LASTEXITCODE -ne 0) { throw ("git.exe " + ($GitArgs -join " ") + " exited " + $LASTEXITCODE) }
 }
+# Serialize launcher sync and detached game logger sync across processes.
+$mutex = [System.Threading.Mutex]::new($false, "Local\\WalkingLab_foreandr_git_sync")
+$hasMutex = $false
 try {
+    try { $hasMutex = $mutex.WaitOne([TimeSpan]::FromSeconds(90)) }
+    catch [System.Threading.AbandonedMutexException] { $hasMutex = $true }
+    if (-not $hasMutex) { throw "Another WalkingLab sync is still running; waited 90 seconds." }
     # A forcibly interrupted Git operation can leave the index lock behind.
     # Never remove a lock while any Git executable is running.
     $lock = Join-Path (Get-Location) ".git\\index.lock"
@@ -39,6 +45,8 @@ try {
     # The pathspec excludes the logs directory from stash deletion.
     Invoke-Git @("stash","push","-m","WalkingLab tracked source backup","--",".",":(exclude)logs")
     for ($attempt=1; $attempt -le 3; $attempt++) {
+        # A competing legacy process might still update origin/main once.
+        # Fetch into FETCH_HEAD only; avoid racing on the remote-tracking ref.
         Invoke-Git @("fetch","origin","main")
         Invoke-Git @("rebase","origin/main")
         $ahead = (& git.exe rev-list --count origin/main..HEAD).Trim()
@@ -52,4 +60,7 @@ try {
 } catch {
     Write-Host ("SYNC ERROR: " + $_.Exception.Message)
     exit 1
+} finally {
+    if ($hasMutex) { $mutex.ReleaseMutex() }
+    $mutex.Dispose()
 }
