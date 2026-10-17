@@ -91,6 +91,9 @@ var flight_clip_warning_shown: bool = false
 var speed_streaks: Control
 var streak_clock: float = 0.0
 var ai_action_clock: float = 0.0
+var war_target: Node3D = null
+var war_decision_timer: float = 0.0
+var war_strafe_sign: float = 1.0
 var flight_enabled: bool = false
 var flight_windup_remaining: float = 0.0
 const FLIGHT_WINDUP_SECONDS: float = 0.35
@@ -385,7 +388,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	add_setting_slider(column,"Camera sensitivity",0.3,2.5,1.0,0.1,"camera")
 	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
 
-	add_setting_slider(column,"Fireball speed",0.5,2.0,1.0,0.1,"fireball")
+	add_setting_slider(column,"Fireball speed",0.25,5.0,1.0,0.05,"fireball")
 	var controls_heading := Button.new()
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
@@ -413,7 +416,10 @@ func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: 
 			"camera": camera_sensitivity = value
 			"fov": camera.fov = value
 
-			"fireball": fireball_speed_scale = value
+			"fireball":
+				fireball_speed_scale = value
+				if get_tree().current_scene.get("battle_fireball_speed") != null:
+					get_tree().current_scene.set("battle_fireball_speed",value)
 	)
 
 func install_speed_streaks(canvas: CanvasLayer) -> void:
@@ -493,6 +499,91 @@ func begin_direction_change(target_backward: bool):
 	turn_start_weight = direction_weight
 	turn_start_forward = blend
 	turn_start_back = back_blend
+func update_war_fighter(dt: float) -> void:
+	# Re-evaluate a local opponent as the battle changes; never select a spectator.
+	var opponents: Array = []
+	for other in get_tree().get_nodes_in_group("combat_fighters"):
+		if other == self or other.animation_test_mode != "war" or other.combat_dead: continue
+		opponents.append(other)
+	if opponents.is_empty():
+		actor.velocity = Vector3.ZERO
+		tree.advance(dt)
+		return
+	war_decision_timer -= dt
+	if war_target == null or not is_instance_valid(war_target) or war_target.combat_dead or war_decision_timer <= 0.0:
+		war_decision_timer = agent_rng.randf_range(0.9,2.0)
+		war_strafe_sign = -1.0 if agent_rng.randf() < 0.5 else 1.0
+		var best_score: float = INF
+		for other in opponents:
+			var gap: float = actor.global_position.distance_to(other.actor.global_position)
+			var score: float = gap + agent_rng.randf_range(-8.0,8.0)
+			if score < best_score:
+				best_score = score
+				war_target = other
+	if war_target == null or not is_instance_valid(war_target): return
+	var target_body: CharacterBody3D = war_target.actor
+	var offset: Vector3 = target_body.global_position - actor.global_position
+	var flat: Vector3 = Vector3(offset.x,0.0,offset.z)
+	var distance: float = flat.length()
+	var forward: Vector3 = flat.normalized() if distance > 0.01 else Vector3.FORWARD
+	var tangent: Vector3 = Vector3(-forward.z,0,forward.x)
+	var nearby_threats: int = 0
+	for other in opponents:
+		if other.actor.global_position.distance_to(actor.global_position) < 13.0:
+			nearby_threats += 1
+	var retreating: bool = nearby_threats >= 3
+	var desired: Vector3 = tangent*war_strafe_sign*0.6
+	if distance > 19.0 and not retreating: desired += forward*1.3
+	elif distance < 10.0 or retreating: desired -= forward*1.5
+	# Dodge incoming shots by stepping across their trajectories.
+	for fire in get_tree().get_nodes_in_group("battle_fireballs"):
+		if not is_instance_valid(fire): continue
+		var mover: Node = fire.get_node_or_null("Motion")
+		if mover == null: continue
+		var approach: Vector3 = actor.global_position - fire.global_position
+		var travel: Vector3 = mover.travel_direction
+		var in_front: float = approach.dot(travel)
+		if in_front > 0.0 and in_front < 13.0:
+			var miss: Vector3 = approach-travel*in_front
+			if miss.length() < 3.0:
+				desired += tangent*war_strafe_sign*3.5
+	var must_fly: bool = distance > 25.0 or target_body.global_position.y > 3.0
+	if must_fly: flight_enabled = true
+	elif distance < 15.0 and actor.global_position.y < 2.8: flight_enabled = false
+	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
+	var wish: Vector3 = desired.normalized()
+	if flight_enabled:
+		var destination_height: float = clampf(target_body.global_position.y+3.0,3.0,48.0)
+		wish.y = clampf((destination_height-actor.global_position.y)/6.0,-0.8,0.8)
+		wish = wish.normalized()
+		actor.velocity = actor.velocity.move_toward(wish*13.0,dt*32.0)
+	else:
+		actor.velocity.x = move_toward(actor.velocity.x,wish.x*8.0,dt*25.0)
+		actor.velocity.z = move_toward(actor.velocity.z,wish.z*8.0,dt*25.0)
+		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
+	actor.move_and_slide()
+	if distance > 0.1: actor.rotation.y = atan2(-flat.x,-flat.z)
+	speed = Vector2(actor.velocity.x,actor.velocity.z).length()
+	blend = speed_band(SPEEDS,speed)
+	tree.set("parameters/Gaits/blend_position",blend)
+	tree.set("parameters/Direction/blend_amount",0.0)
+	tree.set("parameters/Cadence/scale",maxf(0.2,speed/3.0))
+	tree.advance(dt)
+	if flight_enabled:
+		apply_flight_pose(dt)
+	else:
+		visual.rotation.x = move_toward(visual.rotation.x,0.0,dt*8.0)
+		visual.position.y = 0.0
+		if actor.is_on_floor(): feet.resolve(true)
+	ai_action_clock += dt
+	if ai_action_clock >= agent_rng.randf_range(1.4,2.2) and distance < 55.0:
+		ai_action_clock = 0.0
+		if cast_elapsed < 0.0:
+			controlled_arm = "left" if controlled_arm == "right" else "right"
+			cast_fireball()
+	adjust_jab_arm()
+	update_cast_motion(dt)
+
 func update_hunter_mannequin(dt: float) -> void:
 	# Pursue the player with the same speed budget, flight pose, and fire cast.
 	var target_node: Node3D = get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
@@ -756,6 +847,9 @@ func _physics_process(dt):
 		return
 	if animation_test_mode == "sky_target":
 		update_sky_target(dt)
+		return
+	if animation_test_mode == "war":
+		update_war_fighter(dt)
 		return
 	if animation_test_mode == "hunter":
 		update_hunter_mannequin(dt)
@@ -1652,7 +1746,7 @@ func get_cursor_world_target() -> Vector3:
 	return ray_origin + ray_direction * 150.0
 
 func ai_target_position() -> Vector3:
-	var opponent: Node3D = get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
+	var opponent: Node3D = war_target if animation_test_mode == "war" else get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
 	if opponent != null:
 		var opponent_body: Node3D = opponent.get("actor") as Node3D
 		if opponent_body != null: return opponent_body.global_position + Vector3.UP * 1.2
@@ -1801,6 +1895,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	var launch_speed: float = maxf(20.0,cast_hand_velocity.dot(travel))
 	var projectile := Node3D.new()
 	projectile.name = "Fireball"
+	projectile.add_to_group("battle_fireballs")
 	get_tree().current_scene.add_child(projectile)
 	projectile.global_position = hand_world + travel * 0.20
 	# Use external particles for both spell types; never hand-draw VFX.
@@ -1814,6 +1909,8 @@ func release_fireball(hand_world: Vector3) -> void:
 	mover.name = "Motion"
 	mover.travel_direction = travel
 	mover.travel_speed = launch_speed * fireball_speed_scale
+	if animation_test_mode == "war":
+		mover.travel_speed *= float(get_tree().current_scene.get("battle_fireball_speed"))
 	mover.owner_rid = actor.get_rid()
 	projectile.add_child(mover)
 	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
