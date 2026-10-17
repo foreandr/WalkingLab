@@ -2,6 +2,8 @@
 setlocal
 cd /d "%~dp0"
 title WalkingLab
+rem Upload unpushed game logs before syncing; never stage user code here.
+call :push_logs
 echo [1/2] Pulling latest changes...
 git pull --ff-only origin main
 if errorlevel 1 (
@@ -83,11 +85,27 @@ if "%IDLE_NEW%"=="1" (
     "%GODOT%" --headless --editor --path . --import
     if errorlevel 1 echo Warning: one or more FBX imports failed.
 )
-echo [2/2] Launching game...
-"%GODOT%" --path .
-if errorlevel 1 (
- echo Game exited with an error.
+echo [2/2] Launching game with timestamped logging...
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\run_logged.ps1" -GodotPath "%GODOT%"
+set "GAME_EXIT=%ERRORLEVEL%"
+call :push_logs
+if not "%GAME_EXIT%"=="0" (
+ echo Game exited with code %GAME_EXIT%. See most recent file in logs.
  pause
- exit /b 1
+ exit /b %GAME_EXIT%
 )
+exit /b 0
 
+:push_logs
+if not exist "logs" exit /b 0
+git add -- logs\*.log
+git diff --cached --quiet
+if not errorlevel 1 exit /b 0
+git commit -m "WalkingLab player debug run logs"
+if errorlevel 1 (
+ echo Warning: failed to commit run log.
+ exit /b 0
+)
+git push origin main
+if errorlevel 1 echo Warning: log push failed; will retry on next launch.
+exit /b 0
