@@ -530,7 +530,20 @@ func update_animation_test(dt: float) -> void:
 		visual.position.y = 0.0
 		if not jumping:
 			apply_flight_pose(dt)
+			# Pitch the visual rig into the actual 3D velocity (head-first).
+			# The collider stays upright; yaw follows horizontal velocity.
+			var v: Vector3 = actor.velocity
+			var horizontal_speed: float = Vector2(v.x,v.z).length()
+			if horizontal_speed > 0.01:
+				actor.rotation.y = atan2(-v.x,-v.z)
+			if v.length_squared() > 0.01:
+				var aim_pitch: float = clampf(atan2(horizontal_speed,v.y),0.08,PI-0.08)
+				flight_visual_pitch = move_toward(flight_visual_pitch,aim_pitch,dt*7.0)
+			visual.rotation.x = flight_visual_pitch
+			visual.position.y = 0.95*sin(flight_visual_pitch)
 	else:
+		flight_visual_pitch = move_toward(flight_visual_pitch,0.0,dt*9.0)
+		visual.rotation.x = flight_visual_pitch
 		feet.use_full_support = false
 		feet.resolve(true)
 	apply_movement_clip(dt)
