@@ -214,10 +214,9 @@ func _ready():
 	actor.add_child(visual)
 	visual.rotation.y = PI
 	skeleton = visual.find_children("*","Skeleton3D",true,false)[0]
-	ragdoll = preload("res://combat_ragdoll.gd").new()
-	ragdoll.name = "RagdollController"
-	add_child(ragdoll)
-	ragdoll.setup(skeleton)
+	# PhysicalBoneSimulator disabled until rest transforms and joint axes
+	# are calibrated to this imported rig. Avoid stretching the live mesh.
+	ragdoll = null
 	var damage_system = preload("res://combat_damage.gd").new()
 	damage_system.name = "DamageSystem"
 	add_child(damage_system)
@@ -700,9 +699,6 @@ func combat_die(region: String) -> void:
 
 func update_combat_fall(dt: float) -> void:
 	combat_death_time += dt
-	if ragdoll != null and ragdoll.active:
-		# The physics bones are authoritative after the animation handoff.
-		return
 	tree.advance(dt)
 	actor.velocity.x = move_toward(actor.velocity.x,0.0,dt*8.0)
 	actor.velocity.z = move_toward(actor.velocity.z,0.0,dt*8.0)
@@ -712,18 +708,10 @@ func update_combat_fall(dt: float) -> void:
 		actor.velocity.y = -0.1
 	actor.move_and_slide()
 	apply_movement_clip(dt)
-	if combat_death_time >= 0.35 and ragdoll != null:
-		# Disable the upright capsule before enabling limb collision.
-		actor.collision_layer = 0
-		actor.collision_mask = 0
-		ragdoll.activate(combat_last_velocity)
-		if ragdoll.active:
-			tree.active = false
-			print("[RAGDOLL] ",name," physical simulation started")
-		else:
-			# Fallback only if this model lacks usable physical bones.
-			visual.rotation.x = lerpf(combat_initial_pitch,-PI*0.5,smoothstep(0.0,0.9,combat_death_time))
-			visual.position.y = 0.86*sin(absf(visual.rotation.x))
+	# Stable animation-driven fallback: gravity moves the collider, while
+	# the mesh lays prone instead of expanding under invalid bone transforms.
+	visual.rotation.x = lerpf(combat_initial_pitch,-PI*0.5,smoothstep(0.0,0.95,combat_death_time))
+	visual.position.y = 0.86*sin(absf(visual.rotation.x))
 
 func update_sky_target(dt: float) -> void:
 	tree.advance(dt)
