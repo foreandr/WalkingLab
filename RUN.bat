@@ -41,22 +41,14 @@ for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
         )
     )
 )
-rem Fetch original CC0 Kenney weapon models, never generated placeholder meshes.
-rem Source: https://github.com/shorepine/kenney (Kenney CC0 game assets).
-if not exist "assets\kenney_weapons" mkdir "assets\kenney_weapons"
-for %%P in ("3d/mini-arena/weapon-sword.glb|weapon-sword.glb" "3d/survival/tool-axe.glb|tool-axe.glb" "3d/weapon/knife_sharp.glb|knife_sharp.glb") do (
-    for /f "tokens=1,2 delims=|" %%A in ("%%~P") do (
-        if not exist "assets\kenney_weapons\%%B" (
-            echo Downloading original Kenney model: %%B
-            powershell -NoProfile -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/shorepine/kenney/main/%%A' -OutFile 'assets\kenney_weapons\%%B'"
-            if errorlevel 1 (
-                echo WARNING: Could not retrieve Kenney model %%B
-                if exist "assets\kenney_weapons\%%B" del "assets\kenney_weapons\%%B"
-            ) else (
-                set "IDLE_NEW=1"
-            )
-        )
-    )
+rem Install original third-party weapon models AND kit-specific original textures.
+rem Correctly imported Kenney weapons require their own Textures\colormap.png.
+rem Detailed sword assets come from the CC0 Swords, Shields and Melee Arms pack.
+powershell -NoProfile -ExecutionPolicy Bypass -File "assets\real_weapons\install.ps1"
+if errorlevel 1 echo Warning: a weapon installer step failed; existing assets remain usable.
+if exist "assets\real_weapons\.downloaded_now" (
+    del /Q "assets\real_weapons\.downloaded_now"
+    set "IDLE_NEW=1"
 )
 if "%IDLE_NEW%"=="1" (
     echo Importing downloaded 3D assets and Mixamo idle animations...
