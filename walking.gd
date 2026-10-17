@@ -8,6 +8,7 @@ var jab_ready := false
 var jab_cooldown := 0.0
 var jab_aim_remaining := 0.0
 var jab_aim_heading := 0.0
+var cursor_reticle: Control
 var was_moving_for_idle := false
 var spawn_point = Vector3(0,0,40)
 var route_center = Vector3.ZERO
@@ -200,7 +201,8 @@ func _ready():
 	if player_controlled:
 		# Fixed screen-center reticle. All elements ignore mouse input.
 		var reticle := Control.new()
-		reticle.set_anchors_preset(Control.PRESET_CENTER)
+		reticle.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		cursor_reticle = reticle
 		reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		canvas.add_child(reticle)
 		for segment in [
@@ -299,6 +301,7 @@ func _physics_process(dt):
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
+	if player_controlled: update_cursor_aim()
 	var active = {}
 	var old_blend = blend
 	var old_back_blend = back_blend
@@ -390,9 +393,9 @@ func _physics_process(dt):
 	# The body keeps facing the same tangent while its travel reverses.
 	var facing = tangent*max(speed,0.1)-radial.normalized()*(radial.length()-route_radius)*2.0*movement_sign
 	if player_controlled:
-		if jab_aim_remaining > 0.0 and not crouch_driving:
+		if (jab_aim_remaining > 0.0 or (speed < 0.20 and not crouch.active())) and not crouch_driving:
 			# Keep the jab facing the screen-center camera ray for its duration.
-			actor.rotation.y = rotate_toward(actor.rotation.y,jab_aim_heading,step*15.0)
+			actor.rotation.y = rotate_toward(actor.rotation.y,jab_aim_heading,step*(15.0 if jab_aim_remaining > 0.0 else 7.5))
 		elif crouch_driving and crouch.state in ["crouched","settle"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,orbit,step*5.0)
 		elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
@@ -691,23 +694,29 @@ func install_left_jab(player: AnimationPlayer, graph: AnimationNodeBlendTree) ->
 	jab_ready = true
 	print("LEFT_JAB_READY duration=",clip.length," upper_body_tracks=",tracks)
 
+func update_cursor_aim() -> void:
+	if camera == null or actor == null: return
+	var cursor = get_viewport().get_mouse_position()
+	var bounds = get_viewport().get_visible_rect().size
+	cursor = Vector2(clampf(cursor.x,0.0,bounds.x),clampf(cursor.y,0.0,bounds.y))
+	if cursor_reticle != null:
+		cursor_reticle.position = cursor
+	var ray_origin: Vector3 = camera.project_ray_origin(cursor)
+	var ray_dir: Vector3 = camera.project_ray_normal(cursor)
+	# Project toward the cursor at a comfortable 3rd-person combat range.
+	var aim_point = ray_origin + ray_dir * 35.0
+	var relative = aim_point - (actor.global_position + Vector3.UP * 1.25)
+	relative.y = 0.0
+	if relative.length_squared() > 0.01:
+		# Visual Y Bot is rotated by PI relative to the actor root.
+		jab_aim_heading = atan2(relative.x,relative.z)
+
 func throw_left_jab() -> void:
 	if not jab_ready or jab_cooldown > 0.0: return
 	if crouch.active(): return
-	# Project the center-of-screen aim ray into the ground plane. We rotate
-	# the whole character in yaw, leaving feet/hip/leg animations untouched.
-	# Vertical punch retargeting is intentionally not attempted here.
-	var screen_center = get_viewport().get_visible_rect().size * 0.5
-	var ray_origin: Vector3 = camera.project_ray_origin(screen_center)
-	var ray_direction: Vector3 = camera.project_ray_normal(screen_center)
-	var target_point = ray_origin + ray_direction * 35.0
-	var aim = target_point - (actor.global_position + Vector3.UP * 1.25)
-	aim.y = 0.0
-	if aim.length_squared() > 0.001:
-		# Y Bot mesh has an extra PI yaw relative to CharacterBody3D.
-		# Its visual forward is +Z, so aim yaw must use +X/+Z.
-		jab_aim_heading = atan2(aim.x,aim.z)
-		jab_aim_remaining = 0.45
+	# Aim follows the on-screen mouse crosshair continuously.
+	update_cursor_aim()
+	jab_aim_remaining = 0.45
 	tree.set("parameters/JabOneShot/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 	jab_cooldown = 0.4
 	print("LEFT_JAB_TRIGGERED")
