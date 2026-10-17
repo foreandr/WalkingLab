@@ -40,6 +40,7 @@ var manual_sprint_clock = 0.0
 var flying_clip: Dictionary = {}
 var single_jump_clip: Dictionary = {}
 var jump_play_time: float = -1.0
+var jump_airborne_seen: bool = false
 var debug_tick: float = 0.0
 var last_debug_state: String = ""
 var jump_pose_reported: bool = false
@@ -621,8 +622,15 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
-	if player_controlled and not flight_enabled and actor.is_on_floor():
-		vertical_jump_speed = 0.0
+	if player_controlled and not flight_enabled:
+		if jump_play_time >= 0.0 and not actor.is_on_floor():
+			jump_airborne_seen = true
+		elif actor.is_on_floor():
+			vertical_jump_speed = 0.0
+			if jump_airborne_seen and jump_play_time >= 0.0:
+				debug_player("JUMP_LANDED","cancel_animation_at="+str(snappedf(jump_play_time,0.01)))
+				jump_play_time = -1.0
+				jump_airborne_seen = false
 	if flight_clearance_time > 0.0: flight_clearance_time = maxf(0.0,flight_clearance_time-step)
 	if player_controlled and flight_enabled and flight_launch_remaining <= 0.0 and actor.velocity.y <= 0.0:
 		# Only land while approaching the floor, never on launch or ascent.
@@ -691,7 +699,7 @@ func manual_target_speed() -> float:
 	if not sprinting or manual_input.y<=0.1: return SPEEDS[2]
 	var progress = manual_sprint_clock / SPRINT_STAGE_SECONDS
 	if progress >= 3.0:
-		return SPEEDS[5] + (progress - 3.0) * ENDLESS_SPRINT_GAIN
+		return SPEEDS[5] + (progress - 3.0) * (2.0 if flight_enabled else ENDLESS_SPRINT_GAIN)
 	var stage = mini(int(progress),2)
 	return lerp(float(SPEEDS[2+stage]),float(SPEEDS[3+stage]),smooth_gait(progress-stage))
 func speed_band(values: Array, value: float) -> float:
@@ -1136,15 +1144,15 @@ func apply_single_jump_pose(dt: float) -> void:
 			debug_player("JUMP_ANIMATION_MISSING","Jump.fbx did not load")
 			jump_pose_reported = true
 		return
-	# Exactly one imported FBX, sampled once from beginning to end.
+	# Physical jump is approximately 0.67 seconds; the imported clip is 2.6.
+	# Play one jump over the actual airborne interval, never after landing.
 	jump_play_time += dt
-	if jump_play_time >= float(single_jump_clip["length"]):
-		jump_play_time = -1.0
-		if player_controlled: debug_player("JUMP_CLIP_FINISHED","animation completed")
-		return
+	var duration: float = 2.0*SIMPLE_JUMP_IMPULSE/SIMPLE_JUMP_GRAVITY
+	var fraction: float = clampf(jump_play_time/duration,0.0,1.0)
+	var source_time: float = fraction*float(single_jump_clip["length"])
 	for entry in single_jump_clip["curves"]:
 		var bone: int = int(entry["bone"])
-		skeleton.set_bone_pose_rotation(bone,sample_flight_curve(entry["keys"],jump_play_time))
+		skeleton.set_bone_pose_rotation(bone,sample_flight_curve(entry["keys"],source_time))
 	skeleton.force_update_all_bone_transforms()
 
 func apply_flight_pose(dt: float) -> void:
@@ -1323,6 +1331,7 @@ func _unhandled_input(event):
 			if event.keycode == KEY_SPACE and not flight_enabled and actor.is_on_floor() and not crouch.active():
 				vertical_jump_speed = SIMPLE_JUMP_IMPULSE
 				jump_play_time = 0.0
+				jump_airborne_seen = false
 				jump_pose_reported = false
 				debug_player("JUMP_ACCEPTED","impulse="+str(SIMPLE_JUMP_IMPULSE)+" clip_tracks="+str(single_jump_clip.get("curves",[]).size()))
 
