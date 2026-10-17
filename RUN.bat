@@ -4,8 +4,16 @@ cd /d "%~dp0"
 title WalkingLab
 rem Upload unpushed game logs before syncing; never stage user code here.
 call :push_logs
-echo [1/2] Pulling latest changes...
-git -c rebase.autoStash=true pull --rebase origin main
+echo [1/2] Preserving local edits and pulling latest changes...
+rem Git can consider imported assets or local metadata modified.
+rem Save tracked changes without deleting them; untracked FBXs and logs remain untouched.
+git stash push -m "WalkingLab automatic backup before pull"
+if errorlevel 1 (
+ echo Git backup failed; local files were not discarded.
+ pause
+ exit /b 1
+)
+git pull --ff-only origin main
 if errorlevel 1 (
  echo Git pull failed.
  pause
