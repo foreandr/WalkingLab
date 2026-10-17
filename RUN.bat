@@ -31,16 +31,6 @@ for %%F in ("%USERPROFILE%\Downloads\*Idle*.fbx" "%USERPROFILE%\Downloads\*idle*
         )
     )
 )
-rem Import the exact supplied Mixamo jump clips. Existing animations remain external.
-for %%F in ("%USERPROFILE%\Downloads\Jumping.fbx" "%USERPROFILE%\Downloads\Jump.fbx" "%USERPROFILE%\Desktop\Jumping.fbx" "%USERPROFILE%\Desktop\Jump.fbx") do (
-    if exist "%%~fF" (
-        if not exist "assets\custom_idle\%%~nxF" (
-            echo Found jump motion: %%~nxF
-            copy /Y "%%~fF" "assets\custom_idle\%%~nxF" >nul
-            set "IDLE_NEW=1"
-        )
-    )
-)
 rem The original supplied airborne flight animation.
 for %%F in ("%USERPROFILE%\Downloads\Flying (1).fbx" "%USERPROFILE%\Desktop\Flying (1).fbx") do (
     if exist "%%~fF" (
