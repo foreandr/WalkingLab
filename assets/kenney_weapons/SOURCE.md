@@ -9,4 +9,4 @@ WalkingLab downloads original Kenney models from https://github.com/shorepine/ke
 Author: Kenney (https://kenney.nl)
 License: CC0 1.0 Universal, https://creativecommons.org/publicdomain/zero/1.0/
 
-No hand-built primitive weapon meshes are used. RUN.bat installs the original GLB files and Godot imports them.
+These assets are now fallbacks for the more detailed scenes in assets/real_weapons/.\nRUN.bat installs each model in its ORIGINAL kit-relative directory, including the original per-kit Textures/colormap.png where required. This fixes white models caused by missing images. No hand-built primitive weapon meshes are used.
