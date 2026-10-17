@@ -86,12 +86,14 @@ func lowest(points = null) -> float:
 		for influence in point: position += (transforms[influence[0]]*influence[1])*influence[2]
 		result = min(result,position.y)
 	return result
-func resolve():
-	# Reset each frame, then enforce the ground constraint on the final blended pose.
+func resolve(ground_idle: bool = false):
+	# Evaluate the final blended skeleton pose before placing the visible mesh.
+	# Locomotion's original upward-only correction is preserved; idle needs
+	# two-sided correction because a retargeted FBX can leave BOTH feet hovering.
 	visual.position.y = 0.0
 	skeleton.force_update_all_bone_transforms()
 	var bottom = full_support_lowest() if use_full_support else lowest()
-	lift = max(0,0.006-bottom)
+	lift = clampf(0.006-bottom,-0.65,0.65) if ground_idle else maxf(0.0,0.006-bottom)
 	visual.position.y = lift
 	skeleton.force_update_all_bone_transforms()
 	minimum = bottom+lift
