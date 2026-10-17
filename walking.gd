@@ -1079,8 +1079,8 @@ func load_jump_clips() -> void:
 				if track_path.get_subname_count() == 0: continue
 				var bone_label: String = normalized_idle_bone(String(track_path.get_subname(track_path.get_subname_count()-1)))
 				# Only legs; original locomotion owns the upper body and arms.
-				if filename == "Jumping.fbx" and not (bone_label.contains("upleg") or bone_label.contains("leg") or bone_label.contains("foot") or bone_label.contains("toe")): continue
-				if filename != "Jumping.fbx" and bone_label == "hips": continue
+				# The one imported jump animation controls the whole body.
+				if bone_label == "hips": continue
 				var src_index: int = -1
 				var dst_index: int = -1
 				for bi in range(source_rig.get_bone_count()):
