@@ -466,6 +466,65 @@ func begin_direction_change(target_backward: bool):
 	turn_start_weight = direction_weight
 	turn_start_forward = blend
 	turn_start_back = back_blend
+func update_hunter_mannequin(dt: float) -> void:
+	# Pursue the player with the same speed budget, flight pose, and fire cast.
+	var target_node: Node3D = get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
+	if target_node == null: return
+	var target_body: CharacterBody3D = target_node.get("actor") as CharacterBody3D
+	if target_body == null: return
+	var target_flying: bool = bool(target_node.get("flight_enabled"))
+	var offset: Vector3 = target_body.global_position - actor.global_position
+	var horizontal: Vector3 = Vector3(offset.x,0.0,offset.z)
+	var distance: float = horizontal.length()
+	var player_speed: float = target_body.velocity.length()
+	var desired_speed: float = clampf(player_speed+2.0,6.0,40.0)
+	var direction: Vector3 = Vector3.ZERO
+	if distance > 17.0: direction = horizontal.normalized()
+	elif distance < 11.0: direction = -horizontal.normalized()
+	elif distance > 0.01: direction = Vector3(-horizontal.z,0.0,horizontal.x).normalized()*0.45
+	flight_enabled = target_flying or target_body.global_position.y > 2.5
+	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
+	if flight_enabled:
+		var vertical_error: float = target_body.global_position.y+1.0-actor.global_position.y
+		direction.y = clampf(vertical_error/5.0,-1.0,1.0)
+		if direction.length_squared() > 0.001: direction = direction.normalized()
+		actor.velocity = actor.velocity.move_toward(direction*desired_speed,dt*32.0)
+	else:
+		actor.velocity.x = move_toward(actor.velocity.x,direction.x*desired_speed,dt*24.0)
+		actor.velocity.z = move_toward(actor.velocity.z,direction.z*desired_speed,dt*24.0)
+		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
+	actor.move_and_slide()
+	if horizontal.length_squared() > 0.05:
+		actor.rotation.y = atan2(-horizontal.x,-horizontal.z)
+	if flight_enabled:
+		var h: float = Vector2(actor.velocity.x,actor.velocity.z).length()
+		flight_visual_pitch = move_toward(flight_visual_pitch,clampf(atan2(h,actor.velocity.y),0.08,PI-0.08),dt*5.0)
+		visual.rotation.x = flight_visual_pitch
+		visual.position.y = 0.95*sin(flight_visual_pitch)
+	else:
+		flight_visual_pitch = move_toward(flight_visual_pitch,0.0,dt*8.0)
+		visual.rotation.x = flight_visual_pitch
+		visual.position.y = 0.0
+	jab_aim_strength = 1.0
+	speed = Vector2(actor.velocity.x,actor.velocity.z).length()
+	blend = speed_band(SPEEDS,speed)
+	tree.set("parameters/Gaits/blend_position",blend)
+	tree.set("parameters/Direction/blend_amount",0.0)
+	tree.set("parameters/Cadence/scale",maxf(0.2,speed/2.9))
+	tree.advance(dt)
+	if flight_enabled:
+		apply_flight_pose(dt)
+	else:
+		feet.use_full_support = false
+		if actor.is_on_floor(): feet.resolve(true)
+	ai_action_clock += dt
+	if ai_action_clock >= 1.75 and cast_elapsed < 0.0 and distance <= 26.0:
+		ai_action_clock = 0.0
+		controlled_arm = "left" if controlled_arm == "right" else "right"
+		cast_fireball()
+	adjust_jab_arm()
+	update_cast_motion(dt)
+
 func update_fire_mannequin(dt: float) -> void:
 	# Keep the test mannequin planted and aim each cast at the player.
 	tree.set("parameters/StandingMove/blend_amount",0.0)
@@ -582,6 +641,9 @@ func update_animation_test(dt: float) -> void:
 
 func _physics_process(dt):
 	if paused: return
+	if animation_test_mode == "hunter":
+		update_hunter_mannequin(dt)
+		return
 	if animation_test_mode == "fire":
 		update_fire_mannequin(dt)
 		return
