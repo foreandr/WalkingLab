@@ -23,6 +23,7 @@ var cast_shot_direction: Vector3 = Vector3.FORWARD
 var cast_elapsed: float = -1.0
 var cast_released: bool = false
 var cast_arm_name: String = ""
+var cast_element: String = "fire"
 var cast_last_hand: Vector3 = Vector3.ZERO
 var cast_hand_velocity: Vector3 = Vector3.ZERO
 var cursor_reticle: Control
@@ -282,7 +283,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Space jump | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fireball"
+		controls.text = "WASD move | Space jump | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fire / 2 water"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func install_options_menu(canvas: CanvasLayer) -> void:
@@ -844,7 +845,7 @@ func adjust_jab_arm() -> void:
 	var forearm = jab_right_forearm if aiming_arm == "right" else jab_left_forearm
 	var hand = jab_right_hand if aiming_arm == "right" else jab_left_hand
 	if arm < 0 or forearm < 0 or hand < 0: return
-	if jab_aim_strength < 0.001: return
+	if jab_aim_strength < 0.001 or (cast_elapsed < 0.0 and jab_aim_remaining <= 0.0): return
 	skeleton.force_update_all_bone_transforms()
 	var shoulder: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(arm).origin
 	var elbow: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(forearm).origin
@@ -947,9 +948,16 @@ func get_cursor_world_target() -> Vector3:
 	return ray_origin + ray_direction * 40.0
 
 func cast_fireball() -> void:
-	# No mana or separate body animation. Brief cast action, one arm only.
+	cast_spell("fire")
+
+func cast_water() -> void:
+	cast_spell("water")
+
+func cast_spell(element: String) -> void:
+	# Passive animation until casting; either element uses the same arm thrust.
 	if cast_elapsed >= 0.0 or crouch.active(): return
-	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return
+	if not ResourceLoader.exists("res://assets/external_vfx/" + element + ".tscn"): return
+	cast_element = element
 	cast_arm_name = controlled_arm
 	cast_aim_point = get_cursor_world_target()
 	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
@@ -995,18 +1003,20 @@ func release_fireball(hand_world: Vector3) -> void:
 	projectile.name = "Fireball"
 	get_tree().current_scene.add_child(projectile)
 	projectile.global_position = hand_world + travel * 0.20
-	# Existing third-party VFX, not procedurally built fire.
-	var fire_visual: GPUParticles3D = preload("res://assets/external_vfx/fire.tscn").instantiate()
-	projectile.add_child(fire_visual)
-	fire_visual.emitting = true
-	fire_visual.restart()
-	var mover = preload("res://assets/external_vfx/fireball_motion.gd").new()
+	# Use external particles for both spell types; never hand-draw VFX.
+	var effect_path: String = "res://assets/external_vfx/" + cast_element + ".tscn"
+	var effect: GPUParticles3D = load(effect_path).instantiate()
+	projectile.add_child(effect)
+	effect.emitting = true
+	effect.restart()
+	var script_path: String = "res://assets/external_vfx/" + ("water_motion.gd" if cast_element == "water" else "fireball_motion.gd")
+	var mover = load(script_path).new()
 	mover.name = "Motion"
 	mover.travel_direction = travel
 	mover.travel_speed = launch_speed * fireball_speed_scale
 	mover.owner_rid = actor.get_rid()
 	projectile.add_child(mover)
-	print("FIREBALL_RELEASE ",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
+	print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
 
 func choose_random_idle():
 	# Historical name retained for existing callers. Idle (3).fbx preferred for everyone; never swap.
@@ -1024,6 +1034,7 @@ func _unhandled_input(event):
 			if event.keycode==KEY_SPACE: jump_requested = true
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode==KEY_1: cast_fireball()
+			if event.keycode==KEY_2: cast_water()
 			if event.keycode==KEY_SHIFT:
 				if cast_elapsed < 0.0:
 					controlled_arm = "left" if controlled_arm == "right" else "right"
