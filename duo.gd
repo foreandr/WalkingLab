@@ -32,25 +32,23 @@ func _ready():
 	ai_label = make_label(ai.actor,"AI",Color("ffbf69"))
 	player_label = make_label(player.actor,"YOU",Color("75d8ff"))
 	make_boundary()
-	# Opponent remains stationary across the arena; only its selected idle loops.
+	# Keep only two CPU characters: one static reference and one
+	# autonomous character with the same fire, water and flight abilities.
 	ai.actor.rotation.y = PI
 	mannequins.append(ai)
-	for index in range(2):
-		var extra = preload("res://walking.gd").new()
-		extra.name = "SpellcasterAI" if index == 0 else "IdleMannequin3"
-		extra.autonomous_only = true
-		extra.ai_abilities = index == 0
-		extra.stationary_only = index != 0
-		extra.actor_only = true
-		extra.spawn_point = Vector3(float(index)*2.4,0,0)
-		extra.character_tint = Color("c9d2cc") if index == 0 else Color("d6c8d1")
-		add_child(extra)
-		extra.actor.rotation.y = PI
-		make_label(extra.actor,"AI CASTER" if index == 0 else "AI 3",Color("ffbf69"))
-		mannequins.append(extra)
+	var caster = preload("res://walking.gd").new()
+	caster.name = "SpellcasterAI"
+	caster.autonomous_only = true
+	caster.ai_abilities = true
+	caster.actor_only = true
+	caster.spawn_point = Vector3(3.2,0,0)
+	caster.character_tint = Color("c9d2cc")
+	add_child(caster)
+	caster.actor.rotation.y = PI
+	make_label(caster.actor,"AI CASTER",Color("ffbf69"))
+	mannequins.append(caster)
 	build_weapon_display()
 	build_water_basin()
-	spawn_moving_cpus()
 func spawn_moving_cpus() -> void:
 	# Two walkers, two high-speed runners, two immediate flyers.
 	var assignments := [
