@@ -41,6 +41,14 @@ for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
         )
     )
 )
+rem Install the original Kenney particle texture used by the MIT Godot fire scene.
+rem No procedural fire meshes/textures. Asset stays cached locally.
+if not exist "assets\external_vfx" mkdir "assets\external_vfx"
+if not exist "assets\external_vfx\fire_01.png" (
+    echo Downloading original Kenney fire effect texture...
+    powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -Uri 'https://raw.githubusercontent.com/marinho/godot-visual-effects/main/addons/kenney_particle_pack/fire_01.png' -OutFile 'assets\external_vfx\fire_01.png' -ErrorAction Stop; exit 0 } catch { Write-Warning $_; exit 1 }"
+    if exist "assets\external_vfx\fire_01.png" set "IDLE_NEW=1"
+)
 rem Install original third-party weapon models AND kit-specific original textures.
 rem Correctly imported Kenney weapons require their own Textures\colormap.png.
 rem Detailed sword assets come from the CC0 Swords, Shields and Melee Arms pack.
