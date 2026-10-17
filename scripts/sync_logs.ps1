@@ -1,32 +1,30 @@
 $ErrorActionPreference = "Stop"
-function Git([string[]]$Arguments) {
-    & git @Arguments
-    if ($LASTEXITCODE -ne 0) { throw ("git " + ($Arguments -join " ") + " failed (" + $LASTEXITCODE + ")") }
+function Invoke-Git([string[]]$GitArgs) {
+    & git.exe @GitArgs
+    if ($LASTEXITCODE -ne 0) { throw ("git.exe " + ($GitArgs -join " ") + " exited " + $LASTEXITCODE) }
 }
 try {
-    # Preserve tracked local file edits, without touching local animation assets.
-    Git -Arguments @("stash","push","-m","WalkingLab automatic backup before sync")
+    Invoke-Git @("stash","push","-m","WalkingLab automatic backup before sync")
     if (Test-Path "logs") {
-        Git -Arguments @("add","--","logs")
-        & git diff --cached --quiet -- logs
+        Invoke-Git @("add","--","logs")
+        & git.exe diff --cached --quiet -- logs
         if ($LASTEXITCODE -eq 1) {
-            Git -Arguments @("commit","-m","WalkingLab player debug run logs","--","logs")
+            Invoke-Git @("commit","-m","WalkingLab player debug run logs","--","logs")
         } elseif ($LASTEXITCODE -ne 0) {
-            throw "Cannot inspect staged logs"
+            throw "Unable to inspect staged logs"
         }
     }
-    # Log commits can make local main diverge. Rebase before every push.
     for ($attempt=1; $attempt -le 3; $attempt++) {
-        Git -Arguments @("fetch","origin","main")
-        Git -Arguments @("rebase","origin/main")
-        $ahead = (& git rev-list --count origin/main..HEAD).Trim()
-        if ($LASTEXITCODE -ne 0) { throw "Cannot inspect unpushed commits" }
+        Invoke-Git @("fetch","origin","main")
+        Invoke-Git @("rebase","origin/main")
+        $ahead = (& git.exe rev-list --count origin/main..HEAD).Trim()
+        if ($LASTEXITCODE -ne 0) { throw "Unable to inspect local commits" }
         if ([int]$ahead -eq 0) { exit 0 }
-        & git push origin HEAD:main
+        & git.exe push origin HEAD:main
         if ($LASTEXITCODE -eq 0) { exit 0 }
-        Write-Host "Remote updated concurrently; retrying sync ($attempt of 3)..."
+        Write-Host "Push raced another update. Retrying..."
     }
-    throw "Could not push logs after three attempts; saved locally for next run."
+    throw "Log push failed three times; logs are retained locally."
 } catch {
     Write-Host ("SYNC ERROR: " + $_.Exception.Message)
     exit 1
