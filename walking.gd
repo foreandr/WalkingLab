@@ -56,6 +56,7 @@ var flight_visual_pitch: float = 0.0
 var flight_pose_weight: float = 0.0
 var flight_idle_weight: float = 0.0
 var flight_idle_time: float = 0.0
+var flight_idle_active: bool = false
 var speed_streaks: Control
 var streak_clock: float = 0.0
 var ai_action_clock: float = 0.0
@@ -1137,9 +1138,24 @@ func apply_jump_pose(dt: float) -> void:
 	if jump_prep_remaining >= 0.0 and not flight_enabled:
 		prep = clampf(1.0-jump_prep_remaining/JUMP_PREP_TIME,0.0,1.0)
 	jump_pose = move_toward(jump_pose,1.0 if airborne else 0.0,dt*7.0)
-	var flight_moving: bool = flight_enabled and (manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL)) if player_controlled else flight_enabled and actor.velocity.length() > 0.7
+	# Flight idle depends on the player's intention, not residual running
+	# speed, launch velocity or the currently playing ground gait.
+	var flight_moving: bool = false
+	if flight_enabled:
+		if player_controlled:
+			flight_moving = manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL)
+		else:
+			flight_moving = actor.velocity.length() > 0.7
+	if flight_enabled and not flight_moving and not flight_idle_active:
+		flight_idle_time = 0.0
+		flight_idle_active = true
+		print("FLIGHT_IDLE_ENTER ",name)
+	elif flight_moving or not flight_enabled:
+		if flight_idle_active: print("FLIGHT_IDLE_EXIT ",name)
+		flight_idle_active = false
+	flight_idle_time += dt
 	flight_pose_weight = move_toward(flight_pose_weight,1.0 if flight_enabled else 0.0,dt*3.0)
-	flight_idle_weight = move_toward(flight_idle_weight,0.0 if flight_moving else 1.0,dt*3.0)
+	flight_idle_weight = move_toward(flight_idle_weight,0.0 if flight_moving else 1.0,dt*4.0)
 	var clip: Dictionary = {}
 	var moment: float = 0.0
 	var blend_weight: float = 0.0
@@ -1155,8 +1171,13 @@ func apply_jump_pose(dt: float) -> void:
 		# Hover holds a restful frame; moving flight cycles at a fixed pace,
 		# independently of velocity and of the ground running cadence.
 		var moving_moment: float = fmod(flight_animation_time,float(clip["length"]))
-		var idle_moment: float = fmod(flight_animation_time*0.32,float(clip["length"]))
-		moment = lerpf(moving_moment,idle_moment,flight_idle_weight)
+		# Dedicated hovering loop: a settled flying pose with small,
+		# continuous breathing/micro-motion. Never sample the ground idle.
+		var cycle: float = sin(flight_idle_time*2.5)
+		var idle_moment: float = float(clip["length"])*(0.32+0.025*cycle)
+		# Blend the actual bone rotations below, not timeline positions:
+		# time interpolation across a looping clip can cause sudden snaps.
+		moment = moving_moment
 		blend_weight = flight_pose_weight
 	elif jump_animation_time >= 0.0 and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
 		# Advance this ONE clip monotonically. The old pose-weight logic
@@ -1177,6 +1198,9 @@ func apply_jump_pose(dt: float) -> void:
 				if bone_name.begins_with(cast_arm_name) and (bone_name.contains("arm") or bone_name.contains("hand") or bone_name.contains("shoulder")): continue
 			var q: Quaternion = skeleton.get_bone_pose_rotation(bone)
 			var target: Quaternion = sample_jump_curve(entry["keys"],moment)
+			if flight_enabled and clip == flying_clip:
+				var hover_rotation: Quaternion = sample_jump_curve(entry["keys"],idle_moment)
+				target = target.slerp(hover_rotation,flight_idle_weight)
 			skeleton.set_bone_pose_rotation(bone,q.slerp(target,blend_weight))
 	elif clip.is_empty() and prep > 0.001:
 		# No inverted procedural knee bends if the supplied clips are missing.
