@@ -666,7 +666,9 @@ func combat_react(region: String, amount: float, remaining: float) -> void:
 	if region == "head":
 		clip = ("Light Hit To Head.fbx" if combat_hit_sequence % 2 == 0 else "Light Hit To Head (1).fbx") if amount < 25.0 else ("Medium Hit To Head.fbx" if combat_hit_sequence % 2 == 0 else "Medium Hit To Head (1).fbx")
 	elif region == "torso":
-		clip = "Big Kidney Hit.fbx" if combat_hit_sequence % 2 == 0 else "Big Kidney Hit (1).fbx"
+		# General body reactions and kidney-hit variants alternate.
+		var body_clips: Array[String] = ["Reaction.fbx","Reaction (1).fbx","Big Kidney Hit.fbx","Big Kidney Hit (1).fbx"]
+		clip = body_clips[combat_hit_sequence % body_clips.size()]
 	start_movement_clip(clip)
 
 func combat_die(region: String) -> void:
@@ -1463,6 +1465,13 @@ func apply_movement_clip(dt: float) -> void:
 	if movement_clip_name == "" or not movement_clips.has(movement_clip_name): return
 	var clip: Dictionary = movement_clips[movement_clip_name]
 	var length: float = float(clip["length"])
+	if combat_dead:
+		movement_clip_time = minf(movement_clip_time+dt,maxf(0.0,length-0.002))
+		for entry in clip["curves"]:
+			var pose: Quaternion = sample_flight_curve(entry["keys"],movement_clip_time)
+			skeleton.set_bone_pose_rotation(entry["bone"],pose)
+		skeleton.force_update_all_bone_transforms()
+		return
 	movement_clip_time += dt
 	var end_blend: float = clampf((length-movement_clip_time)/0.20,0.0,1.0)
 	var start_blend: float = clampf(movement_clip_time/0.12,0.0,1.0)
