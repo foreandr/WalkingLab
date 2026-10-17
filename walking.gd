@@ -3,6 +3,11 @@ extends Node3D
 @export var actor_only = false
 @export var autonomous_only = false
 @export var stationary_only = false
+@export var animation_test_mode: String = ""
+@export var animation_test_speed: float = 15.0
+var animation_test_phase: String = "wait"
+var animation_test_clock: float = 0.0
+var animation_test_landing_speed: float = 0.0
 @export var ai_abilities = false
 @export var ai_mode: String = ""
 var idle_variants: Array[String] = []
@@ -264,7 +269,7 @@ func _ready():
 			if bone_label == "righthand": jab_right_hand = bone_i
 
 		if player_controlled: print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
-	if player_controlled or ai_abilities or ai_mode == "fly": load_flight_clips()
+	if player_controlled or ai_abilities or ai_mode == "fly" or animation_test_mode != "": load_flight_clips()
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
@@ -458,8 +463,63 @@ func begin_direction_change(target_backward: bool):
 	turn_start_weight = direction_weight
 	turn_start_forward = blend
 	turn_start_back = back_blend
+func update_animation_test(dt: float) -> void:
+	# Three repeatable, physics-driven animation probes.
+	tree.advance(dt)
+	animation_test_clock += dt
+	if animation_test_phase == "wait":
+		actor.velocity = Vector3.ZERO
+		actor.move_and_slide()
+		feet.use_full_support = false
+		feet.resolve(true)
+		if animation_test_clock >= 1.1:
+			animation_test_clock = 0.0
+			animation_test_phase = "up"
+			start_movement_clip("Jumping Up.fbx")
+			actor.velocity.y = 7.0 if animation_test_mode == "jump" else animation_test_speed
+	elif animation_test_phase == "up":
+		var gravity: float = 18.0 if animation_test_mode == "jump" else 30.0
+		actor.velocity.y = move_toward(actor.velocity.y,0.0,gravity*dt)
+		actor.move_and_slide()
+		if actor.velocity.y <= 0.01:
+			animation_test_phase = "down"
+			if animation_test_mode != "jump": flight_enabled = true
+	elif animation_test_phase == "down":
+		var gravity: float = 18.0 if animation_test_mode == "jump" else 30.0
+		actor.velocity.y = maxf(-animation_test_speed,actor.velocity.y-gravity*dt)
+		animation_test_landing_speed = -actor.velocity.y
+		actor.move_and_slide()
+		if actor.is_on_floor():
+			animation_test_phase = "land"
+			animation_test_clock = 0.0
+			flight_enabled = false
+			actor.velocity = Vector3.ZERO
+			if animation_test_mode == "jump":
+				start_movement_clip("Landing.fbx")
+			elif animation_test_landing_speed > 18.0:
+				start_movement_clip("Hard Landing.fbx")
+			else:
+				start_movement_clip("Landing.fbx")
+	elif animation_test_phase == "land":
+		actor.velocity = Vector3.ZERO
+		actor.move_and_slide()
+		if movement_clip_name == "" and animation_test_clock > 0.4:
+			animation_test_phase = "wait"
+			animation_test_clock = 0.0
+	if animation_test_phase == "up" or animation_test_phase == "down":
+		visual.position.y = 0.0
+		if animation_test_mode != "jump":
+			apply_flight_pose(dt)
+	else:
+		feet.use_full_support = false
+		feet.resolve(true)
+	apply_movement_clip(dt)
+
 func _physics_process(dt):
 	if paused: return
+	if animation_test_mode != "":
+		update_animation_test(dt)
+		return
 	if stationary_only:
 		tree.advance(dt)
 		feet.use_full_support = false
