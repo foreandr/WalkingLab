@@ -54,6 +54,10 @@ var speed_streaks: Control
 var streak_clock: float = 0.0
 var ai_action_clock: float = 0.0
 var flight_enabled: bool = false
+var flight_launch_remaining: float = 0.0
+const FLIGHT_LAUNCH_DURATION: float = 0.65
+const FLIGHT_LAUNCH_SPEED: float = 14.0
+const FLIGHT_LAND_HEIGHT: float = 0.42
 const FLIGHT_SPEED: float = 7.0
 var camera_sensitivity: float = 1.0
 var jump_power: float = 6.0
@@ -564,6 +568,11 @@ func _physics_process(dt):
 				if flight_direction.length_squared() > 1.0: flight_direction = flight_direction.normalized()
 				actor.velocity = flight_direction * maxf(absf(signed_speed),FLIGHT_SPEED)
 				actor.velocity.y += (float(Input.is_key_pressed(KEY_SPACE))-float(Input.is_key_pressed(KEY_CTRL)))*FLIGHT_SPEED
+			if flight_launch_remaining > 0.0:
+				var launch_progress: float = 1.0-flight_launch_remaining/FLIGHT_LAUNCH_DURATION
+				var launch_weight: float = 1.0-smoothstep(0.35,1.0,launch_progress)
+				actor.velocity.y = maxf(actor.velocity.y,FLIGHT_LAUNCH_SPEED*launch_weight)
+				flight_launch_remaining = maxf(0.0,flight_launch_remaining-step)
 		else:
 			actor.velocity.y = jump_velocity
 		if not flight_enabled and jump_requested and actor.is_on_floor() and not crouch.active() and jump_prep_remaining < 0.0:
@@ -584,6 +593,17 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
+	if player_controlled and flight_enabled and flight_launch_remaining <= 0.0 and actor.velocity.y <= 0.0:
+		# Only land while approaching the floor, never on launch or ascent.
+		var floor_cast: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*0.12,actor.global_position+Vector3.DOWN*FLIGHT_LAND_HEIGHT)
+		floor_cast.exclude = [actor.get_rid()]
+		var floor_hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(floor_cast)
+		if not floor_hit.is_empty() and Vector3(floor_hit["normal"]).y > 0.72:
+			flight_enabled = false
+			flight_launch_remaining = 0.0
+			jump_velocity = -0.1
+			actor.floor_snap_length = 0.12
+			print("FLIGHT_AUTO_LANDED")
 	if player_controlled or ai_abilities:
 		update_flight_orientation(step)
 	if (player_controlled or ai_abilities) and not flight_enabled:
@@ -1215,6 +1235,12 @@ func _unhandled_input(event):
 			if event.keycode==KEY_SPACE and not flight_enabled: jump_requested = true
 			if event.keycode==KEY_3:
 				flight_enabled = not flight_enabled
+				if flight_enabled:
+					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+					flight_animation_time = 0.0
+					flight_pose_weight = 0.0
+				else:
+					flight_launch_remaining = 0.0
 				jump_requested = false
 				jump_prep_remaining = -1.0
 				jump_velocity = 0.0
