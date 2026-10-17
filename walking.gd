@@ -1236,12 +1236,18 @@ func adjust_jab_arm() -> void:
 	# The cursor defines the shared arm + spell target. The hand reaches
 	# along the direction from shoulder to that cursor's world-space ray.
 	# The same forward aim vector is used for projectile release.
-	var aim_world: Vector3 = cast_aim_point if cast_elapsed >= 0.0 else get_cursor_world_target()
+	var aim_world: Vector3 = cast_aim_point if cast_elapsed >= 0.0 else jab_aim_target
 	var shot: Vector3 = (aim_world - shoulder).normalized()
 	var local_shot: Vector3 = actor.global_basis.inverse() * shot
 	local_shot.z = minf(local_shot.z,-0.12)
 	shot = (actor.global_basis * local_shot.normalized()).normalized()
-	var goal_world_position: Vector3 = shoulder + shot * reach * (0.38 if cast_elapsed >= 0.0 else 0.75)
+	# A single eased thrust and recovery per click, with a stable target.
+	var jab_extension: float = 0.38
+	if cast_elapsed < 0.0:
+		var elapsed: float = clampf(0.45-jab_aim_remaining,0.0,0.45)
+		var strike: float = smoothstep(0.0,0.16,elapsed) * (1.0-smoothstep(0.21,0.43,elapsed))
+		jab_extension = lerpf(0.35,0.88,strike)
+	var goal_world_position: Vector3 = shoulder + shot * reach * jab_extension
 	var goal_actor: Vector3 = actor.global_transform.affine_inverse() * goal_world_position
 	# No drawback: start at the ordinary aiming pose and extend directly
 	# toward the cursor over a long smooth stroke. Release at full extension.
@@ -1267,7 +1273,7 @@ func adjust_jab_arm() -> void:
 	# merely the wrist: a wrist-only target can still fold through the ribs.
 	var base_arm: Quaternion = skeleton.get_bone_pose_rotation(arm)
 	var base_forearm: Quaternion = skeleton.get_bone_pose_rotation(forearm)
-	for iteration in range(5):
+	for iteration in range(3):
 		rotate_arm_joint_toward(arm,hand,goal_local,influence)
 		rotate_arm_joint_toward(forearm,hand,goal_local,influence)
 		skeleton.force_update_all_bone_transforms()
@@ -1439,6 +1445,7 @@ func throw_left_jab() -> void:
 	update_cursor_aim()
 	jab_aim_remaining = 0.45
 	jab_cooldown = 0.45
+	jab_aim_target = get_cursor_world_target()
 	if player_controlled:
 		var aim: Vector3 = get_cursor_world_target()
 		var ray_origin: Vector3 = actor.global_position + Vector3.UP*1.15
