@@ -257,6 +257,8 @@ func _physics_process(dt):
 	if paused: return
 	if stationary_only:
 		tree.advance(dt)
+		feet.use_full_support = false
+		feet.resolve(true)
 		return
 	var step = dt*(0.35 if slow else 1.0)
 	clock += step
@@ -339,7 +341,7 @@ func _physics_process(dt):
 		was_moving_for_idle = moving_now
 	tree.advance(step)
 	feet.use_full_support = crouch_driving or crouch.active()
-	feet.resolve()
+	feet.resolve(player_controlled and speed < 0.12 and not crouch.active())
 	crouch.update_capsule(step)
 	if test and frame%60==0: min_body = min(min_body,feet.lowest(feet.all_samples))
 	min_sole = min(min_sole,feet.minimum)
