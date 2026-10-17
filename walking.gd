@@ -490,7 +490,11 @@ func update_native_idle(velocity: float, crouched: bool, dt: float) -> void:
 		skeleton.set_bone_pose_rotation(destination,Quaternion.IDENTITY.slerp(rotated_delta,native_idle_weight))
 
 func normalized_idle_bone(name: String) -> String:
-	return name.to_lower().replace("mixamorig", "").replace(":", "").replace("_", "").replace(" ", "")
+	var simplified = name.to_lower().replace(":", "").replace("_", "").replace(" ", "")
+	simplified = simplified.replace("mixamorig", "")
+	while simplified.length() > 0 and simplified.unicode_at(0) >= 48 and simplified.unicode_at(0) <= 57:
+		simplified = simplified.substr(1)
+	return simplified
 
 func make_standing_idle(player: AnimationPlayer):
 	# Use only the proven compatible Y Bot library.
