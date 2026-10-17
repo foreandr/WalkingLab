@@ -464,43 +464,47 @@ func begin_direction_change(target_backward: bool):
 	turn_start_forward = blend
 	turn_start_back = back_blend
 func update_animation_test(dt: float) -> void:
-	# Three repeatable, physics-driven animation probes.
 	tree.advance(dt)
 	animation_test_clock += dt
+	var jumping: bool = animation_test_mode == "jump"
+	var target_height: float = 4.0 if jumping else (8.0 if animation_test_speed < 18.0 else 10.0)
 	if animation_test_phase == "wait":
+		flight_enabled = false
 		actor.velocity = Vector3.ZERO
 		actor.move_and_slide()
 		feet.use_full_support = false
 		feet.resolve(true)
-		if animation_test_clock >= 1.1:
+		if animation_test_clock >= 1.0:
 			animation_test_clock = 0.0
 			animation_test_phase = "up"
 			start_movement_clip("Jumping Up.fbx")
-			actor.velocity.y = 7.0 if animation_test_mode == "jump" else animation_test_speed
+			actor.velocity.y = 7.0 if jumping else animation_test_speed
+			flight_enabled = not jumping
+			flight_animation_time = 0.0
 	elif animation_test_phase == "up":
-		var gravity: float = 18.0 if animation_test_mode == "jump" else 30.0
-		actor.velocity.y = move_toward(actor.velocity.y,0.0,gravity*dt)
+		actor.velocity = Vector3.UP * (7.0 if jumping else animation_test_speed)
+		if jumping:
+			actor.velocity.y = maxf(0.0,7.0-animation_test_clock*18.0)
 		actor.move_and_slide()
-		if actor.velocity.y <= 0.01:
+		if (jumping and actor.velocity.y <= 0.01) or (not jumping and actor.position.y >= target_height):
 			animation_test_phase = "down"
-			if animation_test_mode != "jump": flight_enabled = true
+			animation_test_clock = 0.0
 	elif animation_test_phase == "down":
-		var gravity: float = 18.0 if animation_test_mode == "jump" else 30.0
-		actor.velocity.y = maxf(-animation_test_speed,actor.velocity.y-gravity*dt)
-		animation_test_landing_speed = -actor.velocity.y
+		actor.velocity = Vector3.DOWN * (7.0 if jumping else animation_test_speed)
 		actor.move_and_slide()
-		if actor.is_on_floor():
+		if actor.is_on_floor() or actor.position.y <= 0.02:
+			actor.position.y = maxf(actor.position.y,0.0)
+			animation_test_landing_speed = 7.0 if jumping else animation_test_speed
 			animation_test_phase = "land"
 			animation_test_clock = 0.0
 			flight_enabled = false
 			actor.velocity = Vector3.ZERO
-			if animation_test_mode == "jump":
-				start_movement_clip("Landing.fbx")
-			elif animation_test_landing_speed > 18.0:
+			if not jumping and animation_test_landing_speed > 18.0:
 				start_movement_clip("Hard Landing.fbx")
 			else:
 				start_movement_clip("Landing.fbx")
 	elif animation_test_phase == "land":
+		flight_enabled = false
 		actor.velocity = Vector3.ZERO
 		actor.move_and_slide()
 		if movement_clip_name == "" and animation_test_clock > 0.4:
@@ -508,7 +512,7 @@ func update_animation_test(dt: float) -> void:
 			animation_test_clock = 0.0
 	if animation_test_phase == "up" or animation_test_phase == "down":
 		visual.position.y = 0.0
-		if animation_test_mode != "jump":
+		if not jumping:
 			apply_flight_pose(dt)
 	else:
 		feet.use_full_support = false
