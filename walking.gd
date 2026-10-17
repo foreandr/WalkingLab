@@ -638,6 +638,8 @@ func _physics_process(dt):
 		backward_distance += speed*step
 		minimum_facing_alignment = min(minimum_facing_alignment,(-actor.global_basis.z).dot(tangent))
 	traveled += speed*step
+	# Off-screen CPUs do not need to update private cameras or hidden HUDs.
+	if autonomous_only: return
 	update_camera()
 	if player_controlled: update_speed_streaks(step)
 	if player_controlled:
