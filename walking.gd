@@ -629,9 +629,11 @@ func install_left_jab(player: AnimationPlayer, graph: AnimationNodeBlendTree) ->
 	shot.fadein_time = 0.09
 	shot.fadeout_time = 0.16
 	graph.add_node("JabOneShot",shot)
+	# Rewire from the leaf toward the graph output. Godot 4 disallows
+	# connecting a node as a source while that node is already the output root.
+	graph.disconnect_node("output",0)
 	graph.connect_node("JabOneShot",0,"Posture")
 	graph.connect_node("JabOneShot",1,"JabClip")
-	graph.disconnect_node("output",0)
 	graph.connect_node("output",0,"JabOneShot")
 	jab_ready = true
 	print("LEFT_JAB_READY duration=",clip.length," upper_body_tracks=",tracks)
