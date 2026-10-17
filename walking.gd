@@ -498,7 +498,7 @@ func make_standing_idle(player: AnimationPlayer):
 		destination_paths[n] = target_path
 	var library = AnimationLibrary.new()
 	idle_variants.clear()
-	var wanted = ["Offensive Idle.fbx","Idle (2).fbx"]
+	var wanted = ["Neutral Idle.fbx"]
 	for filename in wanted:
 		var path = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(path): continue
@@ -579,7 +579,7 @@ func make_standing_idle(player: AnimationPlayer):
 						idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
 				tracks += 1
 			if tracks >= 12:
-				var id = "Idle" + str([2,1][idle_variants.size()])
+				var id = "Idle0"
 				library.add_animation(id,idle)
 				idle_variants.append("manual/"+id)
 				print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
@@ -766,8 +766,19 @@ func adjust_jab_arm() -> void:
 	var ray: Vector3 = camera.project_ray_normal(cursor)
 	var depth = maxf(3.0,(shoulder-eye).dot(ray))
 	var aim_point = eye + ray * depth
-	var direction = (aim_point-shoulder).normalized()
+	var direction: Vector3 = (aim_point-shoulder).normalized()
 	if direction.length_squared() < 0.5: return
+	# Mouse aim strongly prefers the FRONT hemisphere. Reaching behind the
+	# shoulder is still possible by deliberately moving to the screen edge.
+	# Evaluate the aim in actor-local space: -Z is forward, +Z is behind.
+	var local_direction: Vector3 = actor.global_basis.inverse() * direction
+	if local_direction.z > -0.08:
+		var bounds: Vector2 = get_viewport().get_visible_rect().size
+		var screen_x: float = clampf(cursor.x / maxf(bounds.x, 1.0) * 2.0 - 1.0, -1.0, 1.0)
+		var behind_intent: float = smoothstep(0.72, 0.98, absf(screen_x))
+		var front_direction: Vector3 = Vector3(local_direction.x, local_direction.y, minf(local_direction.z, -0.08)).normalized()
+		local_direction = front_direction.lerp(local_direction, behind_intent).normalized()
+		direction = (actor.global_basis * local_direction).normalized()
 	# Mouse movement controls aim continuously. Clicking extends the hand
 	# along that SAME ray and retracts it, without competing FBX arm keys.
 	var elapsed = clampf(0.45-jab_aim_remaining,0.0,0.45)
@@ -794,13 +805,12 @@ func throw_left_jab() -> void:
 	print("ARM_REACH ",controlled_arm)
 
 func choose_random_idle():
+	# Historical name retained for existing callers. Idle0 is fixed for all actors.
 	if idle_variants.is_empty() or crouch.standing_idle_node == null: return
-	var current: String = String(crouch.standing_idle_node.animation)
-	var options = idle_variants.filter(func(path): return path != current)
-	if options.is_empty(): options = idle_variants.duplicate()
-	var chosen: String = options.pick_random()
+	var chosen: String = idle_variants[0]
+	if String(crouch.standing_idle_node.animation) == chosen: return
 	crouch.standing_idle_node.animation = chosen
-	print("IDLE_SELECTED ",name," ",chosen)
+	print("IDLE_FIXED ",name," ",chosen)
 
 func _unhandled_input(event):
 	if autonomous_only: return
