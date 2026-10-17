@@ -60,6 +60,18 @@ for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
         )
     )
 )
+rem Import newly supplied combat animation FBXs from Downloads, Desktop or game folder.
+for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
+    for %%F in ("Punching (1).fbx" "Punching(2).fbx" "Reaction.fbx" "Reaction (1).fbx" "Medium Hit To Head.fbx" "Medium Hit To Head (1).fbx" "Light Hit To Head.fbx" "Light Hit To Head (1).fbx" "Big Kidney Hit.fbx" "Big Kidney Hit (1).fbx" "Dying.fbx" "Dying (1).fbx" "Dying (2).fbx" "Dying (3).fbx" "Stunned.fbx") do (
+        if exist "%%~D\%%~F" (
+            if not exist "assets\custom_idle\%%~F" (
+                copy /Y "%%~D\%%~F" "assets\custom_idle\%%~F" >nul
+                set "IDLE_NEW=1"
+                echo Found combat animation: %%~F
+            )
+        )
+    )
+)
 rem Install the original Kenney particle texture used by the MIT Godot fire scene.
 rem No procedural fire meshes/textures. Asset stays cached locally.
 if not exist "assets\external_vfx" mkdir "assets\external_vfx"
