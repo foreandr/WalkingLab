@@ -39,6 +39,17 @@ func _process(_dt: float) -> void:
 			(markers[region] as MeshInstance3D).global_position = skeleton.global_transform * skeleton.get_bone_global_pose(index).origin
 
 func region_at(world_point: Vector3) -> String:
+	# Prefer the nearest animated body region, so moving arms and legs
+	# remain hittable instead of relying on fixed capsule coordinates.
+	var nearest: String = ""
+	var nearest_distance: float = INF
+	for region in ["head","left_arm","right_arm","left_leg","right_leg"]:
+		var indicator: MeshInstance3D = markers[region]
+		var distance_to_bone: float = world_point.distance_to(indicator.global_position)
+		if distance_to_bone < nearest_distance:
+			nearest_distance = distance_to_bone
+			nearest = region
+	if nearest_distance < 0.28: return nearest
 	var local: Vector3 = owner_actor.global_transform.affine_inverse() * world_point
 	if local.y >= 1.52: return "head"
 	if local.y >= 0.95:
@@ -65,4 +76,5 @@ func receive_hit(world_point: Vector3, amount: float) -> void:
 	if remaining <= 0.0:
 		dead = true
 		owner_actor.get_parent().set_process_input(false)
+		owner_actor.get_parent().set_physics_process(false)
 		print("[DEFEATED] ",owner_actor.get_parent().name," ",region)
