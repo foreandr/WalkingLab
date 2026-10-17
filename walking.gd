@@ -65,6 +65,7 @@ var combat_initial_pitch: float = 0.0
 var combat_falling: bool = false
 var combat_hit_sequence: int = 0
 var movement_clip_time: float = 0.0
+var injury_walk_time: float = 0.0
 var jump_clip_pending: bool = false
 var squat_amount: float = 0.0
 var squat_key_down: bool = false
@@ -891,6 +892,7 @@ func _physics_process(dt):
 		apply_flight_pose(step)
 	if player_controlled:
 		apply_movement_clip(step)
+		apply_injured_walk(step)
 		update_punch_contact(step)
 	if player_controlled:
 		debug_tick += step
@@ -937,7 +939,9 @@ func _physics_process(dt):
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
 	var injury_system: Node = get_node_or_null("DamageSystem")
-	if injury_system != null: actor.velocity *= injury_system.movement_penalty()
+	if injury_system != null and not flight_enabled and (float(injury_system.hp["left_leg"]) <= 20.0 or float(injury_system.hp["right_leg"]) <= 20.0):
+		actor.velocity.x = clampf(actor.velocity.x,-SPEEDS[0],SPEEDS[0])
+		actor.velocity.z = clampf(actor.velocity.z,-SPEEDS[0],SPEEDS[0])
 	if player_controlled and not flight_enabled and not actor.is_on_floor():
 		actor.velocity.x *= AIR_JUMP_TRAVEL_MULTIPLIER
 		actor.velocity.z *= AIR_JUMP_TRAVEL_MULTIPLIER
@@ -1041,6 +1045,9 @@ func _process(_dt):
 		get_tree().quit(0 if max_lift<0.15 and min_sole>=0.0059 and min_body>=0.0 else 1)
 func manual_target_speed() -> float:
 	if manual_input.length()<0.01: return 0.0
+	var injury: Node = get_node_or_null("DamageSystem")
+	if injury != null and (float(injury.hp["left_leg"]) <= 20.0 or float(injury.hp["right_leg"]) <= 20.0):
+		return -BACK_SPEEDS[0] if manual_input.y < -0.1 else SPEEDS[0]
 	var sprinting = (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not manual_launch_lock
 	if manual_input.y< -0.1: return -BACK_SPEEDS[2] if sprinting else -BACK_SPEEDS[1]
 	if Input.is_action_pressed("walk"): return SPEEDS[0]
@@ -1417,7 +1424,7 @@ func adjust_jab_arm() -> void:
 
 func load_flight_clips() -> void:
 
-	for filename in ["Flying (1).fbx","Jumping Up.fbx","Sitting Idle.fbx","Punching (1).fbx","Punching(2).fbx","Reaction.fbx","Reaction (1).fbx","Medium Hit To Head.fbx","Medium Hit To Head (1).fbx","Light Hit To Head.fbx","Light Hit To Head (1).fbx","Big Kidney Hit.fbx","Big Kidney Hit (1).fbx","Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx","Stunned.fbx"]:
+	for filename in ["Flying (1).fbx","Jumping Up.fbx","Sitting Idle.fbx","Punching (1).fbx","Punching(2).fbx","Reaction.fbx","Reaction (1).fbx","Medium Hit To Head.fbx","Medium Hit To Head (1).fbx","Light Hit To Head.fbx","Light Hit To Head (1).fbx","Big Kidney Hit.fbx","Big Kidney Hit (1).fbx","Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx","Stunned.fbx","Injured Walk (1).fbx","Injured Walk.fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path):
 			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
@@ -1544,6 +1551,27 @@ func apply_movement_clip(dt: float) -> void:
 		skeleton.set_bone_pose_rotation(bone,base_pose.slerp(target_pose,weight))
 	skeleton.force_update_all_bone_transforms()
 
+func apply_injured_walk(dt: float) -> void:
+	if flight_enabled or combat_dead: return
+	var injury: Node = get_node_or_null("DamageSystem")
+	if injury == null: return
+	var right_broken: bool = float(injury.hp["right_leg"]) <= 0.0
+	var left_broken: bool = float(injury.hp["left_leg"]) <= 0.0
+	if not right_broken and not left_broken:
+		injury_walk_time = 0.0
+		return
+	var filename: String = "Injured Walk (1).fbx" if right_broken else "Injured Walk.fbx"
+	if not movement_clips.has(filename): return
+	if absf(signed_speed) < 0.1: return
+	var clip: Dictionary = movement_clips[filename]
+	var length: float = float(clip["length"])
+	injury_walk_time = fmod(injury_walk_time+dt*maxf(0.25,absf(signed_speed)/SPEEDS[0]),length)
+	for entry in clip["curves"]:
+		var bone: int = entry["bone"]
+		var pose: Quaternion = sample_flight_curve(entry["keys"],injury_walk_time)
+		skeleton.set_bone_pose_rotation(bone,pose)
+	skeleton.force_update_all_bone_transforms()
+
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
 	var moving: bool = (manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL)) if player_controlled else actor.velocity.length() > 0.7
@@ -1565,6 +1593,8 @@ func apply_flight_pose(dt: float) -> void:
 
 func throw_left_jab() -> void:
 	if jab_cooldown > 0.0 or crouch.active(): return
+	var arm_health: Node = get_node_or_null("DamageSystem")
+	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"]) <= 0.0: return
 	jab_cooldown = 0.55
 	jab_aim_remaining = 0.45
 	punch_clock = 0.0
@@ -1716,6 +1746,10 @@ func select_hovered_target() -> void:
 func cast_spell(element: String) -> void:
 	# Passive animation until casting; fire uses the same arm thrust.
 	if cast_elapsed >= 0.0 or crouch.active(): return
+	var arm_health: Node = get_node_or_null("DamageSystem")
+	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"]) <= 0.0:
+		if player_controlled: debug_player("SPELL_BLOCKED","disabled "+controlled_arm+" arm")
+		return
 	if not ResourceLoader.exists("res://assets/external_vfx/" + element + ".tscn"): return
 	cast_element = element
 	cast_arm_name = controlled_arm
