@@ -29,6 +29,8 @@ const BACK_STRIDES = [1.2861592747,1.9162409005,1.9161717009]
 const LAP_RADIUS = 40.0
 var actor: CharacterBody3D
 var visual: Node3D
+var native_idle_model: Node3D
+var native_idle_playing := false
 var skeleton: Skeleton3D
 var tree: AnimationTree
 var camera: Camera3D
@@ -104,6 +106,7 @@ func _ready():
 	visual = preload("res://assets/user_mixamo.glb").instantiate()
 	actor.add_child(visual)
 	visual.rotation.y = PI
+	if player_controlled: install_native_idle()
 	skeleton = visual.find_children("*","Skeleton3D",true,false)[0]
 	var player: AnimationPlayer = visual.find_children("*","AnimationPlayer",true,false)[0]
 	if player.has_animation("Sprint"): player.get_animation_library("").remove_animation("Sprint")
@@ -321,6 +324,7 @@ func _physics_process(dt):
 	tree.set("parameters/Cadence/scale",speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	tree.advance(step)
+	if player_controlled: update_native_idle(speed, crouch_driving or crouch.active())
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve()
 	crouch.update_capsule(step)
@@ -399,6 +403,76 @@ func speed_band(values: Array, value: float) -> float:
 	for index in range(values.size()-1):
 		if value<=values[index+1]: return clamp(float(index)+(value-values[index])/(values[index+1]-values[index]),0.0,float(values.size()-1))
 	return float(values.size()-1)
+func install_native_idle() -> void:
+	# Keep the original imported skinned character and skeleton together.
+	# This is the exact working playback path used by mannequin #1.
+	var path := "res://assets/custom_idle/Idle.fbx"
+	if not ResourceLoader.exists(path):
+		push_warning("PLAYER_NATIVE_IDLE_MISSING " + path)
+		return
+	var packed = load(path)
+	if not packed is PackedScene:
+		push_warning("PLAYER_NATIVE_IDLE_NOT_SCENE")
+		return
+	var model: Node3D = packed.instantiate()
+	var animators = model.find_children("*", "AnimationPlayer", true, false)
+	var meshes = model.find_children("*", "MeshInstance3D", true, false)
+	if animators.is_empty() or meshes.is_empty():
+		push_warning("PLAYER_NATIVE_IDLE_NO_RIG")
+		model.free()
+		return
+	var best_score := 0
+	var chosen: AnimationPlayer = null
+	var take := ""
+	for item in animators:
+		var animator: AnimationPlayer = item
+		for name in animator.get_animation_list():
+			if name == "RESET": continue
+			var clip: Animation = animator.get_animation(name)
+			var moving := 0
+			for track in range(clip.get_track_count()):
+				if clip.track_get_type(track) != Animation.TYPE_ROTATION_3D: continue
+				if clip.track_get_key_count(track) < 2: continue
+				var start_q: Quaternion = clip.track_get_key_value(track, 0)
+				for sample in [1, int(clip.track_get_key_count(track) / 2), clip.track_get_key_count(track) - 1]:
+					var next_q: Quaternion = clip.track_get_key_value(track, sample)
+					if absf(start_q.dot(next_q)) < 0.99999:
+						moving += 1
+						break
+			if moving > best_score:
+				best_score = moving
+				chosen = animator
+				take = name
+	if chosen == null:
+		push_warning("PLAYER_NATIVE_IDLE_NO_ANIMATED_ROTATIONS")
+		model.free()
+		return
+	var animation: Animation = chosen.get_animation(take)
+	animation.loop_mode = Animation.LOOP_LINEAR
+	model.name = "NativeMixamoStandingIdle"
+	model.rotation.y = PI
+	actor.add_child(model)
+	for item in animators: item.stop()
+	for part in meshes:
+		var material = StandardMaterial3D.new()
+		material.albedo_color = character_tint
+		material.roughness = 0.8
+		part.material_override = material
+	chosen.play(take)
+	native_idle_model = model
+	native_idle_model.visible = false
+	print("PLAYER_NATIVE_IDLE_READY take=", take, " moving_bones=", best_score, " length=", animation.length)
+
+func update_native_idle(velocity: float, crouched: bool) -> void:
+	if native_idle_model == null: return
+	# Switch visibility only when nearly stationary. Running uses the original
+	# Y Bot model and original untouched gait controller.
+	var should_idle = velocity < (0.25 if native_idle_playing else 0.10) and not crouched
+	if should_idle == native_idle_playing: return
+	native_idle_playing = should_idle
+	native_idle_model.visible = should_idle
+	visual.visible = not should_idle
+
 func normalized_idle_bone(name: String) -> String:
 	return name.to_lower().replace("mixamorig", "").replace(":", "").replace("_", "").replace(" ", "")
 
