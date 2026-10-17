@@ -628,6 +628,12 @@ func install_left_jab(player: AnimationPlayer, graph: AnimationNodeBlendTree) ->
 	var shot := AnimationNodeOneShot.new()
 	shot.fadein_time = 0.09
 	shot.fadeout_time = 0.16
+	# OneShot normally blends its overlay against the whole skeleton's rest
+	# pose. Filter it to ONLY the jab's authored upper-body tracks. Everything
+	# else, including hips, legs and feet, stays on the Posture base input.
+	shot.filter_enabled = true
+	for track_index in range(clip.get_track_count()):
+		shot.set_filter_path(clip.track_get_path(track_index), true)
 	graph.add_node("JabOneShot",shot)
 	# Rewire from the leaf toward the graph output. Godot 4 disallows
 	# connecting a node as a source while that node is already the output root.
