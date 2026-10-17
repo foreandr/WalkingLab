@@ -38,7 +38,7 @@ var jump_velocity: float = 0.0
 var jump_phase: float = 0.0
 var jump_pose: float = 0.0
 var jump_requested: bool = false
-const JUMP_PREP_TIME: float = 0.12
+const JUMP_PREP_TIME: float = 0.32
 var jump_prep_remaining: float = -1.0
 var jump_thighs: Array[int] = []
 var jump_calves: Array[int] = []
@@ -859,7 +859,7 @@ func adjust_jab_arm() -> void:
 	var local_shot: Vector3 = actor.global_basis.inverse() * shot
 	local_shot.z = minf(local_shot.z,-0.12)
 	shot = (actor.global_basis * local_shot.normalized()).normalized()
-	var goal_world_position: Vector3 = shoulder + shot * reach * 0.75
+	var goal_world_position: Vector3 = shoulder + shot * reach * (0.38 if cast_elapsed >= 0.0 else 0.75)
 	var goal_actor: Vector3 = actor.global_transform.affine_inverse() * goal_world_position
 	# No drawback: start at the ordinary aiming pose and extend directly
 	# toward the cursor over a long smooth stroke. Release at full extension.
@@ -867,11 +867,11 @@ func adjust_jab_arm() -> void:
 		var phase: float = clampf(cast_elapsed / CAST_DURATION,0.0,1.0)
 		var extension: float = 0.0
 		if phase < 0.69:
-			extension = 0.34 * smoothstep(0.0,0.69,phase)
+			extension = 0.60 * smoothstep(0.0,0.69,phase)
 		elif phase < 0.79:
-			extension = 0.34
+			extension = 0.60
 		else:
-			extension = 0.34 * (1.0-smoothstep(0.79,1.0,phase))
+			extension = 0.60 * (1.0-smoothstep(0.79,1.0,phase))
 		goal_actor += actor.global_basis.inverse() * shot * (extension * reach)
 	# Only disallow a hand target behind the character; crossing the chest
 	# in front is intentional to preserve full lateral aiming.
@@ -915,16 +915,16 @@ func apply_jump_pose(dt: float) -> void:
 	# Takeoff tuck, airborne hold and soft landing blend independently.
 	var airborne: bool = jump_velocity > 0.1 or not actor.is_on_floor()
 	var desired: float = 1.0 if airborne else 0.0
-	# Subtle 120 ms compression before the actual physics impulse.
+	# Deep, dramatic 320 ms anticipation squat before takeoff.
 	var prep: float = 0.0
 	if jump_prep_remaining >= 0.0:
 		prep = sin(PI * (1.0-jump_prep_remaining/JUMP_PREP_TIME) * 0.5)
 	jump_pose = move_toward(jump_pose,desired,dt*(8.0 if airborne else 6.0))
 	if jump_pose < 0.002 and prep < 0.002: return
-	var knee_bend: float = 0.43 * smooth_gait(jump_pose) + 0.18 * prep
+	var knee_bend: float = 0.43 * smooth_gait(jump_pose) + 1.10 * prep
 	for thigh in jump_thighs:
 		var q: Quaternion = skeleton.get_bone_pose_rotation(thigh)
-		skeleton.set_bone_pose_rotation(thigh,(q * Quaternion(Vector3.RIGHT,-0.26*jump_pose - 0.12*prep)).normalized())
+		skeleton.set_bone_pose_rotation(thigh,(q * Quaternion(Vector3.RIGHT,-0.26*jump_pose - 0.75*prep)).normalized())
 	for calf in jump_calves:
 		var q: Quaternion = skeleton.get_bone_pose_rotation(calf)
 		skeleton.set_bone_pose_rotation(calf,(q * Quaternion(Vector3.RIGHT,knee_bend)).normalized())
