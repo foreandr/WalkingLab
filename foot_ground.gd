@@ -93,7 +93,9 @@ func resolve(ground_idle: bool = false):
 	visual.position.y = 0.0
 	skeleton.force_update_all_bone_transforms()
 	var bottom = full_support_lowest() if use_full_support else lowest()
-	lift = clampf(0.006-bottom,-0.65,0.65) if ground_idle else maxf(0.0,0.006-bottom)
+	# Retargeted FBX hip heights can differ by more than 0.65 m.
+	# The previous clamp left the soles floating even with a correct measurement.
+	lift = 0.006-bottom if ground_idle else maxf(0.0,0.006-bottom)
 	visual.position.y = lift
 	skeleton.force_update_all_bone_transforms()
 	minimum = bottom+lift
