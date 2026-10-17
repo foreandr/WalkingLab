@@ -1199,7 +1199,10 @@ func apply_jump_pose(dt: float) -> void:
 		jump_animation_time += dt
 		var in_prep: bool = jump_prep_remaining >= 0.0
 		var fraction: float = clampf(jump_animation_time/JUMP_PREP_TIME,0.0,1.0) if in_prep else clampf((jump_animation_time-JUMP_PREP_TIME)/0.72,0.0,1.0)
-		moment = float(clip["length"])*lerpf(0.02,0.49,fraction) if in_prep else float(clip["length"])*0.49
+		# Keep the selected clip's squat in anticipation only, then
+		# carry the leg extension into the air. Never replay the crouch.
+		var airborne_progress: float = clampf((jump_animation_time-JUMP_PREP_TIME)/0.18,0.0,1.0)
+		moment = float(clip["length"])*lerpf(0.02,0.42,fraction) if in_prep else float(clip["length"])*lerpf(0.42,0.63,airborne_progress)
 		blend_weight = minf(1.0,jump_animation_time/0.12) if in_prep else (jump_pose if not actor.is_on_floor() else 0.0)
 		if not in_prep and actor.is_on_floor() and jump_animation_time > JUMP_PREP_TIME+0.10:
 			jump_animation_time = -1.0
