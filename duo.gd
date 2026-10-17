@@ -14,26 +14,25 @@ func _ready():
 	ai = preload("res://walking.gd").new()
 	ai.name = "AutonomousMan"
 	ai.autonomous_only = true
-	ai.route_center = Vector3(0,0,12)
+	ai.stationary_only = true
+	ai.route_center = Vector3(0,0,-36)
 	ai.route_radius = 20.0
-	ai.spawn_point = Vector3(0,0,32)
+	ai.spawn_point = Vector3(0,0,-36)
 	ai.character_tint = Color("e1d5c2")
 	add_child(ai)
 	player = preload("res://walking.gd").new()
 	player.name = "PlayerMan"
 	player.player_controlled = true
 	player.actor_only = true
-	player.spawn_point = Vector3(3,0,32)
+	player.spawn_point = Vector3(0,0,36)
 	player.character_tint = Color("bdcedf")
 	add_child(player)
 	player.camera.current = true
 	ai_label = make_label(ai.actor,"AI",Color("ffbf69"))
 	player_label = make_label(player.actor,"YOU",Color("75d8ff"))
 	make_boundary()
-	var lineup = preload("res://idle_lineup.gd").new()
-	lineup.name = "IdleLineup"
-	add_child(lineup)
-	ai.crouch.start_showcase()
+	# Opponent remains stationary across the arena; only its selected idle loops.
+	ai.actor.rotation.y = PI
 func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	var label = Label3D.new()
 	label.text = text
@@ -63,15 +62,10 @@ func _physics_process(dt):
 	ai_label.position.y = ai.crouch.capsule.height+0.3
 	player_label.position.y = player.crouch.capsule.height+0.3
 	ai_label.text = "AI"
-	if ai.crouch.showcase or ai.crouch.active(): ai_wait = 0.0
-	else:
-		ai_wait += dt
-		if ai_wait>=145.0:
-			ai.crouch.start_showcase()
-			ai_wait = 0.0
+
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode==KEY_V: ai.crouch.start_showcase()
+
 		if event.keycode==KEY_TAB:
 			watching_ai = not watching_ai
 			player.camera_target = ai.actor if watching_ai else null
