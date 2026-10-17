@@ -46,7 +46,7 @@ var jump_pose_reported: bool = false
 var vertical_jump_speed: float = 0.0
 const SIMPLE_JUMP_IMPULSE: float = 6.0
 const SIMPLE_JUMP_GRAVITY: float = 18.0
-var flying_idle_clip: Dictionary = {}
+
 var flight_animation_time: float = 0.0
 var flight_visual_pitch: float = 0.0
 var flight_pose_weight: float = 0.0
@@ -1041,7 +1041,7 @@ func adjust_jab_arm() -> void:
 
 func load_flight_clips() -> void:
 
-	for filename in ["Flying (1).fbx","Warrior Idle.fbx","Jump(2).fbx"]:
+	for filename in ["Flying (1).fbx","Jump(2).fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path):
 			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
@@ -1091,8 +1091,6 @@ func load_flight_clips() -> void:
 					single_jump_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				elif filename == "Flying (1).fbx":
 					flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
-				elif filename == "Warrior Idle.fbx":
-					flying_idle_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				if player_controlled: debug_player("ANIMATION_LOADED",filename+" tracks="+str(curves.size())+" seconds="+str(selected.length))
 		root.free()
 	if flying_clip.is_empty():
@@ -1154,7 +1152,7 @@ func apply_flight_pose(dt: float) -> void:
 	flight_idle_weight = move_toward(flight_idle_weight,0.0 if moving else 1.0,dt*4.0)
 	flight_animation_time += dt*0.65
 	flight_idle_time += dt
-	var source: Dictionary = flying_clip if not flying_clip.is_empty() else flying_idle_clip
+	var source: Dictionary = flying_clip
 	if source.is_empty(): return
 	var moment: float = fmod(flight_animation_time,float(source["length"]))
 	for entry in source["curves"]:
@@ -1163,11 +1161,7 @@ func apply_flight_pose(dt: float) -> void:
 			var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
 			if bone_name.begins_with(cast_arm_name) and (bone_name.contains("arm") or bone_name.contains("hand") or bone_name.contains("shoulder")): continue
 		var pose: Quaternion = sample_flight_curve(entry["keys"],moment)
-		if not flying_idle_clip.is_empty() and source == flying_clip:
-			for idle_entry in flying_idle_clip["curves"]:
-				if int(idle_entry["bone"]) == bone:
-					pose = pose.slerp(sample_flight_curve(idle_entry["keys"],fmod(flight_idle_time,float(flying_idle_clip["length"]))),flight_idle_weight)
-					break
+
 		skeleton.set_bone_pose_rotation(bone,pose)
 	skeleton.force_update_all_bone_transforms()
 
