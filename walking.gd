@@ -1659,7 +1659,9 @@ func apply_injured_walk(dt: float) -> void:
 	if not right_broken and not left_broken:
 		injury_walk_time = 0.0
 		return
-	var filename: String = "Injured Walk (1).fbx" if right_broken else "Injured Walk.fbx"
+	# One gait drives both legs; mirror the corresponding bones for the opposite injury.
+	var filename: String = "Injured Walk.fbx"
+	var mirror_gait: bool = left_broken and not right_broken
 	if not movement_clips.has(filename): return
 	if absf(signed_speed) < 0.1: return
 	var clip: Dictionary = movement_clips[filename]
@@ -1669,6 +1671,17 @@ func apply_injured_walk(dt: float) -> void:
 		var bone: int = entry["bone"]
 		if is_upper_body_bone(bone): continue
 		var pose: Quaternion = sample_flight_curve(entry["keys"],injury_walk_time)
+		if mirror_gait:
+			var label: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
+			var flipped: String = ""
+			if label.begins_with("left"): flipped = "right"+label.substr(4)
+			elif label.begins_with("right"): flipped = "left"+label.substr(5)
+			if flipped != "":
+				for index in range(skeleton.get_bone_count()):
+					if normalized_idle_bone(String(skeleton.get_bone_name(index))) == flipped:
+						bone = index
+						break
+			pose = Quaternion(pose.x,-pose.y,-pose.z,pose.w).normalized()
 		skeleton.set_bone_pose_rotation(bone,pose)
 	skeleton.force_update_all_bone_transforms()
 
