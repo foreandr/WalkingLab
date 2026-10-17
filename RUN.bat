@@ -51,6 +51,16 @@ for %%F in ("%USERPROFILE%\Downloads\Flying (1).fbx" "%USERPROFILE%\Desktop\Flyi
         )
     )
 )
+rem Import the supplied Warrior Idle for airborne hovering; not a hand-built pose.
+for %%F in ("%USERPROFILE%\Downloads\Warrior Idle.fbx" "%USERPROFILE%\Desktop\Warrior Idle.fbx") do (
+    if exist "%%~fF" (
+        if not exist "assets\custom_idle\Warrior Idle.fbx" (
+            echo Found flight idle animation: %%~nxF
+            copy /Y "%%~fF" "assets\custom_idle\Warrior Idle.fbx" >nul
+            set "IDLE_NEW=1"
+        )
+    )
+)
 rem One supplied unskinned jab clip; copy locally before Godot imports.
 for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
     if exist "%%~D\Punching.fbx" (
