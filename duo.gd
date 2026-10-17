@@ -15,16 +15,16 @@ func _ready():
 	ai.name = "AutonomousMan"
 	ai.autonomous_only = true
 	ai.stationary_only = true
-	ai.route_center = Vector3(0,0,-36)
+	ai.route_center = Vector3(0,0,0)
 	ai.route_radius = 20.0
-	ai.spawn_point = Vector3(0,0,-36)
+	ai.spawn_point = Vector3(0,0,0)
 	ai.character_tint = Color("e1d5c2")
 	add_child(ai)
 	player = preload("res://walking.gd").new()
 	player.name = "PlayerMan"
 	player.player_controlled = true
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,36)
+	player.spawn_point = Vector3(0,0,12)
 	player.character_tint = Color("bdcedf")
 	add_child(player)
 	player.camera.current = true
@@ -52,9 +52,9 @@ func make_boundary():
 		var angle = i*TAU/64.0
 		var collision = CollisionShape3D.new()
 		var shape = BoxShape3D.new()
-		shape.size = Vector3(TAU*174.0/64.0+0.15,3.0,0.5)
+		shape.size = Vector3(TAU*58.0/64.0+0.15,3.0,0.5)
 		collision.shape = shape
-		collision.position = Vector3(sin(angle)*174.0,1.5,cos(angle)*174.0)
+		collision.position = Vector3(sin(angle)*58.0,1.5,cos(angle)*58.0)
 		collision.rotation.y = angle
 		boundary.add_child(collision)
 func _physics_process(dt):
