@@ -22,4 +22,11 @@ if ($status -ne 0) {
     Write-Host "Game exited with an error. Last 35 lines:"
     Get-Content $logFile -Tail 35
 }
+# The launcher exits immediately, so the logger owns the post-run upload.
+# Upload the log even when the game reports a nonzero exit code.
+try {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path (Get-Location) "scripts\\sync_logs.ps1") | Out-File -FilePath $logFile -Append -Encoding utf8
+} catch {
+    ("Log synchronization failed: " + $_) | Out-File -FilePath $logFile -Append -Encoding utf8
+}
 exit $status
