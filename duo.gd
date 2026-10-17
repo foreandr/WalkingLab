@@ -195,9 +195,9 @@ func make_boundary():
 		var angle = i*TAU/64.0
 		var collision = CollisionShape3D.new()
 		var shape = BoxShape3D.new()
-		shape.size = Vector3(TAU*58.0/64.0+0.15,3.0,0.5)
+		shape.size = Vector3(TAU*580.0/64.0+0.15,3.0,0.5)
 		collision.shape = shape
-		collision.position = Vector3(sin(angle)*58.0,1.5,cos(angle)*58.0)
+		collision.position = Vector3(sin(angle)*580.0,1.5,cos(angle)*580.0)
 		collision.rotation.y = angle
 		boundary.add_child(collision)
 func _physics_process(dt):
