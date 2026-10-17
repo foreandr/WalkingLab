@@ -182,7 +182,7 @@ func _ready():
 	var player: AnimationPlayer = visual.find_children("*","AnimationPlayer",true,false)[0]
 	if player.has_animation("Sprint"): player.get_animation_library("").remove_animation("Sprint")
 	install_backwards(player)
-	print("MIXAMO_CLIPS ",player.get_animation_list())
+	if player_controlled: print("MIXAMO_CLIPS ",player.get_animation_list())
 	var white = StandardMaterial3D.new()
 	white.albedo_color = character_tint
 	white.roughness = 0.8
@@ -234,7 +234,7 @@ func _ready():
 	crouch.setup(self,player,graph)
 	
 	if player_controlled or stationary_only or ai_abilities: choose_random_idle()
-	print("CROUCH_CLIPS ",player.get_animation_list())
+	if player_controlled: print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
 	visual.add_child(tree)
 	tree.anim_player = tree.get_path_to(player)
@@ -251,7 +251,7 @@ func _ready():
 			if bone_label == "rightforearm": jab_right_forearm = bone_i
 			if bone_label == "righthand": jab_right_hand = bone_i
 
-		print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
+		if player_controlled: print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
 	if player_controlled or ai_abilities or ai_mode == "fly": load_flight_clips()
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
@@ -633,7 +633,7 @@ func _physics_process(dt):
 			flight_enabled = false
 			flight_launch_remaining = 0.0
 			actor.floor_snap_length = 0.12
-			print("FLIGHT_AUTO_LANDED")
+			if player_controlled: print("FLIGHT_AUTO_LANDED")
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		update_flight_orientation(step)
 
@@ -802,9 +802,9 @@ func make_standing_idle(player: AnimationPlayer):
 				var id = "Idle3" if filename == "Idle (3).fbx" else ("BreathingIdle" if filename == "Breathing Idle.fbx" else ("Idle1" if filename == "Idle (2).fbx" else ("Idle2" if filename == "Offensive Idle.fbx" else "Idle0")))
 				library.add_animation(id,idle)
 				idle_variants.append("manual/"+id)
-				print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
+				if player_controlled: print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
 			else:
-				print("IDLE_REJECTED ",filename," mapped_tracks=",tracks)
+				if player_controlled: print("IDLE_REJECTED ",filename," mapped_tracks=",tracks)
 		root.free()
 	if idle_variants.is_empty():
 		push_warning("No compatible idle FBX installed; put Idle (3).fbx in Downloads and rerun RUN.bat.")
@@ -932,7 +932,7 @@ func install_left_jab(player: AnimationPlayer, graph: AnimationNodeBlendTree) ->
 	graph.connect_node("JabOneShot",1,"JabClip")
 	graph.connect_node("output",0,"JabOneShot")
 	jab_ready = true
-	print("LEFT_JAB_READY duration=",clip.length," upper_body_tracks=",tracks)
+	if player_controlled: print("LEFT_JAB_READY duration=",clip.length," upper_body_tracks=",tracks)
 
 func update_cursor_aim() -> void:
 	if camera == null or actor == null: return
@@ -1098,7 +1098,7 @@ func load_flight_clips() -> void:
 	if flying_clip.is_empty():
 		push_warning("FLIGHT_ANIMATION_MISSING: res://assets/custom_idle/Flying (1).fbx not imported or no matching bones. Flight hover will use fallback pose.")
 	else:
-		print("FLIGHT_ANIMATION_LOADED ",name," tracks=",flying_clip["curves"].size())
+		if player_controlled: print("FLIGHT_ANIMATION_LOADED ",name," tracks=",flying_clip["curves"].size())
 
 func sample_flight_curve(keys: Array, time: float) -> Quaternion:
 	if keys.size() == 1 or time <= float(keys[0]["time"]): return keys[0]["rot"]
@@ -1177,7 +1177,7 @@ func throw_left_jab() -> void:
 	update_cursor_aim()
 	jab_aim_remaining = 0.45
 	jab_cooldown = 0.45
-	print("ARM_REACH ",controlled_arm)
+	if player_controlled: print("ARM_REACH ",controlled_arm)
 
 func get_cursor_world_target() -> Vector3:
 	var cursor: Vector2 = get_viewport().get_mouse_position()
@@ -1305,7 +1305,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	mover.travel_speed = launch_speed * fireball_speed_scale
 	mover.owner_rid = actor.get_rid()
 	projectile.add_child(mover)
-	print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
+	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
 
 func choose_random_idle():
 	# Historical name retained for existing callers. Idle (3).fbx preferred for everyone; never swap.
@@ -1313,7 +1313,7 @@ func choose_random_idle():
 	var chosen: String = idle_variants[0]
 	if String(crouch.standing_idle_node.animation) == chosen: return
 	crouch.standing_idle_node.animation = chosen
-	print("IDLE_FIXED ",name," ",chosen)
+	if player_controlled: print("IDLE_FIXED ",name," ",chosen)
 
 func _unhandled_input(event):
 	if autonomous_only: return
