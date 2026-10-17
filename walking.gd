@@ -559,6 +559,7 @@ func _physics_process(dt):
 	tree.advance(step)
 	if player_controlled and not flight_enabled:
 		visual.position.y = 0.0
+		visual.scale.y = 1.0
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		apply_flight_pose(step)
 	if player_controlled and not flight_enabled:
@@ -571,7 +572,7 @@ func _physics_process(dt):
 			if state != last_debug_state:
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
-			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" animation=pelvis_only"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
+			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
@@ -1141,11 +1142,11 @@ func debug_player(event_type: String, details: String) -> void:
 
 func apply_jump_windup_pose() -> void:
 	if squat_amount <= 0.0 or flight_enabled: return
-	# Deliberately unmistakable visual-only pose test.
-	# Keep knee and thigh rotations untouched and lower the character root.
-	# Feet will clip below the floor until we implement genuine squat IK.
+	# Visible squat diagnostic: compress the complete rig toward its planted feet.
+	# A root translation put the character underground where the ground hid it.
+	# No knee or thigh joint rotations; restore normal scale when Space is released.
 	var bend: float = squat_amount*squat_amount*(3.0-2.0*squat_amount)
-	visual.position.y = -SQUAT_DEPTH*bend
+	visual.scale.y = lerpf(1.0,0.32,bend)
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
