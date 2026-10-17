@@ -280,7 +280,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fireball"
+		controls.text = "WASD move | Space jump | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fireball"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func install_options_menu(canvas: CanvasLayer) -> void:
@@ -470,8 +470,8 @@ func _physics_process(dt):
 	if player_controlled:
 		adjust_jab_arm()
 		update_cast_motion(step)
-	feet.use_full_support = crouch_driving or crouch.active()
-	feet.resolve(player_controlled and speed < 0.12 and not crouch.active())
+	feet.use_full_support = (crouch_driving or crouch.active()) and not (player_controlled and (jump_velocity > 0.1 or not actor.is_on_floor()))
+	feet.resolve(player_controlled and speed < 0.12 and not crouch.active() and jump_velocity <= 0.0 and actor.is_on_floor())
 	crouch.update_capsule(step)
 	if test and frame%60==0: min_body = min(min_body,feet.lowest(feet.all_samples))
 	min_sole = min(min_sole,feet.minimum)
@@ -520,7 +520,7 @@ func _physics_process(dt):
 	update_camera()
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Tab watch AI\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed]
+		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Space jump | Settings: top-right cog\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
