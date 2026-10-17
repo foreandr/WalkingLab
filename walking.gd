@@ -42,6 +42,8 @@ var flying_clip: Dictionary = {}
 var single_jump_clip: Dictionary = {}
 var jump_play_time: float = -1.0
 var jump_airborne_seen: bool = false
+var jump_windup_time: float = -1.0
+const JUMP_WINDUP_SECONDS: float = 0.65
 var debug_tick: float = 0.0
 var last_debug_state: String = ""
 var jump_pose_reported: bool = false
@@ -456,6 +458,18 @@ func _physics_process(dt):
 		feet.resolve(true)
 		return
 	var step = dt*(0.35 if slow else 1.0)
+	if player_controlled and jump_windup_time >= 0.0:
+		if flight_enabled or not actor.is_on_floor():
+			jump_windup_time = -1.0
+		else:
+			jump_windup_time += step
+			if jump_windup_time >= JUMP_WINDUP_SECONDS:
+				jump_windup_time = -1.0
+				vertical_jump_speed = SIMPLE_JUMP_IMPULSE
+				jump_play_time = 0.0
+				jump_airborne_seen = false
+				jump_pose_reported = false
+				debug_player("JUMP_TAKEOFF","impulse="+str(SIMPLE_JUMP_IMPULSE))
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
@@ -558,6 +572,7 @@ func _physics_process(dt):
 		apply_flight_pose(step)
 	if player_controlled and not flight_enabled:
 		apply_single_jump_pose(step)
+		apply_jump_windup_pose()
 	if player_controlled:
 		debug_tick += step
 		if debug_tick >= 0.25:
@@ -1150,6 +1165,27 @@ func debug_player(event_type: String, details: String) -> void:
 	if not player_controlled: return
 	print("[PLAYER_DEBUG] t=",snappedf(clock,0.01)," ",event_type," | ",details)
 
+func apply_jump_windup_pose() -> void:
+	if jump_windup_time < 0.0 or not actor.is_on_floor(): return
+	# Deliberately exaggerated wind-up, layered over the current ground pose.
+	# Both knees flex slowly before the actual physics impulse.
+	var p: float = clampf(jump_windup_time/JUMP_WINDUP_SECONDS,0.0,1.0)
+	var bend: float = p*p*(3.0-2.0*p)
+	for i in range(skeleton.get_bone_count()):
+		var name: String = normalized_idle_bone(String(skeleton.get_bone_name(i)))
+		var angle: float = 0.0
+		if name == "leftupleg" or name == "rightupleg":
+			angle = 0.9*bend
+		elif name == "leftleg" or name == "rightleg":
+			angle = -1.55*bend
+		elif name == "spine":
+			angle = -0.22*bend
+		else:
+			continue
+		var base: Quaternion = skeleton.get_bone_pose_rotation(i)
+		skeleton.set_bone_pose_rotation(i,(base*Quaternion(Vector3.RIGHT,angle)).normalized())
+	skeleton.force_update_all_bone_transforms()
+
 func apply_single_jump_pose(dt: float) -> void:
 	if jump_play_time < 0.0: return
 	if single_jump_clip.is_empty():
@@ -1340,15 +1376,14 @@ func _unhandled_input(event):
 				crouch.toggle()
 				debug_player("CROUCH","toggle")
 			if event.keycode == KEY_SPACE and not flight_enabled and actor.is_on_floor() and not crouch.active():
-				vertical_jump_speed = SIMPLE_JUMP_IMPULSE
-				jump_play_time = 0.0
-				jump_airborne_seen = false
-				jump_pose_reported = false
-				debug_player("JUMP_ACCEPTED","impulse="+str(SIMPLE_JUMP_IMPULSE)+" clip_tracks="+str(single_jump_clip.get("curves",[]).size()))
+				if jump_windup_time < 0.0:
+					jump_windup_time = 0.0
+					debug_player("JUMP_WINDUP","preparing deep knee bend")
 
 			if event.keycode==KEY_3:
 				flight_enabled = not flight_enabled
 				if flight_enabled:
+					jump_windup_time = -1.0
 					flight_acceleration_time = 0.0
 					jump_play_time = -1.0
 					vertical_jump_speed = 0.0
