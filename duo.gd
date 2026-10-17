@@ -30,7 +30,7 @@ func _ready():
 	add_child(player)
 	player.camera.current = true
 	ai_label = make_label(ai.actor,"AI",Color("ffbf69"))
-	player_label = make_label(player.actor,"YOU",Color("75d8ff"))
+	player_label = make_label(player.actor,"YOU",Color("ff2020"))
 	make_boundary()
 	# Keep only two CPU characters: one static reference and one
 	# autonomous character with the same fire, water and flight abilities.
