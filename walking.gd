@@ -201,6 +201,10 @@ func _ready():
 	actor.add_child(visual)
 	visual.rotation.y = PI
 	skeleton = visual.find_children("*","Skeleton3D",true,false)[0]
+	var damage_system = preload("res://combat_damage.gd").new()
+	damage_system.name = "DamageSystem"
+	add_child(damage_system)
+	damage_system.setup(actor,skeleton)
 	var player: AnimationPlayer = visual.find_children("*","AnimationPlayer",true,false)[0]
 	if player.has_animation("Sprint"): player.get_animation_library("").remove_animation("Sprint")
 	install_backwards(player)
@@ -1435,6 +1439,18 @@ func throw_left_jab() -> void:
 	update_cursor_aim()
 	jab_aim_remaining = 0.45
 	jab_cooldown = 0.45
+	if player_controlled:
+		var aim: Vector3 = get_cursor_world_target()
+		var ray_origin: Vector3 = camera.global_position
+		var direction: Vector3 = (aim-ray_origin).normalized()
+		var ray := PhysicsRayQueryParameters3D.create(ray_origin,ray_origin+direction*3.5)
+		ray.exclude = [actor.get_rid()]
+		var hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
+		if not hit.is_empty():
+			var victim: Object = hit.get("collider")
+			if victim is CharacterBody3D:
+				var damage: Node = victim.get_parent().get_node_or_null("DamageSystem")
+				if damage != null: damage.receive_hit(hit["position"],18.0)
 	if player_controlled: print("ARM_REACH ",controlled_arm)
 
 func get_cursor_world_target() -> Vector3:
