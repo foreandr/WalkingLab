@@ -9,6 +9,8 @@ var jab_cooldown := 0.0
 var jab_aim_remaining := 0.0
 var jab_aim_target := Vector3.ZERO
 var jab_left_arm := -1
+var jab_left_forearm := -1
+var jab_left_hand := -1
 var jab_aim_strength := 0.0
 var cursor_reticle: Control
 var was_moving_for_idle := false
@@ -185,7 +187,11 @@ func _ready():
 	tree.active = true
 	if player_controlled:
 		for bone_i in range(skeleton.get_bone_count()):
-			if normalized_idle_bone(String(skeleton.get_bone_name(bone_i))) == "leftarm": jab_left_arm = bone_i
+			var bone_label = normalized_idle_bone(String(skeleton.get_bone_name(bone_i)))
+			if bone_label == "leftarm": jab_left_arm = bone_i
+			if bone_label == "leftforearm": jab_left_forearm = bone_i
+			if bone_label == "lefthand": jab_left_hand = bone_i
+		print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
@@ -708,21 +714,60 @@ func update_cursor_aim() -> void:
 	var direction: Vector3 = camera.project_ray_normal(cursor)
 	jab_aim_target = origin + direction * 20.0
 
+func rotate_arm_joint_toward(bone: int, hand: int, goal: Vector3, weight: float) -> void:
+	# Cyclic coordinate descent: turn this joint so the CURRENT hand position
+	# points toward the target. All vectors are skeleton-local coordinates.
+	skeleton.force_update_all_bone_transforms()
+	var pivot: Vector3 = skeleton.get_bone_global_pose(bone).origin
+	var tip: Vector3 = skeleton.get_bone_global_pose(hand).origin
+	var present: Vector3 = tip - pivot
+	var intended: Vector3 = goal - pivot
+	if present.length_squared() < 0.00001 or intended.length_squared() < 0.00001: return
+	var angle = present.angle_to(intended)
+	if angle < 0.001: return
+	var axis = present.cross(intended)
+	if axis.length_squared() < 0.000001: return
+	# Rotate only a bounded amount per solve to preserve the jab silhouette.
+	var global_delta = Quaternion(axis.normalized(),minf(angle,0.65)*weight)
+	var parent = skeleton.get_bone_parent(bone)
+	var parent_orientation = Quaternion.IDENTITY if parent < 0 else skeleton.get_bone_global_pose(parent).basis.get_rotation_quaternion()
+	var local_delta = parent_orientation.inverse()*global_delta*parent_orientation
+	var old_rotation = skeleton.get_bone_pose_rotation(bone)
+	skeleton.set_bone_pose_rotation(bone,(local_delta*old_rotation).normalized())
+
 func adjust_jab_arm() -> void:
-	# Apply a modest, bounded shoulder correction AFTER AnimationTree evaluation.
-	# No actor rotation, no torso twist and no changes to the feet.
-	if jab_left_arm < 0 or jab_aim_strength < 0.001: return
-	var shoulder_position = skeleton.global_transform * skeleton.get_bone_global_pose(jab_left_arm).origin
-	var to_target = jab_aim_target - shoulder_position
-	if to_target.length_squared() < 0.001: return
-	# Y Bot's shoulder aims approximately along its local forward axis.
-	# Limit correction to avoid turning the punch inside out.
-	var local_target = skeleton.global_transform.basis.inverse() * to_target.normalized()
-	var yaw = clampf(atan2(local_target.x,-local_target.z),-0.35,0.35)
-	var elevation_angle = clampf(asin(clampf(local_target.y,-1.0,1.0)),-0.30,0.30)
-	var adjustment = Quaternion(Vector3.UP,yaw)*Quaternion(Vector3.RIGHT,-elevation_angle)
-	var original = skeleton.get_bone_pose_rotation(jab_left_arm)
-	skeleton.set_bone_pose_rotation(jab_left_arm,(original*Quaternion.IDENTITY.slerp(adjustment,jab_aim_strength)).normalized())
+	# Fist-directed two-bone IK, layered over the original Mixamo jab.
+	# The actor, pelvis, torso and both legs remain completely untouched.
+	if jab_left_arm < 0 or jab_left_forearm < 0 or jab_left_hand < 0: return
+	if jab_aim_strength < 0.001: return
+	skeleton.force_update_all_bone_transforms()
+	var shoulder: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(jab_left_arm).origin
+	var elbow: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(jab_left_forearm).origin
+	var wrist: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(jab_left_hand).origin
+	var reach = shoulder.distance_to(elbow) + elbow.distance_to(wrist)
+	if reach < 0.1: return
+	# Find where the mouse ray passes closest to the shoulder, not a fixed
+	# point 20m away. The arm reaches along this direction at its own scale.
+	var cursor = get_viewport().get_mouse_position()
+	var eye: Vector3 = camera.project_ray_origin(cursor)
+	var ray: Vector3 = camera.project_ray_normal(cursor)
+	var depth = maxf(3.0,(shoulder-eye).dot(ray))
+	var aim_point = eye + ray * depth
+	var direction = (aim_point-shoulder).normalized()
+	if direction.length_squared() < 0.5: return
+	var distance_to_goal = reach * 0.93
+	var goal_world = shoulder + direction * distance_to_goal
+	var goal_local: Vector3 = skeleton.global_transform.affine_inverse() * goal_world
+	# Jab phases: ease toward the target during extension, then release back
+	# to the authored recovery frames instead of snapping the arm.
+	var elapsed = clampf(0.45-jab_aim_remaining,0.0,0.45)
+	var phase = smoothstep(0.03,0.18,elapsed)*(1.0-smoothstep(0.25,0.43,elapsed))
+	var influence = phase*jab_aim_strength
+	if influence < 0.002: return
+	for iteration in range(3):
+		rotate_arm_joint_toward(jab_left_forearm,jab_left_hand,goal_local,influence)
+		rotate_arm_joint_toward(jab_left_arm,jab_left_hand,goal_local,influence)
+	skeleton.force_update_all_bone_transforms()
 
 func throw_left_jab() -> void:
 	if not jab_ready or jab_cooldown > 0.0: return
