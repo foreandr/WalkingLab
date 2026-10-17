@@ -25,7 +25,7 @@ func setup(skeleton: Skeleton3D) -> void:
 	simulator = PhysicalBoneSimulator3D.new()
 	simulator.name = "CombatRagdoll"
 	rig.add_child(simulator)
-	simulator.active = true
+	simulator.active = false
 	for key in PARTS:
 		var index: int = -1
 		for bone_index in range(rig.get_bone_count()):
@@ -39,6 +39,8 @@ func setup(skeleton: Skeleton3D) -> void:
 		simulator.add_child(body)
 		body.bone_name = rig.get_bone_name(index)
 		body.transform = rig.get_bone_global_rest(index)
+		body.collision_layer = 0
+		body.collision_mask = 0
 		body.mass = 5.0 if key in ["Hips","Spine","Spine1","Spine2"] else 1.5
 		body.linear_damp = 0.7
 		body.angular_damp = 1.4
@@ -58,6 +60,10 @@ func activate(previous_velocity: Vector3, hit_direction: Vector3 = Vector3.ZERO)
 	if active or bodies.is_empty(): return
 	active = true
 	rig.force_update_all_bone_transforms()
+	for body in bodies:
+		body.collision_layer = 1
+		body.collision_mask = 1
+	simulator.active = true
 	simulator.physical_bones_start_simulation()
 	for body in bodies:
 		body.linear_velocity = previous_velocity
