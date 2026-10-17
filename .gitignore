@@ -5,3 +5,11 @@
 /evidence/run-to-sprint.avi
 /evidence/source-retarget-comparison.avi
 /evidence/walk-to-jog.avi
+
+# Local-only CC0 weapons installed by RUN.bat (keep manifests/scripts tracked).
+/assets/real_weapons/*.glb
+/assets/real_weapons/*.partial
+/assets/real_weapons/.downloaded_now
+/assets/kenney_weapons/**/*.glb
+/assets/kenney_weapons/**/*.png
+/assets/kenney_weapons/*.glb
