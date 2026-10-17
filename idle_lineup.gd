@@ -38,17 +38,38 @@ func _ready() -> void:
 		var chosen_player: AnimationPlayer = null
 		var chosen_clip := ""
 		var duration := -1.0
+		var best_score := 0
+		# Imported FBXs often contain a long, static "Take 001" and a real
+		# "mixamo.com" animation. Duration alone is NOT evidence of motion.
 		for candidate in animators:
 			var animator: AnimationPlayer = candidate
 			for name in animator.get_animation_list():
 				if name == "RESET": continue
-				var clip = animator.get_animation(name)
-				if clip.length > duration and clip.get_track_count() > 0:
+				var clip: Animation = animator.get_animation(name)
+				var changing_tracks := 0
+				var rotation_tracks := 0
+				for k in range(clip.get_track_count()):
+					if clip.track_get_type(k) != Animation.TYPE_ROTATION_3D: continue
+					rotation_tracks += 1
+					if clip.track_get_key_count(k) < 2: continue
+					var start_q: Quaternion = clip.track_get_key_value(k,0)
+					var animated := false
+					for sample in [1, clip.track_get_key_count(k) / 2, clip.track_get_key_count(k) - 1]:
+						var other: Quaternion = clip.track_get_key_value(k,int(sample))
+						if absf(start_q.dot(other)) < 0.99999:
+							animated = true
+							break
+					if animated: changing_tracks += 1
+				print("MIXAMO_TAKE_SCAN ",filename," take=",name," tracks=",clip.get_track_count(),
+					" rotation_tracks=",rotation_tracks," moving=",changing_tracks," length=",clip.length)
+				var score = changing_tracks * 100 + rotation_tracks
+				if score > best_score:
+					best_score = score
 					duration = clip.length
 					chosen_clip = name
 					chosen_player = animator
 		if chosen_player == null:
-			print("MIXAMO_IDLE_NO_MOTION ",filename)
+			print("MIXAMO_IDLE_NO_MOTION ",filename," (all imported takes lack varying skeleton rotations)")
 			model.free()
 			continue
 		# Keep the imported animation and its imported rig together.
@@ -81,6 +102,6 @@ func _ready() -> void:
 		description.position = Vector3(0,2.12,0)
 		model.add_child(description)
 		print("MIXAMO_IDLE_PLAYING #",shown+1," file=",filename," take=",chosen_clip,
-			" duration=",duration," tracks=",clip.get_track_count()," meshes=",meshes.size())
+			" duration=",duration," tracks=",clip.get_track_count()," motion_score=",best_score," meshes=",meshes.size())
 		shown += 1
 	print("MIXAMO_IDLE_STUDIO_READY ",shown," / ",filenames.size()," supplied idle FBX files")
