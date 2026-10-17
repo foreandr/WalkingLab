@@ -12,6 +12,17 @@ func _ready():
 		var key = InputEventKey.new()
 		key.keycode = entry[1]
 		InputMap.action_add_event(entry[0],key)
+	# Restore the arena and its real physics floor independently of mannequins.
+	add_child(preload("res://arena_environment.gd").new())
+	var floor_body := StaticBody3D.new()
+	floor_body.name = "ArenaGroundCollision"
+	add_child(floor_body)
+	var floor_shape := CollisionShape3D.new()
+	var floor_box := BoxShape3D.new()
+	floor_box.size = Vector3(1400.0,0.2,1400.0)
+	floor_shape.shape = floor_box
+	floor_shape.position.y = -0.1
+	floor_body.add_child(floor_shape)
 	player = preload("res://walking.gd").new()
 	player.name = "PlayerMan"
 	player.player_controlled = true
@@ -35,7 +46,7 @@ func _ready():
 		dummy.animation_test_mode = entry["mode"]
 		dummy.animation_test_speed = entry["speed"]
 		dummy.spawn_point = entry["pos"]
-		dummy.character_tint = Color("e1d5c2")
+		dummy.character_tint = Color("191b20")
 		add_child(dummy)
 		dummy.actor.rotation.y = PI
 		make_label(dummy.actor,entry["label"],Color("ffbf69"))
@@ -46,7 +57,7 @@ func _ready():
 	static_dummy.stationary_only = true
 	static_dummy.actor_only = true
 	static_dummy.spawn_point = Vector3(7.0,0,3.0)
-	static_dummy.character_tint = Color("c9d2cc")
+	static_dummy.character_tint = Color("191b20")
 	add_child(static_dummy)
 	static_dummy.actor.rotation.y = PI
 	make_label(static_dummy.actor,"STATIC",Color("ffbf69"))
