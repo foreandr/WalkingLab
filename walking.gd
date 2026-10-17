@@ -1459,7 +1459,12 @@ func get_cursor_world_target() -> Vector3:
 	var ray_direction: Vector3 = camera.project_ray_normal(cursor)
 	# Fixed aiming distance produces a stable direction regardless of
 	# arbitrary floor intersections, including aiming above the horizon.
-	return ray_origin + ray_direction * 40.0
+	var aim_ray := PhysicsRayQueryParameters3D.create(ray_origin,ray_origin + ray_direction * 150.0)
+	aim_ray.exclude = [actor.get_rid()]
+	var aim_hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(aim_ray)
+	if not aim_hit.is_empty():
+		return aim_hit["position"]
+	return ray_origin + ray_direction * 150.0
 
 func ai_target_position() -> Vector3:
 	var opponent: Node3D = get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
@@ -1576,11 +1581,10 @@ func release_fireball(hand_world: Vector3) -> void:
 	# Aim at the SAME world target captured at cast start. This direction
 	# is measured from the palm so the projectile actually hits the cursor.
 	var raw_direction: Vector3 = (cast_aim_point - hand_world).normalized()
-	var local_direction: Vector3 = actor.global_basis.inverse() * raw_direction
-	local_direction.z = minf(local_direction.z,-0.10)
-	var travel: Vector3 = (actor.global_basis * local_direction.normalized()).normalized()
-	# Measure actual animated hand velocity and project it along the shot.
-	var launch_speed: float = clampf(cast_hand_velocity.dot(travel),3.0,25.0)
+	# The projectile travels directly from the releasing hand to the
+	# cursor/selected target. Never force the vector into actor-forward.
+	var travel: Vector3 = raw_direction
+	var launch_speed: float = maxf(20.0,cast_hand_velocity.dot(travel))
 	var projectile := Node3D.new()
 	projectile.name = "Fireball"
 	get_tree().current_scene.add_child(projectile)
