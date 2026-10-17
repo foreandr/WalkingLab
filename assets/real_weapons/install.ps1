@@ -14,7 +14,7 @@ function Save-Asset([string]$Url, [string]$Destination) {
     $temp = "$Destination.partial"
     try {
         Write-Host "Downloading original game asset: $(Split-Path $Destination -Leaf)"
-        Invoke-WebRequest -Uri $Url -UseBasicParsing -OutFile $temp -TimeoutSec 25
+        Invoke-WebRequest -Uri $Url -UseBasicParsing -OutFile $temp -TimeoutSec 12
         $bytes = [System.IO.File]::ReadAllBytes($temp)
         $extension = [System.IO.Path]::GetExtension($Destination).ToLowerInvariant()
         if ($extension -eq '.glb') {
@@ -95,7 +95,7 @@ $extras = @(
 $missingExtras = @($extras | Where-Object { -not (Test-Path (Join-Path $target $_.File)) })
 if ($missingExtras.Count -gt 0) {
     try {
-        $manifest = Invoke-RestMethod -Uri 'https://3dassets.dev/api/v1/packs/swords-shields-and-melee-arms' -TimeoutSec 20
+        $manifest = Invoke-RestMethod -Uri 'https://3dassets.dev/api/v1/packs/swords-shields-and-melee-arms' -TimeoutSec 8
         foreach ($entry in $missingExtras) {
             $record = Find-Record $manifest $entry.Name
             if ($null -eq $record) {
