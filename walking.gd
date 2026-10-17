@@ -37,6 +37,7 @@ var character_tint = Color("d5d9dd")
 var manual_input = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
+var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
 var single_jump_clip: Dictionary = {}
 var jump_play_time: float = -1.0
@@ -158,7 +159,7 @@ func _ready():
 		add_child(floor_body)
 		var shape = CollisionShape3D.new()
 		var box = BoxShape3D.new()
-		box.size = Vector3(200,0.2,200)
+		box.size = Vector3(1400,0.2,1400)
 		shape.shape = box
 		shape.position.y = -0.1
 		floor_body.add_child(shape)
@@ -609,7 +610,14 @@ func _physics_process(dt):
 				var right_flight := Vector3(cos(orbit),0.0,-sin(orbit))
 				var flight_direction: Vector3 = forward_flight * manual_input.y + right_flight * manual_input.x
 				if flight_direction.length_squared() > 1.0: flight_direction = flight_direction.normalized()
-				actor.velocity = flight_direction * maxf(absf(signed_speed),FLIGHT_SPEED)
+				if player_controlled:
+					if flight_direction.length_squared() > 0.001:
+						flight_acceleration_time += step
+					else:
+						flight_acceleration_time = 0.0
+				# Every additional second of uninterrupted flight increases acceleration.
+				var flight_boost: float = FLIGHT_SPEED * (pow(1.15,minf(flight_acceleration_time,45.0)/2.0)-1.0)
+				actor.velocity = flight_direction * maxf(absf(signed_speed),FLIGHT_SPEED+flight_boost)
 				actor.velocity.y += (float(Input.is_key_pressed(KEY_SPACE))-float(Input.is_key_pressed(KEY_CTRL)))*FLIGHT_SPEED
 			if flight_launch_remaining > 0.0:
 				var launch_progress: float = 1.0-flight_launch_remaining/FLIGHT_LAUNCH_DURATION
@@ -699,7 +707,7 @@ func manual_target_speed() -> float:
 	if not sprinting or manual_input.y<=0.1: return SPEEDS[2]
 	var progress = manual_sprint_clock / SPRINT_STAGE_SECONDS
 	if progress >= 3.0:
-		return SPEEDS[5] + (progress - 3.0) * (2.0 if flight_enabled else ENDLESS_SPRINT_GAIN)
+		return SPEEDS[5] + (progress - 3.0) * ENDLESS_SPRINT_GAIN
 	var stage = mini(int(progress),2)
 	return lerp(float(SPEEDS[2+stage]),float(SPEEDS[3+stage]),smooth_gait(progress-stage))
 func speed_band(values: Array, value: float) -> float:
@@ -1144,12 +1152,10 @@ func apply_single_jump_pose(dt: float) -> void:
 			debug_player("JUMP_ANIMATION_MISSING","Jump.fbx did not load")
 			jump_pose_reported = true
 		return
-	# Physical jump is approximately 0.67 seconds; the imported clip is 2.6.
-	# Play one jump over the actual airborne interval, never after landing.
+	# Do not cram a 2.6 second animation into a 0.67 second jump.
+	# Play its original frames while airborne and stop on physical landing.
 	jump_play_time += dt
-	var duration: float = 2.0*SIMPLE_JUMP_IMPULSE/SIMPLE_JUMP_GRAVITY
-	var fraction: float = clampf(jump_play_time/duration,0.0,1.0)
-	var source_time: float = fraction*float(single_jump_clip["length"])
+	var source_time: float = minf(jump_play_time,float(single_jump_clip["length"]))
 	for entry in single_jump_clip["curves"]:
 		var bone: int = int(entry["bone"])
 		skeleton.set_bone_pose_rotation(bone,sample_flight_curve(entry["keys"],source_time))
@@ -1338,6 +1344,7 @@ func _unhandled_input(event):
 			if event.keycode==KEY_3:
 				flight_enabled = not flight_enabled
 				if flight_enabled:
+					flight_acceleration_time = 0.0
 					jump_play_time = -1.0
 					vertical_jump_speed = 0.0
 					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
