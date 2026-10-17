@@ -15,6 +15,10 @@ func _physics_process(delta: float) -> void:
 	if owner_rid.is_valid(): ray.exclude = [owner_rid]
 	var hit: Dictionary = space.intersect_ray(ray)
 	if not hit.is_empty():
+		var victim: Object = hit.get("collider")
+		if victim is CharacterBody3D:
+			var damage: Node = victim.get_parent().get_node_or_null("DamageSystem")
+			if damage != null: damage.receive_hit(hit["position"],32.0)
 		projectile.queue_free()
 		return
 	projectile.global_position += displacement
