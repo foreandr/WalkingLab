@@ -45,6 +45,17 @@ func _ready():
 	opponent.actor.rotation.y = PI
 	make_label(opponent.actor,"VIOLET",Color("a795ed"))
 	mannequins.append(opponent)
+	var sky_target = preload("res://walking.gd").new()
+	sky_target.name = "CyanSkyTarget"
+	sky_target.autonomous_only = true
+	sky_target.actor_only = true
+	sky_target.animation_test_mode = "sky_target"
+	sky_target.spawn_point = Vector3(5.0,0.0,0.0)
+	sky_target.character_tint = Color("21c8d6")
+	add_child(sky_target)
+	sky_target.actor.rotation.y = PI
+	make_label(sky_target.actor,"CYAN 20M",Color("21c8d6"))
+	mannequins.append(sky_target)
 	ai = mannequins[0]
 	ai_label = null
 
