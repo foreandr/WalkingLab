@@ -17,7 +17,9 @@ var jab_right_hand := -1
 var controlled_arm := "right"
 var jab_aim_strength := 0.0
 const CAST_DURATION: float = 0.30
-const CAST_RELEASE: float = 0.17
+const CAST_RELEASE: float = 0.18
+var cast_aim_point: Vector3 = Vector3.ZERO
+var cast_shot_direction: Vector3 = Vector3.FORWARD
 var cast_elapsed: float = -1.0
 var cast_released: bool = false
 var cast_arm_name: String = ""
@@ -769,38 +771,31 @@ func adjust_jab_arm() -> void:
 	var wrist: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand).origin
 	var reach = shoulder.distance_to(elbow) + elbow.distance_to(wrist)
 	if reach < 0.1: return
-	# Shift selects an arm. Its wrist target lives on a fixed plane in
-	# actor-local XY, with Z permanently in FRONT of the body (-Z).
-	# Screen mouse positions move it freely horizontally and vertically.
-	# Do not derive target depth from the camera ray.
-	var bounds: Vector2 = get_viewport().get_visible_rect().size
-	var cursor: Vector2 = get_viewport().get_mouse_position()
-	var nx: float = clampf(cursor.x / maxf(bounds.x,1.0) * 2.0 - 1.0,-1.0,1.0)
-	var ny: float = clampf(1.0 - cursor.y / maxf(bounds.y,1.0) * 2.0,-1.0,1.0)
-	var side_sign: float = 1.0 if aiming_arm == "right" else -1.0
-	# Each hand can sweep across the centre line without ever moving behind it.
-	# Scale horizontal travel to the actual arm length, not a screen-pixel radius.
-	var horizontal: float = nx * reach * 0.80
-	var height: float = 1.32 + ny * reach * 0.75
-	# The forearm must have room to clear the ribcage when crossing the centre.
-	var crossing: bool = horizontal * side_sign < 0.20
-	# Bring the wrist just far enough forward to sweep across the centreline.
-	# A small amount of front-side mesh overlap is preferable to frozen aim.
-	var safe_front: float = maxf(0.43,reach * 0.56) if crossing else maxf(0.40,reach * 0.49)
-	var goal_actor := Vector3(horizontal,clampf(height,0.42,2.15),-safe_front)
-	# A fast selected-arm wind-up, forward thrust and recovery.
+	# The cursor defines the shared arm + spell target. The hand reaches
+	# along the direction from shoulder to that cursor's world-space ray.
+	# The same forward aim vector is used for projectile release.
+	var aim_world: Vector3 = cast_aim_point if cast_elapsed >= 0.0 else get_cursor_world_target()
+	var shot: Vector3 = (aim_world - shoulder).normalized()
+	var local_shot: Vector3 = actor.global_basis.inverse() * shot
+	local_shot.z = minf(local_shot.z,-0.12)
+	shot = (actor.global_basis * local_shot.normalized()).normalized()
+	var goal_world_position: Vector3 = shoulder + shot * reach * 0.75
+	var goal_actor: Vector3 = actor.global_transform.affine_inverse() * goal_world_position
+	# Casting thrust pushes the hand farther down the SAME cursor ray.
 	if cast_elapsed >= 0.0:
 		var phase: float = cast_elapsed / CAST_DURATION
 		var extension: float = 0.0
-		if phase < 0.22:
-			extension = -0.05 * smoothstep(0.0,0.22,phase)
-		elif phase < 0.58:
-			extension = lerpf(-0.05,0.36,smoothstep(0.22,0.58,phase))
+		if phase < 0.18:
+			extension = -0.10 * smoothstep(0.0,0.18,phase)
+		elif phase < 0.60:
+			extension = lerpf(-0.10,0.97,smoothstep(0.18,0.60,phase))
 		else:
-			extension = 0.36 * (1.0-smoothstep(0.58,1.0,phase))
-		goal_actor.z -= extension
-	# Clicking does not push the hand into or away from the chest.
-	var goal_world: Vector3 = actor.global_transform * goal_actor
+			extension = lerpf(0.97,0.0,smoothstep(0.60,1.0,phase))
+		goal_actor += actor.global_basis.inverse() * shot * extension * reach * 0.28
+	# Only disallow a hand target behind the character; crossing the chest
+	# in front is intentional to preserve full lateral aiming.
+	goal_actor.z = minf(goal_actor.z,-0.30)
+		var goal_world: Vector3 = actor.global_transform * goal_actor
 	var goal_local: Vector3 = skeleton.global_transform.affine_inverse() * goal_world
 	# The selected arm follows an XY target on a depth-locked plane.
 	var influence = jab_aim_strength
@@ -842,11 +837,20 @@ func throw_left_jab() -> void:
 	jab_cooldown = 0.45
 	print("ARM_REACH ",controlled_arm)
 
+func get_cursor_world_target() -> Vector3:
+	var cursor: Vector2 = get_viewport().get_mouse_position()
+	var ray_origin: Vector3 = camera.project_ray_origin(cursor)
+	var ray_direction: Vector3 = camera.project_ray_normal(cursor)
+	# Fixed aiming distance produces a stable direction regardless of
+	# arbitrary floor intersections, including aiming above the horizon.
+	return ray_origin + ray_direction * 40.0
+
 func cast_fireball() -> void:
 	# No mana or separate body animation. Brief cast action, one arm only.
 	if cast_elapsed >= 0.0 or crouch.active(): return
 	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return
 	cast_arm_name = controlled_arm
+	cast_aim_point = get_cursor_world_target()
 	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
 	if hand_id < 0: return
 	skeleton.force_update_all_bone_transforms()
@@ -878,12 +882,13 @@ func update_cast_motion(dt: float) -> void:
 func release_fireball(hand_world: Vector3) -> void:
 	var arm_id: int = jab_right_arm if cast_arm_name == "right" else jab_left_arm
 	if arm_id < 0: return
-	var shoulder_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(arm_id).origin
-	var raw_direction: Vector3 = (hand_world - shoulder_world).normalized()
+	# Aim at the SAME world target captured at cast start. This direction
+	# is measured from the palm so the projectile actually hits the cursor.
+	var raw_direction: Vector3 = (cast_aim_point - hand_world).normalized()
 	var local_direction: Vector3 = actor.global_basis.inverse() * raw_direction
-	local_direction.z = minf(local_direction.z,-0.20)
+	local_direction.z = minf(local_direction.z,-0.10)
 	var travel: Vector3 = (actor.global_basis * local_direction.normalized()).normalized()
-	# Measure actual animated hand velocity and project it along the shot.
+		# Measure actual animated hand velocity and project it along the shot.
 	var launch_speed: float = clampf(cast_hand_velocity.dot(travel),3.0,25.0)
 	var projectile := Node3D.new()
 	projectile.name = "Fireball"
