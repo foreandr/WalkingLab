@@ -40,6 +40,9 @@ var manual_sprint_clock = 0.0
 var flying_clip: Dictionary = {}
 var single_jump_clip: Dictionary = {}
 var jump_play_time: float = -1.0
+var debug_tick: float = 0.0
+var last_debug_state: String = ""
+var jump_pose_reported: bool = false
 var vertical_jump_speed: float = 0.0
 const SIMPLE_JUMP_IMPULSE: float = 6.0
 const SIMPLE_JUMP_GRAVITY: float = 18.0
@@ -553,6 +556,15 @@ func _physics_process(dt):
 		apply_flight_pose(step)
 	if player_controlled and not flight_enabled:
 		apply_single_jump_pose(step)
+	if player_controlled:
+		debug_tick += step
+		if debug_tick >= 0.25:
+			debug_tick = 0.0
+			var state: String = "FLIGHT" if flight_enabled else ("JUMP" if not actor.is_on_floor() else ("MOVE" if absf(signed_speed)>0.1 else "IDLE"))
+			if state != last_debug_state:
+				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
+				last_debug_state = state
+			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" jump_time="+str(snappedf(jump_play_time,0.01))+" jump_loaded="+str(not single_jump_clip.is_empty())+" animation="+("Jump(2).fbx" if jump_play_time>=0.0 and not single_jump_clip.is_empty() else "ground/flight")+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
@@ -1031,7 +1043,9 @@ func load_flight_clips() -> void:
 
 	for filename in ["Flying (1).fbx","Warrior Idle.fbx","Jump(2).fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
-		if not ResourceLoader.exists(resource_path): continue
+		if not ResourceLoader.exists(resource_path):
+			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
+			continue
 		var packed = load(resource_path)
 		if not packed is PackedScene: continue
 		var root = packed.instantiate()
@@ -1079,7 +1093,7 @@ func load_flight_clips() -> void:
 					flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				elif filename == "Warrior Idle.fbx":
 					flying_idle_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
-				print("FLIGHT_CLIP_READY ",filename," tracks=",curves.size()," duration=",selected.length)
+				if player_controlled: debug_player("ANIMATION_LOADED",filename+" tracks="+str(curves.size())+" seconds="+str(selected.length))
 		root.free()
 	if flying_clip.is_empty():
 		push_warning("FLIGHT_ANIMATION_MISSING: res://assets/custom_idle/Flying (1).fbx not imported or no matching bones. Flight hover will use fallback pose.")
@@ -1112,12 +1126,22 @@ func update_flight_orientation(dt: float) -> void:
 	# the head and chest do not cut through the ground at low altitude.
 	visual.position.y = 0.95 * sin(flight_visual_pitch)
 
+func debug_player(event_type: String, details: String) -> void:
+	if not player_controlled: return
+	print("[PLAYER_DEBUG] t=",snappedf(clock,0.01)," ",event_type," | ",details)
+
 func apply_single_jump_pose(dt: float) -> void:
-	if jump_play_time < 0.0 or single_jump_clip.is_empty(): return
+	if jump_play_time < 0.0: return
+	if single_jump_clip.is_empty():
+		if player_controlled and not jump_pose_reported:
+			debug_player("JUMP_ANIMATION_MISSING","Jump(2).fbx did not load; no pose applied")
+			jump_pose_reported = true
+		return
 	# Exactly one imported FBX, sampled once from beginning to end.
 	jump_play_time += dt
 	if jump_play_time >= float(single_jump_clip["length"]):
 		jump_play_time = -1.0
+		if player_controlled: debug_player("JUMP_CLIP_FINISHED","animation completed")
 		return
 	for entry in single_jump_clip["curves"]:
 		var bone: int = int(entry["bone"])
@@ -1295,10 +1319,17 @@ func _unhandled_input(event):
 	if autonomous_only: return
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
-			if event.keycode==KEY_C: crouch.toggle()
+			debug_player("KEY_DOWN",OS.get_keycode_string(event.keycode)+" grounded="+str(actor.is_on_floor())+" flying="+str(flight_enabled)+" crouch="+str(crouch.active()))
+			if event.keycode==KEY_SPACE and not flight_enabled and (not actor.is_on_floor() or crouch.active()):
+				debug_player("JUMP_REJECTED","grounded="+str(actor.is_on_floor())+" crouch="+str(crouch.active()))
+			if event.keycode==KEY_C:
+				crouch.toggle()
+				debug_player("CROUCH","toggle")
 			if event.keycode == KEY_SPACE and not flight_enabled and actor.is_on_floor() and not crouch.active():
 				vertical_jump_speed = SIMPLE_JUMP_IMPULSE
 				jump_play_time = 0.0
+				jump_pose_reported = false
+				debug_player("JUMP_ACCEPTED","impulse="+str(SIMPLE_JUMP_IMPULSE)+" clip_tracks="+str(single_jump_clip.get("curves",[]).size()))
 
 			if event.keycode==KEY_3:
 				flight_enabled = not flight_enabled
@@ -1324,6 +1355,7 @@ func _unhandled_input(event):
 			orbit = wrapf(orbit-event.relative.x*0.004*camera_sensitivity,-PI,PI)
 			elevation = clampf(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
 		if event is InputEventMouseButton and event.pressed:
+			debug_player("MOUSE_DOWN","button="+str(event.button_index))
 			if event.button_index == MOUSE_BUTTON_LEFT: throw_left_jab()
 			if event.button_index==MOUSE_BUTTON_WHEEL_UP: distance = max(3.0,distance-0.4)
 			if event.button_index==MOUSE_BUTTON_WHEEL_DOWN: distance = min(22.0,distance+0.4)
