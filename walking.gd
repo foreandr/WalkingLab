@@ -58,6 +58,7 @@ var movement_clips: Dictionary = {}
 var movement_clip_name: String = ""
 var combat_dead: bool = false
 var combat_death_time: float = 0.0
+var combat_pose_frozen: bool = false
 var ragdoll: Node = null
 var combat_last_velocity: Vector3 = Vector3.ZERO
 var combat_initial_pitch: float = 0.0
@@ -689,6 +690,7 @@ func combat_react(region: String, amount: float, remaining: float) -> void:
 func combat_die(region: String) -> void:
 	combat_dead = true
 	combat_death_time = 0.0
+	combat_pose_frozen = false
 	combat_last_velocity = actor.velocity
 	combat_initial_pitch = visual.rotation.x
 	punch_pending = false
@@ -699,7 +701,8 @@ func combat_die(region: String) -> void:
 
 func update_combat_fall(dt: float) -> void:
 	combat_death_time += dt
-	tree.advance(dt)
+	if not combat_pose_frozen:
+		tree.advance(dt)
 	actor.velocity.x = move_toward(actor.velocity.x,0.0,dt*8.0)
 	actor.velocity.z = move_toward(actor.velocity.z,0.0,dt*8.0)
 	if not actor.is_on_floor():
@@ -707,13 +710,29 @@ func update_combat_fall(dt: float) -> void:
 	else:
 		actor.velocity.y = -0.1
 	actor.move_and_slide()
-	apply_movement_clip(dt)
-	# Stable animation-driven fallback: gravity moves the collider, while
-	# the mesh lays prone instead of expanding under invalid bone transforms.
+	if not combat_pose_frozen:
+		apply_movement_clip(dt)
+		var finished: bool = movement_clip_name == "" or not movement_clips.has(movement_clip_name)
+		if not finished:
+			var selected_clip: Dictionary = movement_clips[movement_clip_name]
+			finished = movement_clip_time >= float(selected_clip["length"])-0.004
+		if finished:
+			combat_pose_frozen = true
+			tree.active = false
+	# The physics capsule remains upright, but the visible rig lies prone.
+	# Once settled, compute floor clearance from animated bones rather
+	# than raising the entire body by a guessed constant.
 	visual.rotation.x = lerpf(combat_initial_pitch,-PI*0.5,smoothstep(0.0,0.95,combat_death_time))
-	# Pivot is already at floor level. Raising the corpse by 0.86 m
-	# left horizontal bodies visibly floating above the arena.
-	visual.position.y = 0.0
+	if actor.is_on_floor() and combat_death_time >= 0.95:
+		skeleton.force_update_all_bone_transforms()
+		var lowest: float = INF
+		for bone_index in range(skeleton.get_bone_count()):
+			var bone_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(bone_index).origin
+			lowest = minf(lowest,bone_world.y)
+		if lowest < INF:
+			var floor_height: float = actor.global_position.y
+			var correction: float = floor_height+0.09-lowest
+			visual.position.y += clampf(correction,-dt*0.7,dt*0.7)
 
 func update_sky_target(dt: float) -> void:
 	tree.advance(dt)
