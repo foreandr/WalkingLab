@@ -478,7 +478,7 @@ func make_standing_idle(player: AnimationPlayer):
 		destination_paths[n] = target_path
 	var library = AnimationLibrary.new()
 	idle_variants.clear()
-	var wanted = ["Neutral Idle.fbx","Idle (2).fbx","Idle (1)(1).fbx"]
+	var wanted = ["Idle (2).fbx","Idle (1)(1).fbx"]
 	for filename in wanted:
 		var path = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(path): continue
@@ -559,7 +559,7 @@ func make_standing_idle(player: AnimationPlayer):
 						idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
 				tracks += 1
 			if tracks >= 12:
-				var id = "Idle" + str([0,1,4][idle_variants.size()])
+				var id = "Idle" + str([1,4][idle_variants.size()])
 				library.add_animation(id,idle)
 				idle_variants.append("manual/"+id)
 				print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
@@ -704,8 +704,9 @@ func throw_left_jab() -> void:
 	var aim = target_point - (actor.global_position + Vector3.UP * 1.25)
 	aim.y = 0.0
 	if aim.length_squared() > 0.001:
-		jab_aim_heading = atan2(-aim.x,-aim.z)
-		manual_heading = jab_aim_heading
+		# Y Bot mesh has an extra PI yaw relative to CharacterBody3D.
+		# Its visual forward is +Z, so aim yaw must use +X/+Z.
+		jab_aim_heading = atan2(aim.x,aim.z)
 		jab_aim_remaining = 0.45
 	tree.set("parameters/JabOneShot/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 	jab_cooldown = 0.4
