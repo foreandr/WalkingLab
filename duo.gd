@@ -64,8 +64,8 @@ func build_weapon_display() -> void:
 	# The real-weapon pack contains finished steel/handle materials and its
 	# original scenes are flat on +Y-up ground. Kenney is a textured fallback.
 	var assets = [
-		{"name":"Arming Sword","x":-3.6,"z":10.0,"file":"arming_sword.glb"},
-		{"name":"Knightly Sword","x":-1.8,"z":9.8,"file":"knightly_sword.glb"},
+		{"name":"Arming Sword","x":-3.6,"z":10.0,"file":"arming_sword.glb","fallback":"res://assets/kenney_weapons/mini-arena/weapon-sword.glb"},
+		{"name":"Knightly Sword","x":-1.8,"z":9.8,"file":"knightly_sword.glb","optional":true},
 		{"name":"Greatsword","x":0.0,"z":10.0,"file":"greatsword.glb","optional":true},
 		{"name":"Bearded Axe","x":1.8,"z":9.8,"file":"bearded_axe.glb","fallback":"res://assets/kenney_weapons/survival/tool-axe.glb"},
 		{"name":"Rondel Dagger","x":3.6,"z":10.0,"file":"rondel_dagger.glb","fallback":"res://assets/kenney_weapons/weapon/knife_sharp.glb"}
