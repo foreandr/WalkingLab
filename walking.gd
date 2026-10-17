@@ -368,19 +368,19 @@ func update_speed_streaks(dt: float) -> void:
 func draw_speed_streaks() -> void:
 	if speed_streaks == null: return
 	var move_speed: float = Vector2(actor.velocity.x,actor.velocity.z).length() if not flight_enabled else actor.velocity.length()
-	var intensity: float = clampf((move_speed-5.0)/15.0,0.0,1.0)
-	if intensity <= 0.001: return
+	var intensity: float = clampf((move_speed-6.0)/14.0,0.0,1.0)
+	if move_speed < 6.0: return
 	var region: Vector2 = get_viewport().get_visible_rect().size
 	var center: Vector2 = region*0.5
-	var count: int = int(5.0+intensity*45.0)
+	var count: int = clampi(1+int(floor(move_speed-6.0)),1,15)
 	for i in range(count):
 		var angle: float = float(i)*2.39996323
 		var cycle: float = fposmod(float(i)*0.6180339+streak_clock*(0.2+intensity*2.2),1.0)
 		var radius: float = lerpf(0.20,0.79,cycle)
 		var offset := Vector2(cos(angle),sin(angle))
 		var edge: Vector2 = center+offset*radius*region.y
-		var length: float = (12.0+65.0*intensity)*(0.3+cycle)
-		speed_streaks.draw_line(edge-offset*length,edge,Color(0.8,0.9,1.0,0.10+intensity*0.32),1.0+intensity*1.2,true)
+		var length: float = (14.0+115.0*intensity)*(0.3+cycle)
+		speed_streaks.draw_line(edge-offset*length,edge,Color(0.8,0.9,1.0,0.13+intensity*0.58),1.0+intensity*1.2,true)
 
 func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
@@ -457,7 +457,7 @@ func _physics_process(dt):
 			var camera_forward = Vector3(-sin(orbit),0,-cos(orbit))
 			var camera_right = Vector3(cos(orbit),0,-sin(orbit))
 			var desired = camera_forward*manual_input.y+camera_right*manual_input.x
-			if manual_input.y< -0.1: desired = -desired
+			
 			manual_heading = atan2(-desired.x,-desired.z)
 		if not (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)): manual_launch_lock = false
 		if Input.is_action_just_pressed("sprint") and crouch.active():
@@ -1284,8 +1284,8 @@ func _unhandled_input(event):
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))):
-			orbit -= event.relative.x*0.006*camera_sensitivity
-			elevation = clamp(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
+			orbit -= clampf(event.relative.x,-45.0,45.0)*0.006*camera_sensitivity
+			elevation = clamp(elevation-clampf(event.relative.y,-45.0,45.0)*0.004*camera_sensitivity,-1.20,1.20)
 		if event is InputEventMouseButton and event.pressed:
 			if event.button_index == MOUSE_BUTTON_LEFT: throw_left_jab()
 			if event.button_index==MOUSE_BUTTON_WHEEL_UP: distance = max(3.0,distance-0.4)
