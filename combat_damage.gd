@@ -67,11 +67,27 @@ func receive_hit(world_point: Vector3, amount: float) -> void:
 	if dead: return
 	var region: String = region_at(world_point)
 	hp[region] = maxf(0.0,float(hp[region])-amount)
+	show_damage_number(world_point,amount)
 	var remaining: float = float(hp[region])
 	update_damage_colors()
 	print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
-	if remaining <= 0.0:
+	if remaining <= 0.0 and region in ["head","torso"]:
 		dead = true
 		owner_actor.get_parent().set_process_input(false)
 		owner_actor.get_parent().set_physics_process(false)
 		print("[DEFEATED] ",owner_actor.get_parent().name," ",region)
+
+func show_damage_number(point: Vector3, amount: float) -> void:
+	var label := Label3D.new()
+	label.text = "-%d" % int(round(amount))
+	label.font_size = 48
+	label.pixel_size = 0.007
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.modulate = Color("ffe2a0")
+	get_tree().current_scene.add_child(label)
+	label.global_position = point
+	var motion := label.create_tween().set_parallel(true)
+	motion.tween_property(label,"global_position",point+Vector3.UP*1.5,0.9)
+	motion.tween_property(label,"modulate:a",0.0,0.9)
+	motion.chain().tween_callback(label.queue_free)
