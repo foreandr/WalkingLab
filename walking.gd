@@ -3,6 +3,7 @@ extends Node3D
 @export var actor_only = false
 @export var autonomous_only = false
 @export var stationary_only = false
+@export var ai_abilities = false
 var idle_variants: Array[String] = []
 var jab_ready := false
 var jab_cooldown := 0.0
@@ -44,6 +45,10 @@ var jump_prep_remaining: float = -1.0
 var jump_thighs: Array[int] = []
 var jump_calves: Array[int] = []
 var jump_clips: Array[Dictionary] = []
+var flying_clip: Dictionary = {}
+var chosen_jump_index: int = -1
+var flight_animation_time: float = 0.0
+var ai_action_clock: float = 0.0
 var flight_enabled: bool = false
 const FLIGHT_SPEED: float = 7.0
 var camera_sensitivity: float = 1.0
@@ -226,7 +231,7 @@ func _ready():
 			if bone_label in ["leftupleg","rightupleg","leftthigh","rightthigh"]: jump_thighs.append(bone_i)
 			if bone_label in ["leftleg","rightleg","leftcalf","rightcalf"]: jump_calves.append(bone_i)
 		print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
-	if player_controlled: load_jump_clips()
+	if player_controlled or ai_abilities: load_jump_clips()
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
@@ -392,8 +397,9 @@ func _physics_process(dt):
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
-	jab_aim_strength = move_toward(jab_aim_strength,1.0 if player_controlled else 0.0,step*8.0)
+	jab_aim_strength = move_toward(jab_aim_strength,1.0 if (player_controlled or ai_abilities) else 0.0,step*8.0)
 	if player_controlled: update_cursor_aim()
+	if ai_abilities: update_ai_abilities(step)
 	var active = {}
 	var old_blend = blend
 	var old_back_blend = back_blend
@@ -472,9 +478,9 @@ func _physics_process(dt):
 		if was_moving_for_idle and not moving_now: choose_random_idle()
 		was_moving_for_idle = moving_now
 	tree.advance(step)
-	if player_controlled:
+	if player_controlled or ai_abilities:
 		apply_jump_pose(step)
-	if player_controlled:
+	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
 	feet.use_full_support = (crouch_driving or crouch.active()) and not (player_controlled and (jump_velocity > 0.1 or not actor.is_on_floor()))
@@ -502,18 +508,19 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
-	if player_controlled: actor.floor_snap_length = 0.0 if flight_enabled else 0.12
-	if player_controlled:
+	if player_controlled or ai_abilities: actor.floor_snap_length = 0.0 if flight_enabled else 0.12
+	if player_controlled or ai_abilities:
 		if flight_enabled:
 			jump_requested = false
 			jump_prep_remaining = -1.0
 			jump_velocity = 0.0
-			var altitude_input: float = float(Input.is_key_pressed(KEY_SPACE))-float(Input.is_key_pressed(KEY_CTRL))
+			var altitude_input: float = (sin(clock*0.9) if ai_abilities else float(Input.is_key_pressed(KEY_SPACE))-float(Input.is_key_pressed(KEY_CTRL)))
 			actor.velocity.y = altitude_input * FLIGHT_SPEED
 		else:
 			actor.velocity.y = jump_velocity
 		if not flight_enabled and jump_requested and actor.is_on_floor() and not crouch.active() and jump_prep_remaining < 0.0:
 			jump_prep_remaining = JUMP_PREP_TIME
+			chosen_jump_index = randi_range(0,jump_clips.size()-1) if not jump_clips.is_empty() else -1
 		jump_requested = false
 		if jump_prep_remaining >= 0.0:
 			if not actor.is_on_floor() or crouch.active():
@@ -529,7 +536,7 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
-	if player_controlled and not flight_enabled:
+	if (player_controlled or ai_abilities) and not flight_enabled:
 		jump_velocity = actor.velocity.y
 		if actor.is_on_floor() and jump_velocity <= 0.0:
 			jump_velocity = 0.0
@@ -928,7 +935,7 @@ func adjust_jab_arm() -> void:
 func load_jump_clips() -> void:
 	# Mixamo jump takes are supplied locally, never approximated by rotating
 	# knee joints the wrong way. Cache mapped rotation curves per clip.
-	for filename in ["Jumping.fbx","Jump.fbx"]:
+	for filename in ["Jumping.fbx","Jump.fbx","Flying (1).fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path): continue
 		var packed = load(resource_path)
@@ -955,7 +962,8 @@ func load_jump_clips() -> void:
 				if track_path.get_subname_count() == 0: continue
 				var bone_label: String = normalized_idle_bone(String(track_path.get_subname(track_path.get_subname_count()-1)))
 				# Only legs; original locomotion owns the upper body and arms.
-				if not (bone_label.contains("upleg") or bone_label.contains("leg") or bone_label.contains("foot") or bone_label.contains("toe")): continue
+				if filename != "Flying (1).fbx" and not (bone_label.contains("upleg") or bone_label.contains("leg") or bone_label.contains("foot") or bone_label.contains("toe")): continue
+				if filename == "Flying (1).fbx" and bone_label == "hips": continue
 				var src_index: int = -1
 				var dst_index: int = -1
 				for bi in range(source_rig.get_bone_count()):
@@ -971,7 +979,10 @@ func load_jump_clips() -> void:
 					keys.append({"time":selected.track_get_key_time(t,k),"rot":(correction*selected.track_get_key_value(t,k)*correction.inverse()).normalized()})
 				if not keys.is_empty(): curves.append({"bone":dst_index,"keys":keys})
 			if not curves.is_empty():
-				jump_clips.append({"file":filename,"length":maxf(selected.length,0.001),"curves":curves})
+				if filename == "Flying (1).fbx":
+					flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
+				else:
+					jump_clips.append({"file":filename,"length":maxf(selected.length,0.001),"curves":curves})
 				print("JUMP_CLIP_READY ",filename," tracks=",curves.size()," duration=",selected.length)
 		root.free()
 
@@ -992,26 +1003,33 @@ func apply_jump_pose(dt: float) -> void:
 	var prep: float = 0.0
 	if jump_prep_remaining >= 0.0 and not flight_enabled:
 		prep = clampf(1.0-jump_prep_remaining/JUMP_PREP_TIME,0.0,1.0)
-	var desired: float = 1.0 if airborne else 0.0
-	jump_pose = move_toward(jump_pose,desired,dt*(7.0 if airborne else 5.0))
-	if jump_pose < 0.002 and prep < 0.002: return
-	if not jump_clips.is_empty():
-		# Jumping.fbx: crouch/preparation. Jump.fbx: actual airborne jump.
-		var clip: Dictionary = jump_clips[0] if prep > 0.0 else jump_clips[jump_clips.size()-1]
-		var normalized: float = prep if prep > 0.0 else clampf(jump_pose,0.0,1.0)
-		var moment: float = normalized * float(clip["length"]) * (0.42 if prep > 0.0 else 0.85)
-		var blend_weight: float = clampf(prep*2.0 if prep > 0.0 else jump_pose,0.0,1.0)
+	jump_pose = move_toward(jump_pose,1.0 if airborne else 0.0,dt*(7.0 if airborne else 5.0))
+	var clip: Dictionary = {}
+	var moment: float = 0.0
+	var blend_weight: float = 0.0
+	if flight_enabled and not flying_clip.is_empty():
+		clip = flying_clip
+		flight_animation_time += dt
+		moment = fmod(flight_animation_time,float(clip["length"]))
+		blend_weight = jump_pose
+	elif chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
+		# One randomly selected jump take for BOTH anticipation and airborne.
+		clip = jump_clips[chosen_jump_index]
+		var normalized: float = prep*0.35 if prep > 0.0 else 0.35+jump_pose*0.60
+		moment = normalized*float(clip["length"])
+		blend_weight = clampf(maxf(prep,jump_pose),0.0,1.0)
+	if not clip.is_empty() and blend_weight > 0.001:
 		for entry in clip["curves"]:
 			var bone: int = entry["bone"]
+			if flight_enabled and cast_elapsed >= 0.0:
+				var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
+				if bone_name.begins_with(cast_arm_name) and (bone_name.contains("arm") or bone_name.contains("hand") or bone_name.contains("shoulder")): continue
+			var q: Quaternion = skeleton.get_bone_pose_rotation(bone)
 			var target: Quaternion = sample_jump_curve(entry["keys"],moment)
-			var current: Quaternion = skeleton.get_bone_pose_rotation(bone)
-			skeleton.set_bone_pose_rotation(bone,current.slerp(target,blend_weight))
-	else:
-		# Conservative backup only if the actual uploaded FBX clips are absent.
-		var bend: float = 0.22 * prep
-		for thigh in jump_thighs:
-			var q: Quaternion = skeleton.get_bone_pose_rotation(thigh)
-			skeleton.set_bone_pose_rotation(thigh,(q*Quaternion(Vector3.RIGHT,bend)).normalized())
+			skeleton.set_bone_pose_rotation(bone,q.slerp(target,blend_weight))
+	elif clip.is_empty() and prep > 0.001:
+		# No inverted procedural knee bends if the supplied clips are missing.
+		pass
 	skeleton.force_update_all_bone_transforms()
 
 func throw_left_jab() -> void:
@@ -1030,6 +1048,23 @@ func get_cursor_world_target() -> Vector3:
 	# arbitrary floor intersections, including aiming above the horizon.
 	return ray_origin + ray_direction * 40.0
 
+func ai_target_position() -> Vector3:
+	var test_basin: Node3D = get_tree().current_scene.get_node_or_null("WaterSystem") as Node3D
+	if cast_element == "water" and test_basin != null:
+		return Vector3(5.5,0.3,8.5)
+	var opponent: Node3D = get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
+	if opponent != null and opponent.actor != null:
+		return opponent.actor.global_position + Vector3.UP * 1.2
+	return actor.global_position - actor.global_basis.z*15.0
+
+func update_ai_abilities(dt: float) -> void:
+	ai_action_clock += dt
+	if ai_action_clock >= 4.0:
+		ai_action_clock = 0.0
+		controlled_arm = "left" if controlled_arm == "right" else "right"
+		flight_enabled = not flight_enabled if randi() % 3 == 0 else flight_enabled
+		cast_spell("water" if randi() % 2 == 0 else "fire")
+
 func cast_fireball() -> void:
 	cast_spell("fire")
 
@@ -1042,7 +1077,7 @@ func cast_spell(element: String) -> void:
 	if not ResourceLoader.exists("res://assets/external_vfx/" + element + ".tscn"): return
 	cast_element = element
 	cast_arm_name = controlled_arm
-	cast_aim_point = get_cursor_world_target()
+	cast_aim_point = ai_target_position() if ai_abilities else get_cursor_world_target()
 	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
 	if hand_id < 0: return
 	skeleton.force_update_all_bone_transforms()
