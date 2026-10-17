@@ -31,6 +31,16 @@ for %%F in ("%USERPROFILE%\Downloads\*Idle*.fbx" "%USERPROFILE%\Downloads\*idle*
         )
     )
 )
+rem One supplied unskinned jab clip; copy locally before Godot imports.
+for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
+    if exist "%%~D\Punching.fbx" (
+        if not exist "assets\custom_idle\Punching.fbx" (
+            echo Found left jab: %%~D\Punching.fbx
+            copy /Y "%%~D\Punching.fbx" "assets\custom_idle\Punching.fbx" >nul
+            set "IDLE_NEW=1"
+        )
+    )
+)
 if "%IDLE_NEW%"=="1" (
     echo Importing native Mixamo idle animations...
     "%GODOT%" --headless --editor --path . --import
