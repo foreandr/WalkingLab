@@ -6,6 +6,8 @@ extends Node3D
 var idle_variants: Array[String] = []
 var jab_ready := false
 var jab_cooldown := 0.0
+var jab_aim_remaining := 0.0
+var jab_aim_heading := 0.0
 var was_moving_for_idle := false
 var spawn_point = Vector3(0,0,40)
 var route_center = Vector3.ZERO
@@ -195,6 +197,36 @@ func _ready():
 	hud.position = Vector2(36,26)
 	hud.add_theme_font_size_override("font_size",18)
 	canvas.add_child(hud)
+	if player_controlled:
+		# Fixed screen-center reticle. All elements ignore mouse input.
+		var reticle := Control.new()
+		reticle.set_anchors_preset(Control.PRESET_CENTER)
+		reticle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		canvas.add_child(reticle)
+		for segment in [
+			Rect2(-2.0,-17.0,4.0,12.0),
+			Rect2(-2.0,5.0,4.0,12.0),
+			Rect2(-17.0,-2.0,12.0,4.0),
+			Rect2(5.0,-2.0,12.0,4.0)
+		]:
+			var outline := ColorRect.new()
+			outline.color = Color(0.02,0.025,0.03,0.9)
+			outline.position = segment.position-Vector2(1,1)
+			outline.size = segment.size+Vector2(2,2)
+			outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			reticle.add_child(outline)
+			var stroke := ColorRect.new()
+			stroke.color = Color(1.0,0.93,0.20,1.0)
+			stroke.position = segment.position
+			stroke.size = segment.size
+			stroke.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			reticle.add_child(stroke)
+		var dot := ColorRect.new()
+		dot.color = Color.WHITE
+		dot.position = Vector2(-2,-2)
+		dot.size = Vector2(4,4)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		reticle.add_child(dot)
 	var controls = Label.new()
 	controls.position = Vector2(28,675)
 	controls.text = "C crouch/stand | Shift launch | V showcase | B direction | Space pause | T slow | Right-drag orbit"
@@ -266,6 +298,7 @@ func _physics_process(dt):
 	var step = dt*(0.35 if slow else 1.0)
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
+	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
 	var active = {}
 	var old_blend = blend
 	var old_back_blend = back_blend
@@ -357,7 +390,10 @@ func _physics_process(dt):
 	# The body keeps facing the same tangent while its travel reverses.
 	var facing = tangent*max(speed,0.1)-radial.normalized()*(radial.length()-route_radius)*2.0*movement_sign
 	if player_controlled:
-		if crouch_driving and crouch.state in ["crouched","settle"]:
+		if jab_aim_remaining > 0.0 and not crouch_driving:
+			# Keep the jab facing the screen-center camera ray for its duration.
+			actor.rotation.y = rotate_toward(actor.rotation.y,jab_aim_heading,step*15.0)
+		elif crouch_driving and crouch.state in ["crouched","settle"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,orbit,step*5.0)
 		elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,manual_heading,step*5.0)
@@ -658,6 +694,19 @@ func install_left_jab(player: AnimationPlayer, graph: AnimationNodeBlendTree) ->
 func throw_left_jab() -> void:
 	if not jab_ready or jab_cooldown > 0.0: return
 	if crouch.active(): return
+	# Project the center-of-screen aim ray into the ground plane. We rotate
+	# the whole character in yaw, leaving feet/hip/leg animations untouched.
+	# Vertical punch retargeting is intentionally not attempted here.
+	var screen_center = get_viewport().get_visible_rect().size * 0.5
+	var ray_origin: Vector3 = camera.project_ray_origin(screen_center)
+	var ray_direction: Vector3 = camera.project_ray_normal(screen_center)
+	var target_point = ray_origin + ray_direction * 35.0
+	var aim = target_point - (actor.global_position + Vector3.UP * 1.25)
+	aim.y = 0.0
+	if aim.length_squared() > 0.001:
+		jab_aim_heading = atan2(-aim.x,-aim.z)
+		manual_heading = jab_aim_heading
+		jab_aim_remaining = 0.45
 	tree.set("parameters/JabOneShot/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 	jab_cooldown = 0.4
 	print("LEFT_JAB_TRIGGERED")
