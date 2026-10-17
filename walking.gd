@@ -2,6 +2,9 @@ extends Node3D
 @export var player_controlled = false
 @export var actor_only = false
 @export var autonomous_only = false
+@export var stationary_only = false
+var idle_variants: Array[String] = []
+var was_moving_for_idle := false
 var spawn_point = Vector3(0,0,40)
 var route_center = Vector3.ZERO
 var route_radius = 40.0
@@ -164,6 +167,7 @@ func _ready():
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
 	graph.connect_node("Cadence",0,"Direction")
 	crouch.setup(self,player,graph)
+	if player_controlled or stationary_only: choose_random_idle()
 	print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
 	visual.add_child(tree)
@@ -251,6 +255,9 @@ func begin_direction_change(target_backward: bool):
 	turn_start_back = back_blend
 func _physics_process(dt):
 	if paused: return
+	if stationary_only:
+		tree.advance(dt)
+		return
 	var step = dt*(0.35 if slow else 1.0)
 	clock += step
 	var active = {}
@@ -326,6 +333,10 @@ func _physics_process(dt):
 	tree.set("parameters/Direction/blend_amount",direction_weight)
 	tree.set("parameters/Cadence/scale",speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
+	if player_controlled:
+		var moving_now = speed > 0.12 or crouch.active()
+		if was_moving_for_idle and not moving_now: choose_random_idle()
+		was_moving_for_idle = moving_now
 	tree.advance(step)
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve()
@@ -413,98 +424,114 @@ func normalized_idle_bone(name: String) -> String:
 	return simplified
 
 func make_standing_idle(player: AnimationPlayer):
-	# Import the *real* Mixamo idle into the SAME AnimationTree as locomotion.
-	# Use verified Y Bot track paths; never render or swap the source FBX mesh.
-	var template: Animation = player.get_animation("NewWalk")
-	var destinations := {}
-	for t in range(template.get_track_count()):
-		if template.track_get_type(t) != Animation.TYPE_ROTATION_3D: continue
-		var path = template.track_get_path(t)
-		if path.get_subname_count() == 0: continue
-		var name = normalized_idle_bone(String(path.get_subname(path.get_subname_count()-1)))
-		destinations[name] = path
-	var idle: Animation = null
-	var filename := "res://assets/custom_idle/Idle.fbx"
-	if ResourceLoader.exists(filename):
-		var packed = load(filename)
-		if packed is PackedScene:
-			var instance = packed.instantiate()
-			var rigs = instance.find_children("*", "Skeleton3D", true, false)
-			var animators = instance.find_children("*", "AnimationPlayer", true, false)
-			if not rigs.is_empty() and not animators.is_empty():
-				var source_rig: Skeleton3D = rigs[0]
-				var source_bones := {}
-				for i in range(source_rig.get_bone_count()):
-					source_bones[normalized_idle_bone(String(source_rig.get_bone_name(i)))] = i
-				var dest_bones := {}
-				for i in range(skeleton.get_bone_count()):
-					dest_bones[normalized_idle_bone(String(skeleton.get_bone_name(i)))] = i
-				var best_score := -1
-				var chosen: Animation = null
-				for animator in animators:
-					for take in animator.get_animation_list():
-						if take == "RESET": continue
-						var trial: Animation = animator.get_animation(take)
-						var score := 0
-						for k in range(trial.get_track_count()):
-							if trial.track_get_type(k) != Animation.TYPE_ROTATION_3D or trial.track_get_key_count(k) < 2: continue
-							var start_rot: Quaternion = trial.track_get_key_value(k,0)
-							var middle_rot: Quaternion = trial.track_get_key_value(k,int(trial.track_get_key_count(k)/2))
-							if absf(start_rot.dot(middle_rot)) < 0.99999: score += 1
-						if score > best_score:
-							best_score = score
-							chosen = trial
-				if chosen != null and best_score > 0:
-					idle = Animation.new()
-					idle.length = chosen.length
-					idle.loop_mode = Animation.LOOP_LINEAR
-					var matched := 0
-					for t in range(chosen.get_track_count()):
-						if chosen.track_get_type(t) != Animation.TYPE_ROTATION_3D: continue
-						var source_path = chosen.track_get_path(t)
-						if source_path.get_subname_count() == 0: continue
-						var bone_name = normalized_idle_bone(String(source_path.get_subname(source_path.get_subname_count()-1)))
-						if not destinations.has(bone_name) or not source_bones.has(bone_name) or not dest_bones.has(bone_name): continue
-						var source_index: int = source_bones[bone_name]
-						var dest_index: int = dest_bones[bone_name]
-						var source_rest: Quaternion = source_rig.get_bone_rest(source_index).basis.get_rotation_quaternion()
-						var dest_rest: Quaternion = skeleton.get_bone_rest(dest_index).basis.get_rotation_quaternion()
-						var basis_correction: Quaternion = (dest_rest.inverse() * source_rest).normalized()
-						var dst = idle.add_track(Animation.TYPE_ROTATION_3D)
-						idle.track_set_path(dst,destinations[bone_name])
-						for k in range(chosen.track_get_key_count(t)):
-							var time = chosen.track_get_key_time(t,k)
-							var rot: Quaternion = chosen.track_get_key_value(t,k)
-							var mapped = (basis_correction * rot * basis_correction.inverse()).normalized()
-							idle.rotation_track_insert_key(dst,time,mapped)
-						matched += 1
-					print("PLAYER_IDLE_IMPORTED take_tracks=",chosen.get_track_count()," mapped_rotations=",matched," animated=",best_score)
-					if matched < 12: idle = null
-			instance.free()
-	if idle == null:
-		push_warning("PLAYER_IDLE_RETARGET_FAILED: no compatible FBX tracks; original standing fallback retained")
-		# Preserve normal animation graph if the FBX is missing, without adding
-		# a second renderer or an overlay that can be overwritten every frame.
-		idle = Animation.new()
-		idle.length = 1.0
-		idle.loop_mode = Animation.LOOP_LINEAR
-		var at = template.length * 0.48
-		for t in range(template.get_track_count()):
-			if template.track_get_key_count(t) == 0: continue
-			var kind = template.track_get_type(t)
+	# Import as many of the user's authored FBX idle motions as match the Y Bot.
+	# These all run on the ORIGINAL Y Bot mesh in the standing blend-tree slot.
+	var source_template: Animation = player.get_animation("NewWalk")
+	var destination_paths := {}
+	for t in range(source_template.get_track_count()):
+		if source_template.track_get_type(t) != Animation.TYPE_ROTATION_3D: continue
+		var target_path = source_template.track_get_path(t)
+		if target_path.get_subname_count() == 0: continue
+		var n = normalized_idle_bone(String(target_path.get_subname(target_path.get_subname_count()-1)))
+		destination_paths[n] = target_path
+	var library = AnimationLibrary.new()
+	idle_variants.clear()
+	var wanted = ["Neutral Idle.fbx","Idle(2).fbx","Idle (2).fbx","Offensive Idle.fbx","Idle (1)(1).fbx","Standing W_Briefcase Idle.fbx","Idle.fbx","Idle (1).fbx"]
+	for filename in wanted:
+		var path = "res://assets/custom_idle/" + filename
+		if not ResourceLoader.exists(path): continue
+		var packed = load(path)
+		if not packed is PackedScene: continue
+		var root = packed.instantiate()
+		var animators = root.find_children("*","AnimationPlayer",true,false)
+		var rigs = root.find_children("*","Skeleton3D",true,false)
+		if animators.is_empty() or rigs.is_empty():
+			root.free()
+			continue
+		var src_rig: Skeleton3D = rigs[0]
+		var src_bones := {}
+		for i in range(src_rig.get_bone_count()):
+			src_bones[normalized_idle_bone(String(src_rig.get_bone_name(i)))] = i
+		var dest_bones := {}
+		for i in range(skeleton.get_bone_count()):
+			dest_bones[normalized_idle_bone(String(skeleton.get_bone_name(i)))] = i
+		var best = -1
+		var motion: Animation = null
+		for animator in animators:
+			for name in animator.get_animation_list():
+				if name == "RESET": continue
+				var candidate: Animation = animator.get_animation(name)
+				var score := 0
+				for t in range(candidate.get_track_count()):
+					if candidate.track_get_type(t) != Animation.TYPE_ROTATION_3D or candidate.track_get_key_count(t) < 2: continue
+					var first: Quaternion = candidate.track_get_key_value(t,0)
+					var mid: Quaternion = candidate.track_get_key_value(t,int(candidate.track_get_key_count(t)/2))
+					if absf(first.dot(mid)) < 0.99999: score += 1
+				if score > best:
+					best = score
+					motion = candidate
+		if motion != null and best > 0:
+			var idle = Animation.new()
+			idle.length = motion.length
+			idle.loop_mode = Animation.LOOP_LINEAR
+			var tracks := 0
+			for t in range(motion.get_track_count()):
+				if motion.track_get_type(t) != Animation.TYPE_ROTATION_3D: continue
+				var sp = motion.track_get_path(t)
+				if sp.get_subname_count() == 0: continue
+				var n = normalized_idle_bone(String(sp.get_subname(sp.get_subname_count()-1)))
+				if not destination_paths.has(n) or not src_bones.has(n) or not dest_bones.has(n): continue
+				var src_index: int = src_bones[n]
+				var dst_index: int = dest_bones[n]
+				var src_rest = src_rig.get_bone_rest(src_index).basis.get_rotation_quaternion()
+				var dst_rest = skeleton.get_bone_rest(dst_index).basis.get_rotation_quaternion()
+				var correction: Quaternion = (dst_rest.inverse() * src_rest).normalized()
+				var out = idle.add_track(Animation.TYPE_ROTATION_3D)
+				idle.track_set_path(out,destination_paths[n])
+				for k in range(motion.track_get_key_count(t)):
+					var rot: Quaternion = motion.track_get_key_value(t,k)
+					idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
+				tracks += 1
+			if tracks >= 12:
+				var id = "Idle" + str(idle_variants.size())
+				library.add_animation(id,idle)
+				idle_variants.append("manual/"+id)
+				print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
+			else:
+				print("IDLE_REJECTED ",filename," mapped_tracks=",tracks)
+		root.free()
+	if idle_variants.is_empty():
+		push_warning("No imported Mixamo idles matched. Using fallback pose.")
+		var fallback = Animation.new()
+		fallback.length = 1.0
+		fallback.loop_mode = Animation.LOOP_LINEAR
+		var at = source_template.length * 0.48
+		for t in range(source_template.get_track_count()):
+			if source_template.track_get_key_count(t) == 0: continue
+			var kind = source_template.track_get_type(t)
 			if kind not in [Animation.TYPE_ROTATION_3D,Animation.TYPE_POSITION_3D,Animation.TYPE_SCALE_3D]: continue
 			var value
 			match kind:
-				Animation.TYPE_ROTATION_3D: value = template.rotation_track_interpolate(t,at)
-				Animation.TYPE_POSITION_3D: value = template.position_track_interpolate(t,at)
-				Animation.TYPE_SCALE_3D: value = template.scale_track_interpolate(t,at)
-			var dst = idle.add_track(kind)
-			idle.track_set_path(dst,template.track_get_path(t))
-			idle.track_insert_key(dst,0.0,value)
-			idle.track_insert_key(dst,1.0,value)
-	var library = AnimationLibrary.new()
-	library.add_animation("StandIdle",idle)
+				Animation.TYPE_ROTATION_3D: value = source_template.rotation_track_interpolate(t,at)
+				Animation.TYPE_POSITION_3D: value = source_template.position_track_interpolate(t,at)
+				Animation.TYPE_SCALE_3D: value = source_template.scale_track_interpolate(t,at)
+			var out = fallback.add_track(kind)
+			fallback.track_set_path(out,source_template.track_get_path(t))
+			fallback.track_insert_key(out,0.0,value)
+			fallback.track_insert_key(out,1.0,value)
+		library.add_animation("Fallback",fallback)
+		idle_variants.append("manual/Fallback")
 	player.add_animation_library("manual",library)
+
+func choose_random_idle():
+	if idle_variants.is_empty() or crouch.standing_idle_node == null: return
+	var current: String = String(crouch.standing_idle_node.animation)
+	var options = idle_variants.filter(func(path): return path != current)
+	if options.is_empty(): options = idle_variants.duplicate()
+	var chosen: String = options.pick_random()
+	crouch.standing_idle_node.animation = chosen
+	print("IDLE_SELECTED ",name," ",chosen)
+
 func _unhandled_input(event):
 	if autonomous_only: return
 	if player_controlled:
