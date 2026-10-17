@@ -507,28 +507,6 @@ func make_standing_idle(player: AnimationPlayer):
 						var rot: Quaternion = motion.track_get_key_value(t,k)
 						idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
 				tracks += 1
-			# Idle FBXs often lift one leg as part of a shifting-weight take.
-			# Keep upper-body animation, but hold both legs in the Y Bot's native
-			# bind stance to prevent an airborne trailing foot.
-			# These are bone-pose quaternions, so IDENTITY means rest rotation.
-			var leg_count := 0
-			for bone_name in destination_paths.keys():
-				var lower = String(bone_name).to_lower()
-				if not (lower.contains("upleg") or lower.contains("leg") or lower.contains("foot") or lower.contains("toe")):
-					continue
-				var leg_path = destination_paths[bone_name]
-				var leg_track := -1
-				for track_index in range(idle.get_track_count()):
-					if idle.track_get_type(track_index) == Animation.TYPE_ROTATION_3D and idle.track_get_path(track_index) == leg_path:
-						leg_track = track_index
-						break
-				if leg_track >= 0: idle.remove_track(leg_track)
-				var planted = idle.add_track(Animation.TYPE_ROTATION_3D)
-				idle.track_set_path(planted,leg_path)
-				idle.rotation_track_insert_key(planted,0.0,Quaternion.IDENTITY)
-				idle.rotation_track_insert_key(planted,idle.length,Quaternion.IDENTITY)
-				leg_count += 1
-			print("IDLE_LEGS_PLANTED ",filename," leg_tracks=",leg_count)
 			if tracks >= 12:
 				var id = "Idle" + str(idle_variants.size())
 				library.add_animation(id,idle)
