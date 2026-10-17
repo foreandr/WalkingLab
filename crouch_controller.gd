@@ -2,6 +2,7 @@ extends RefCounted
 const SNEAK_SPEED = 0.95
 const BACKWARD_SPEED = 1.15
 var host
+var standing_idle_node: AnimationNodeAnimation
 var meta = {}
 var action: AnimationNodeAnimation
 var previous_action: AnimationNodeAnimation
@@ -79,10 +80,11 @@ func setup(owner_node, player: AnimationPlayer, graph: AnimationNodeBlendTree):
 	posture_blend.sync = true
 	graph.add_node("Posture",posture_blend)
 	var standing_source = "Cadence"
-	if host.player_controlled:
+	if host.player_controlled or host.stationary_only:
 		host.make_standing_idle(player)
 		var idle = AnimationNodeAnimation.new()
-		idle.animation = "manual/StandIdle"
+		idle.animation = host.idle_variants[0]
+		standing_idle_node = idle
 		graph.add_node("StandingIdle",idle)
 		var standing_move = AnimationNodeBlend2.new()
 		standing_move.sync = true
