@@ -258,7 +258,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Right-drag camera"
+		controls.text = "WASD move | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works)"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func smooth_gait(t: float) -> float:
@@ -438,7 +438,7 @@ func _physics_process(dt):
 	update_camera()
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nRight drag camera  |  Tab watch AI\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed]
+		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Tab watch AI\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
@@ -774,7 +774,9 @@ func adjust_jab_arm() -> void:
 	var height: float = 1.32 + ny * reach * 0.75
 	# The forearm must have room to clear the ribcage when crossing the centre.
 	var crossing: bool = horizontal * side_sign < 0.20
-	var safe_front: float = maxf(0.55,reach * 0.65) if crossing else maxf(0.46,reach * 0.52)
+	# Bring the wrist just far enough forward to sweep across the centreline.
+	# A small amount of front-side mesh overlap is preferable to frozen aim.
+	var safe_front: float = maxf(0.43,reach * 0.56) if crossing else maxf(0.40,reach * 0.49)
 	var goal_actor := Vector3(horizontal,clampf(height,0.42,2.15),-safe_front)
 	# Clicking does not push the hand into or away from the chest.
 	var goal_world: Vector3 = actor.global_transform * goal_actor
@@ -794,11 +796,11 @@ func adjust_jab_arm() -> void:
 		var hand_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand).origin
 		var elbow_actor: Vector3 = actor.global_transform.affine_inverse() * elbow_world
 		var hand_actor: Vector3 = actor.global_transform.affine_inverse() * hand_world
-		var safe_side: float = 1.0 if controlled_arm == "right" else -1.0
-		# Permit lateral and even across-centre reach only in FRONT of the chest.
-		# The elbow remains safely outside the body or forward of its front face.
-		var elbow_clear: bool = (elbow_actor.x * safe_side >= 0.14 or elbow_actor.z <= -0.36) and elbow_actor.z <= 0.08
-		var hand_clear: bool = hand_actor.z <= -0.24 and (hand_actor.x * safe_side >= 0.14 or hand_actor.z <= -0.46)
+		# No same-side restriction: the right hand can aim left and vice versa.
+		# Reject only joints that swing substantially behind the character.
+		# Small front-of-chest overlap is allowed to avoid a frozen aim arc.
+		var elbow_clear: bool = elbow_actor.z <= 0.14
+		var hand_clear: bool = hand_actor.z <= -0.10
 		if elbow_clear and hand_clear:
 			base_arm = skeleton.get_bone_pose_rotation(arm)
 			base_forearm = skeleton.get_bone_pose_rotation(forearm)
@@ -836,7 +838,7 @@ func _unhandled_input(event):
 				controlled_arm = "left" if controlled_arm == "right" else "right"
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-		if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+		if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))):
 			orbit -= event.relative.x*0.006
 			elevation = clamp(elevation-event.relative.y*0.004,-0.8,0.15)
 		if event is InputEventMouseButton and event.pressed:
