@@ -577,13 +577,10 @@ func _physics_process(dt):
 		visual.scale.y = 1.0
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		apply_flight_pose(step)
-	if player_controlled and not flight_enabled:
-		# Restore normal leg proportions each frame before the optional squeeze.
-		for bone in range(skeleton.get_bone_count()):
-			var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
-			if bone_name == "leftupleg" or bone_name == "rightupleg" or bone_name == "leftleg" or bone_name == "rightleg":
-				skeleton.set_bone_pose_scale(bone,Vector3.ONE)
-		apply_jump_windup_pose()
+	if player_controlled:
+		reset_leg_squeeze_pose()
+		if not flight_enabled:
+			apply_jump_windup_pose()
 	if player_controlled:
 		debug_tick += step
 		if debug_tick >= 0.25:
@@ -1163,18 +1160,36 @@ func debug_player(event_type: String, details: String) -> void:
 	if not player_controlled: return
 	print("[PLAYER_DEBUG] t=",snappedf(clock,0.01)," ",event_type," | ",details)
 
-func apply_jump_windup_pose() -> void:
-	if squat_amount <= 0.0 or flight_enabled: return
-	# Shorten only the leg bones; keep torso, arms and head full-sized.
-	# Lower the hips to follow the compressed legs.
-	var bend: float = squat_amount*squat_amount*(3.0-2.0*squat_amount)
+func reset_leg_squeeze_pose() -> void:
 	for bone in range(skeleton.get_bone_count()):
 		var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
-		if bone_name == "hips":
-			skeleton.set_bone_pose_position(bone,skeleton.get_bone_pose_position(bone)+Vector3.DOWN*0.48*bend)
-		elif bone_name == "leftupleg" or bone_name == "rightupleg" or bone_name == "leftleg" or bone_name == "rightleg":
+		if bone_name == "leftupleg" or bone_name == "rightupleg" or bone_name == "leftleg" or bone_name == "rightleg":
+			skeleton.set_bone_pose_scale(bone,Vector3.ONE)
+
+func apply_jump_windup_pose() -> void:
+	if squat_amount <= 0.0 or flight_enabled: return
+	var bend: float = squat_amount*squat_amount*(3.0-2.0*squat_amount)
+	var feet_before: float = 0.0
+	var feet_after: float = 0.0
+	var feet_count: int = 0
+	for bone in range(skeleton.get_bone_count()):
+		var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
+		if bone_name == "leftfoot" or bone_name == "rightfoot":
+			feet_before += skeleton.get_bone_global_pose(bone).origin.y
+			feet_count += 1
+	if feet_count == 0: return
+	skeleton.force_update_all_bone_transforms()
+	for bone in range(skeleton.get_bone_count()):
+		var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
+		if bone_name == "leftupleg" or bone_name == "rightupleg" or bone_name == "leftleg" or bone_name == "rightleg":
 			skeleton.set_bone_pose_scale(bone,Vector3(1.0,lerpf(1.0,0.66,bend),1.0))
 	skeleton.force_update_all_bone_transforms()
+	for bone in range(skeleton.get_bone_count()):
+		var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
+		if bone_name == "leftfoot" or bone_name == "rightfoot":
+			feet_after += skeleton.get_bone_global_pose(bone).origin.y
+	# Translate the entire mesh down so feet remain planted as legs shorten.
+	visual.position.y -= (feet_after-feet_before)/float(feet_count)
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
