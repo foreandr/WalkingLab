@@ -518,15 +518,12 @@ func update_animation_test(dt: float) -> void:
 			animation_test_clock = 0.0
 			flight_enabled = false
 			actor.velocity = Vector3.ZERO
-			if not jumping and animation_test_landing_speed > 18.0:
-				start_movement_clip("Hard Landing.fbx")
-			else:
-				start_movement_clip("Landing.fbx")
+			movement_clip_name = ""
 	elif animation_test_phase == "land":
 		flight_enabled = false
 		actor.velocity = Vector3.ZERO
 		actor.move_and_slide()
-		if movement_clip_name == "" and animation_test_clock > 0.4:
+		if animation_test_clock > 0.4:
 			animation_test_phase = "wait"
 			animation_test_clock = 0.0
 	if animation_test_phase == "up" or animation_test_phase == "orbit" or animation_test_phase == "down":
@@ -762,9 +759,7 @@ func _physics_process(dt):
 			flight_launch_remaining = 0.0
 			actor.floor_snap_length = 0.12
 			if player_controlled:
-				if flight_impact_speed > 18.0: start_movement_clip("Hard Landing.fbx")
-				elif flight_impact_speed >= 14.0: start_movement_clip("Landing.fbx")
-				else: movement_clip_name = ""
+				movement_clip_name = ""
 				print("FLIGHT_AUTO_LANDED speed=",flight_impact_speed)
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		update_flight_orientation(step)
@@ -1173,7 +1168,7 @@ func adjust_jab_arm() -> void:
 
 func load_flight_clips() -> void:
 
-	for filename in ["Flying (1).fbx","Jumping Up.fbx","Landing.fbx","Hard Landing.fbx"]:
+	for filename in ["Flying (1).fbx","Jumping Up.fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path):
 			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
@@ -1272,8 +1267,7 @@ func apply_movement_clip(dt: float) -> void:
 	if movement_clip_name == "" or not movement_clips.has(movement_clip_name): return
 	var clip: Dictionary = movement_clips[movement_clip_name]
 	var length: float = float(clip["length"])
-	var running_during_landing: bool = (movement_clip_name == "Landing.fbx" or movement_clip_name == "Hard Landing.fbx") and manual_input.length() > 0.1
-	movement_clip_time += dt * (3.5 if running_during_landing else 1.0)
+	movement_clip_time += dt
 	var end_blend: float = clampf((length-movement_clip_time)/0.20,0.0,1.0)
 	var start_blend: float = clampf(movement_clip_time/0.12,0.0,1.0)
 	var weight: float = minf(start_blend,end_blend)
