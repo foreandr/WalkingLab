@@ -34,6 +34,16 @@ var character_tint = Color("d5d9dd")
 var manual_input = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
+var jump_velocity: float = 0.0
+var jump_phase: float = 0.0
+var jump_pose: float = 0.0
+var jump_requested: bool = false
+var jump_thighs: Array[int] = []
+var jump_calves: Array[int] = []
+var camera_sensitivity: float = 1.0
+var jump_power: float = 6.0
+var fireball_speed_scale: float = 1.0
+var options_panel: PanelContainer
 # Seconds per smooth 6 -> 8 -> 10 -> 12 m/s sprint stage.
 # Above 12 m/s, keep the final FastRun clip and gain 0.2 m/s per stage duration.
 const ENDLESS_SPRINT_GAIN = 0.2
@@ -207,6 +217,8 @@ func _ready():
 			if bone_label == "rightarm": jab_right_arm = bone_i
 			if bone_label == "rightforearm": jab_right_forearm = bone_i
 			if bone_label == "righthand": jab_right_hand = bone_i
+			if bone_label in ["leftupleg","rightupleg","leftthigh","rightthigh"]: jump_thighs.append(bone_i)
+			if bone_label in ["leftleg","rightleg","leftcalf","rightcalf"]: jump_calves.append(bone_i)
 		print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
@@ -256,6 +268,7 @@ func _ready():
 		dot.size = Vector2(4,4)
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		reticle.add_child(dot)
+		install_options_menu(canvas)
 	var controls = Label.new()
 	controls.position = Vector2(28,675)
 	controls.text = "C crouch/stand | Shift launch | V showcase | B direction | Space pause | T slow | Right-drag orbit"
@@ -270,6 +283,50 @@ func _ready():
 		controls.text = "WASD move | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fireball"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
+func install_options_menu(canvas: CanvasLayer) -> void:
+	var cog := Button.new()
+	cog.text = "⚙  Settings"
+	cog.position = Vector2(1080,16)
+	cog.size = Vector2(174,40)
+	canvas.add_child(cog)
+	options_panel = PanelContainer.new()
+	options_panel.position = Vector2(943,66)
+	options_panel.custom_minimum_size = Vector2(310,230)
+	options_panel.visible = false
+	canvas.add_child(options_panel)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation",9)
+	options_panel.add_child(column)
+	var heading := Label.new()
+	heading.text = "SETTINGS"
+	heading.add_theme_font_size_override("font_size",19)
+	column.add_child(heading)
+	add_setting_slider(column,"Camera sensitivity",0.3,2.5,1.0,0.1,"camera")
+	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
+	add_setting_slider(column,"Jump strength",4.0,8.5,jump_power,0.5,"jump")
+	add_setting_slider(column,"Fireball speed",0.5,2.0,1.0,0.1,"fireball")
+	cog.pressed.connect(func(): options_panel.visible = not options_panel.visible)
+
+func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: float, initial: float, increment: float, setting: String) -> void:
+	var label := Label.new()
+	label.text = title + ": " + str(initial)
+	parent.add_child(label)
+	var control := HSlider.new()
+	control.min_value = low
+	control.max_value = high
+	control.step = increment
+	control.value = initial
+	control.custom_minimum_size = Vector2(265,18)
+	parent.add_child(control)
+	control.value_changed.connect(func(value: float):
+		label.text = title + ": " + str(snappedf(value,increment))
+		match setting:
+			"camera": camera_sensitivity = value
+			"fov": camera.fov = value
+			"jump": jump_power = value
+			"fireball": fireball_speed_scale = value
+	)
+
 func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
 func install_backwards(player: AnimationPlayer):
@@ -409,6 +466,8 @@ func _physics_process(dt):
 		was_moving_for_idle = moving_now
 	tree.advance(step)
 	if player_controlled:
+		apply_jump_pose(step)
+	if player_controlled:
 		adjust_jab_arm()
 		update_cast_motion(step)
 	feet.use_full_support = crouch_driving or crouch.active()
@@ -436,8 +495,20 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
-	actor.velocity.y = -0.3
+	if player_controlled:
+		if jump_requested and actor.is_on_floor() and not crouch.active():
+			jump_velocity = jump_power
+			jump_phase = 0.0
+		jump_requested = false
+		jump_velocity -= 18.0 * step
+		actor.velocity.y = jump_velocity
+	else:
+		actor.velocity.y = -0.3
 	actor.move_and_slide()
+	if player_controlled:
+		jump_velocity = actor.velocity.y
+		if actor.is_on_floor() and jump_velocity <= 0.0:
+			jump_velocity = 0.0
 	# This arena has a flat floor at zero, including at wall contacts.
 	if actor.position.y<0.0:
 		actor.position.y = 0.0
@@ -830,6 +901,22 @@ func adjust_jab_arm() -> void:
 	# Keep Godot bone transforms synchronized for foot solver and skinning.
 	skeleton.force_update_all_bone_transforms()
 
+func apply_jump_pose(dt: float) -> void:
+	# Smooth local leg animation layered over the existing gait clips.
+	# Takeoff tuck, airborne hold and soft landing blend independently.
+	var airborne: bool = jump_velocity > 0.1 or not actor.is_on_floor()
+	var desired: float = 1.0 if airborne else 0.0
+	jump_pose = move_toward(jump_pose,desired,dt*(8.0 if airborne else 6.0))
+	if jump_pose < 0.002: return
+	var knee_bend: float = 0.43 * smooth_gait(jump_pose)
+	for thigh in jump_thighs:
+		var q: Quaternion = skeleton.get_bone_pose_rotation(thigh)
+		skeleton.set_bone_pose_rotation(thigh,(q * Quaternion(Vector3.RIGHT,-0.26*jump_pose)).normalized())
+	for calf in jump_calves:
+		var q: Quaternion = skeleton.get_bone_pose_rotation(calf)
+		skeleton.set_bone_pose_rotation(calf,(q * Quaternion(Vector3.RIGHT,knee_bend)).normalized())
+	skeleton.force_update_all_bone_transforms()
+
 func throw_left_jab() -> void:
 	# Procedural reach only. No imported punching animation.
 	if jab_cooldown > 0.0 or crouch.active(): return
@@ -903,7 +990,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	var mover = preload("res://assets/external_vfx/fireball_motion.gd").new()
 	mover.name = "Motion"
 	mover.travel_direction = travel
-	mover.travel_speed = launch_speed
+	mover.travel_speed = launch_speed * fireball_speed_scale
 	mover.owner_rid = actor.get_rid()
 	projectile.add_child(mover)
 	print("FIREBALL_RELEASE ",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
@@ -921,6 +1008,8 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_C: crouch.toggle()
+			if event.keycode==KEY_SPACE: jump_requested = true
+			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode==KEY_1: cast_fireball()
 			if event.keycode==KEY_SHIFT:
 				if cast_elapsed < 0.0:
@@ -928,8 +1017,8 @@ func _unhandled_input(event):
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		if event is InputEventMouseMotion and (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or (Input.is_mouse_button_pressed(MOUSE_BUTTON_MIDDLE) or Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT))):
-			orbit -= event.relative.x*0.006
-			elevation = clamp(elevation-event.relative.y*0.004,-0.8,0.15)
+			orbit -= event.relative.x*0.006*camera_sensitivity
+			elevation = clamp(elevation-event.relative.y*0.004*camera_sensitivity,-0.8,0.15)
 		if event is InputEventMouseButton and event.pressed:
 			if event.button_index == MOUSE_BUTTON_LEFT: throw_left_jab()
 			if event.button_index==MOUSE_BUTTON_WHEEL_UP: distance = max(3.0,distance-0.4)
