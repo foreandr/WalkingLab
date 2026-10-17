@@ -8,6 +8,9 @@ extends Node3D
 var animation_test_phase: String = "wait"
 var animation_test_clock: float = 0.0
 var animation_test_landing_speed: float = 0.0
+var animation_test_home: Vector3 = Vector3.ZERO
+var animation_test_angle: float = 0.0
+var animation_test_orbit_radius: float = 7.0
 @export var ai_abilities = false
 @export var ai_mode: String = ""
 var idle_variants: Array[String] = []
@@ -475,6 +478,8 @@ func update_animation_test(dt: float) -> void:
 		feet.use_full_support = false
 		feet.resolve(true)
 		if animation_test_clock >= 1.0:
+			animation_test_home = actor.position
+			animation_test_angle = 0.0
 			animation_test_clock = 0.0
 			animation_test_phase = "up"
 			start_movement_clip("Jumping Up.fbx")
@@ -487,6 +492,20 @@ func update_animation_test(dt: float) -> void:
 			actor.velocity.y = maxf(0.0,7.0-animation_test_clock*18.0)
 		actor.move_and_slide()
 		if (jumping and actor.velocity.y <= 0.01) or (not jumping and actor.position.y >= target_height):
+			animation_test_phase = "down" if jumping else "orbit"
+			animation_test_clock = 0.0
+	elif animation_test_phase == "orbit":
+		# Fly one full circle around the launch marker, then return to land there.
+		# The orbit is traversed at the configured linear speed.
+		var previous_angle: float = animation_test_angle
+		animation_test_angle = minf(TAU,animation_test_angle + animation_test_speed * dt / animation_test_orbit_radius)
+		var orbit_target := animation_test_home + Vector3(cos(animation_test_angle)-1.0,0.0,sin(animation_test_angle)) * animation_test_orbit_radius + Vector3.UP * target_height
+		var orbit_delta: Vector3 = orbit_target - actor.position
+		actor.velocity = orbit_delta / maxf(dt,0.0001)
+		actor.move_and_slide()
+		if actor.velocity.length_squared() > 0.01:
+			actor.rotation.y = atan2(-actor.velocity.x,-actor.velocity.z)
+		if animation_test_angle >= TAU:
 			animation_test_phase = "down"
 			animation_test_clock = 0.0
 	elif animation_test_phase == "down":
@@ -510,7 +529,7 @@ func update_animation_test(dt: float) -> void:
 		if movement_clip_name == "" and animation_test_clock > 0.4:
 			animation_test_phase = "wait"
 			animation_test_clock = 0.0
-	if animation_test_phase == "up" or animation_test_phase == "down":
+	if animation_test_phase == "up" or animation_test_phase == "orbit" or animation_test_phase == "down":
 		visual.position.y = 0.0
 		if not jumping:
 			apply_flight_pose(dt)
