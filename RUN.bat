@@ -36,16 +36,6 @@ for %%F in ("%USERPROFILE%\Downloads\*Idle*.fbx" "%USERPROFILE%\Desktop\*Idle*.f
         )
     )
 )
-rem Import the one selected jump animation from local Downloads or Desktop.
-for %%F in ("%USERPROFILE%\Downloads\Jump.fbx" "%USERPROFILE%\Desktop\Jump.fbx") do (
-    if exist "%%~fF" (
-        if not exist "assets\custom_idle\Jump.fbx" (
-            echo Found jump animation
-            copy /Y "%%~fF" "assets\custom_idle\Jump.fbx" >nul
-            set "IDLE_NEW=1"
-        )
-    )
-)
 rem The original supplied airborne flight animation.
 for %%F in ("%USERPROFILE%\Downloads\Flying (1).fbx" "%USERPROFILE%\Desktop\Flying (1).fbx") do (
     if exist "%%~fF" (
