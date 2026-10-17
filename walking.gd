@@ -400,10 +400,7 @@ func _physics_process(dt):
 	# The body keeps facing the same tangent while its travel reverses.
 	var facing = tangent*max(speed,0.1)-radial.normalized()*(radial.length()-route_radius)*2.0*movement_sign
 	if player_controlled:
-		if jab_aim_remaining > 0.0 and not crouch_driving:
-			# Keep the jab facing the screen-center camera ray for its duration.
-			actor.rotation.y = rotate_toward(actor.rotation.y,jab_aim_heading,step*12.0)
-		elif crouch_driving and crouch.state in ["crouched","settle"]:
+		if crouch_driving and crouch.state in ["crouched","settle"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,orbit,step*5.0)
 		elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,manual_heading,step*5.0)
