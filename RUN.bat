@@ -5,7 +5,7 @@ title WalkingLab
 rem Upload unpushed game logs before syncing; never stage user code here.
 call :push_logs
 echo [1/2] Pulling latest changes...
-git pull --rebase origin main
+git -c rebase.autoStash=true pull --rebase origin main
 if errorlevel 1 (
  echo Git pull failed.
  pause
@@ -19,17 +19,12 @@ if not exist "%GODOT%" (
 )
 if not exist "assets\custom_idle" mkdir "assets\custom_idle"
 set "IDLE_NEW=0"
-rem Add any Mixamo FBX with Idle in its filename (excluding transitional clips).
-rem Keeps downloaded FBXs on the user's machine; do not redistribute.
-for %%F in ("%USERPROFILE%\Downloads\*Idle*.fbx" "%USERPROFILE%\Downloads\*idle*.fbx" "%USERPROFILE%\Desktop\*Idle*.fbx" "%USERPROFILE%\Desktop\*idle*.fbx") do (
+rem Copy idle FBXs using simple CMD commands; avoid pipes inside parenthesized loops.
+for %%F in ("%USERPROFILE%\Downloads\*Idle*.fbx" "%USERPROFILE%\Desktop\*Idle*.fbx") do (
     if exist "%%~fF" (
-        echo(%%~nxF | findstr /i /c:" to " /c:"transition" >nul
-        if errorlevel 1 (
-            if not exist "assets\custom_idle\%%~nxF" (
-                echo Found Mixamo idle: %%~nxF
-                copy /Y "%%~fF" "assets\custom_idle\%%~nxF" >nul
-                set "IDLE_NEW=1"
-            )
+        if not exist "assets\custom_idle\%%~nxF" (
+            copy /Y "%%~fF" "assets\custom_idle\%%~nxF" >nul
+            set "IDLE_NEW=1"
         )
     )
 )
@@ -98,7 +93,7 @@ exit /b 0
 
 :push_logs
 if not exist "logs" exit /b 0
-git add -- logs\*.log
+git add -- "logs/*.log"
 git diff --cached --quiet
 if not errorlevel 1 exit /b 0
 git commit -m "WalkingLab player debug run logs" -- logs
