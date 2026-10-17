@@ -10,7 +10,7 @@ Write-Host ("Game running; recording to " + $logFile)
 ("WalkingLab run " + (Get-Date -Format "o")) | Out-File -FilePath $logFile -Encoding utf8
 ("Godot executable: " + $GodotPath) | Out-File -FilePath $logFile -Append -Encoding utf8
 try {
-    & $GodotPath --path . *>> $logFile
+    & $GodotPath --path (Get-Location).Path *>> $logFile
     $status = $LASTEXITCODE
 } catch {
     $_ | Out-File -FilePath $logFile -Append
