@@ -23,7 +23,8 @@ try {
             Write-Host "Cleared abandoned Git index lock."
         }
     }
-    Invoke-Git @("stash","push","-m","WalkingLab automatic backup before sync")
+    # Never stash entire repository: logs can be actively held by the logger.
+    # Preserve local edits and report a useful error if they prevent rebase.
     if (Test-Path "logs") {
         Invoke-Git @("add","--","logs")
         & git.exe diff --cached --quiet -- logs
