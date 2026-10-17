@@ -355,7 +355,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move\nAlt + W: Sprint\nCtrl: Walk / descend in flight\nSpace: Jump / ascend in flight\nMB3 + drag: Camera rotation\nMB2: No camera action\nShift: Switch selected arm\nLeft click: Arm reach\n1: Fire | 2: Water | 3: Flight\nC: Crouch | F11: Fullscreen"
+	controls_details.text = "WASD: Move\nAlt + W: Sprint\nCtrl: Walk / descend in flight\nSpace: Jump / ascend in flight\nMB3 + drag: Camera rotation\nMB2: No camera action\nShift: Switch selected arm\nLeft click: Arm reach\n1: Fire | 3: Flight\nC: Crouch | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
@@ -1240,9 +1240,6 @@ func get_cursor_world_target() -> Vector3:
 	return ray_origin + ray_direction * 40.0
 
 func ai_target_position() -> Vector3:
-	var test_basin: Node3D = get_tree().current_scene.get_node_or_null("WaterSystem") as Node3D
-	if cast_element == "water" and test_basin != null:
-		return Vector3(5.5,0.3,8.5)
 	var opponent: Node3D = get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
 	if opponent != null:
 		var opponent_body: Node3D = opponent.get("actor") as Node3D
@@ -1286,16 +1283,13 @@ func update_ai_abilities(dt: float) -> void:
 		ai_action_clock = 0.0
 		controlled_arm = "left" if controlled_arm == "right" else "right"
 		if randi() % 3 == 0: flight_enabled = not flight_enabled
-		cast_spell("water" if randi() % 2 == 0 else "fire")
+		cast_spell("fire")
 
 func cast_fireball() -> void:
 	cast_spell("fire")
 
-func cast_water() -> void:
-	cast_spell("water")
-
 func cast_spell(element: String) -> void:
-	# Passive animation until casting; either element uses the same arm thrust.
+	# Passive animation until casting; fire uses the same arm thrust.
 	if cast_elapsed >= 0.0 or crouch.active(): return
 	if not ResourceLoader.exists("res://assets/external_vfx/" + element + ".tscn"): return
 	cast_element = element
@@ -1350,7 +1344,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	projectile.add_child(effect)
 	effect.emitting = true
 	effect.restart()
-	var script_path: String = "res://assets/external_vfx/" + ("water_motion.gd" if cast_element == "water" else "fireball_motion.gd")
+	var script_path: String = "res://assets/external_vfx/" + "fireball_motion.gd"
 	var mover = load(script_path).new()
 	mover.name = "Motion"
 	mover.travel_direction = travel
@@ -1408,7 +1402,6 @@ func _unhandled_input(event):
 				print("FLIGHT_ENABLED ",flight_enabled)
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode==KEY_1: cast_fireball()
-			if event.keycode==KEY_2: cast_water()
 			if event.keycode==KEY_SHIFT:
 				if cast_elapsed < 0.0:
 					controlled_arm = "left" if controlled_arm == "right" else "right"
