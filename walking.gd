@@ -75,6 +75,10 @@ var options_panel: PanelContainer
 const ENDLESS_SPRINT_GAIN = 0.2
 const SPRINT_STAGE_SECONDS = 3.0
 var manual_heading = 0.0
+var agent_rng := RandomNumberGenerator.new()
+var agent_destination: Vector3 = Vector3.ZERO
+var agent_decision_left: float = 0.0
+var agent_preferred_speed: float = 0.0
 var camera_target: CharacterBody3D
 
 const LABELS = ["WALK", "EASY RUN", "RUN", "STANDARD RUN", "FAST RUN", "QUICK RUN"]
@@ -145,6 +149,11 @@ func _ready():
 		direction_weight = 0.0
 		signed_speed = SPEEDS[0]
 	started = Time.get_ticks_msec()
+	if ai_mode != "" or ai_abilities:
+		agent_rng.randomize()
+		agent_rng.seed = agent_rng.randi() ^ hash(name)
+		agent_preferred_speed = (2.0 if ai_mode == "walk" else (10.0 if ai_mode == "sprint" else 7.5)) * agent_rng.randf_range(0.85,1.15)
+		choose_agent_destination()
 	if not actor_only:
 		add_child(preload("res://arena_environment.gd").new())
 		var floor_body = StaticBody3D.new()
@@ -157,6 +166,7 @@ func _ready():
 		floor_body.add_child(shape)
 	actor = CharacterBody3D.new()
 	add_child(actor)
+	if ai_mode != "" or ai_abilities: add_to_group("walking_agents")
 	actor.position = spawn_point
 	actor.rotation.y = -PI/2
 	actor.floor_snap_length = 0.12
@@ -446,6 +456,7 @@ func _physics_process(dt):
 	jab_aim_strength = move_toward(jab_aim_strength,1.0 if (player_controlled or ai_abilities) else 0.0,step*8.0)
 	if player_controlled: update_cursor_aim()
 	if ai_abilities: update_ai_abilities(step)
+	if ai_mode != "" or ai_abilities: update_agent_navigation(step)
 	if ai_mode == "fly" and not flight_enabled:
 		flight_enabled = true
 		flight_launch_remaining = FLIGHT_LAUNCH_DURATION
@@ -479,7 +490,7 @@ func _physics_process(dt):
 			# silently lock the animation progression to the 6 m/s clip.
 			manual_sprint_clock += step
 	if ai_mode in ["walk","sprint","fly"]:
-		signed_speed = move_toward(signed_speed,2.3 if ai_mode == "walk" else (12.0 if ai_mode == "sprint" else 9.0),step*5.0)
+		signed_speed = move_toward(signed_speed,agent_preferred_speed,step*5.0)
 		blend = speed_band(SPEEDS,absf(signed_speed))
 		backward = false
 		direction_weight = 0.0
@@ -562,6 +573,8 @@ func _physics_process(dt):
 			actor.rotation.y = rotate_toward(actor.rotation.y,orbit,step*5.0)
 		elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,manual_heading,step*5.0)
+	elif ai_mode != "" or ai_abilities:
+		actor.rotation.y = rotate_toward(actor.rotation.y,manual_heading,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
 		var travel_direction = -tangent*speed-radial.normalized()*(radial.length()-route_radius)*2.0
 		var local_yaw = atan2(-side_speed,signed_speed)
@@ -1187,6 +1200,37 @@ func ai_target_position() -> Vector3:
 		var opponent_body: Node3D = opponent.get("actor") as Node3D
 		if opponent_body != null: return opponent_body.global_position + Vector3.UP * 1.2
 	return actor.global_position - actor.global_basis.z*15.0
+
+func choose_agent_destination() -> void:
+	# Each AI owns a private wandering target and decision clock; no shared circle.
+	var radius: float = agent_rng.randf_range(7.0,32.0)
+	var angle: float = agent_rng.randf_range(-PI,PI)
+	agent_destination = Vector3(cos(angle)*radius,0.0,sin(angle)*radius)
+	agent_decision_left = agent_rng.randf_range(3.5,9.0)
+	agent_preferred_speed = (2.3 if ai_mode == "walk" else (11.0 if ai_mode == "sprint" else (8.5 if ai_mode == "fly" else 4.5))) * agent_rng.randf_range(0.82,1.17)
+
+func update_agent_navigation(dt: float) -> void:
+	agent_decision_left -= dt
+	var flat_delta: Vector3 = agent_destination-actor.global_position
+	flat_delta.y = 0.0
+	if flat_delta.length() < 2.6 or agent_decision_left <= 0.0:
+		choose_agent_destination()
+		flat_delta = agent_destination-actor.global_position
+		flat_delta.y = 0.0
+	var avoid: Vector3 = Vector3.ZERO
+	# At most 9 local bodies. Avoid neighbours rather than bunching behind them.
+	for other in get_tree().get_nodes_in_group("walking_agents"):
+		if other == self or not other is Node3D: continue
+		var other_body: CharacterBody3D = other.get("actor") as CharacterBody3D
+		if other_body == null: continue
+		var away: Vector3 = actor.global_position-other_body.global_position
+		away.y = 0.0
+		var distance_sq: float = away.length_squared()
+		if distance_sq > 0.001 and distance_sq < 12.25:
+			avoid += away.normalized()*(1.0-sqrt(distance_sq)/3.5)*3.0
+	var course: Vector3 = (flat_delta.normalized()+avoid).normalized()
+	if course.length_squared() > 0.01:
+		manual_heading = atan2(-course.x,-course.z)
 
 func update_ai_abilities(dt: float) -> void:
 	ai_action_clock += dt
