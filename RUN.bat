@@ -41,8 +41,19 @@ for %%F in ("%USERPROFILE%\Downloads\Jump(2).fbx" "%USERPROFILE%\Desktop\Jump(2)
         )
     )
 )
-rem Check the selected jump FBX without parenthesized echo blocks.
-if not exist "assets\custom_idle\Jump(2).fbx" goto :missing_jump_asset
+rem Fall back to the previously supplied Jump.fbx from Downloads or Desktop.
+rem This does not pretend Jump.fbx is the newer Jump(2).fbx animation.
+if not exist "assets\custom_idle\Jump(2).fbx" (
+    for %%F in ("%USERPROFILE%\Downloads\Jump.fbx" "%USERPROFILE%\Desktop\Jump.fbx") do (
+        if exist "%%~fF" (
+            if not exist "assets\custom_idle\Jump.fbx" (
+                echo Found existing jump animation
+                copy /Y "%%~fF" "assets\custom_idle\Jump.fbx" >nul
+                set "IDLE_NEW=1"
+            )
+        )
+    )
+)
 rem The original supplied airborne flight animation.
 for %%F in ("%USERPROFILE%\Downloads\Flying (1).fbx" "%USERPROFILE%\Desktop\Flying (1).fbx") do (
     if exist "%%~fF" (
@@ -93,14 +104,3 @@ if errorlevel 1 (
  exit /b 1
 )
 
-exit /b 0
-
-:missing_jump_asset
-echo.
-echo [ERROR] Missing required jump animation asset.
-echo Save the supplied FBX file to Downloads or Desktop.
-echo Filename must match Jump(2).fbx exactly.
-echo Then run RUN.bat again.
-echo.
-pause
-exit /b 1
