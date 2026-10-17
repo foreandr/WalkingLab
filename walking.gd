@@ -1441,9 +1441,9 @@ func throw_left_jab() -> void:
 	jab_cooldown = 0.45
 	if player_controlled:
 		var aim: Vector3 = get_cursor_world_target()
-		var ray_origin: Vector3 = camera.global_position
-		var direction: Vector3 = (aim-ray_origin).normalized()
-		var ray := PhysicsRayQueryParameters3D.create(ray_origin,ray_origin+direction*3.5)
+		var ray_origin: Vector3 = actor.global_position + Vector3.UP*1.15
+		var direction: Vector3 = (aim-camera.global_position).normalized()
+		var ray := PhysicsRayQueryParameters3D.create(ray_origin,ray_origin+direction*2.6)
 		ray.exclude = [actor.get_rid()]
 		var hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
 		if not hit.is_empty():
