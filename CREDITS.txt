@@ -13,3 +13,10 @@ Godot Engine 4.7.2, MIT. See GODOT-LICENSE.txt.
 Archived Defender and Rokoko assets/diagnostics remain in the source
 project but are excluded from the current runtime pack. Their provenance
 is documented in ANIMATION_ASSET_MANIFEST.md and prior source backups.
+
+CURRENT WEAPON DISPLAY (WalkingLab prototype)
+Detailed arming/knightly swords and optional greatsword/axe/dagger: 3DAssets.dev
+https://3dassets.dev/packs/swords-shields-and-melee-arms
+CC0 1.0; publisher notes models were produced using AI tools.
+Fallback sword/axe/knife: Kenney, https://kenney.nl, CC0 1.0.
+Source URLs and licensing in assets/real_weapons/SOURCE.md.
