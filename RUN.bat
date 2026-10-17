@@ -5,7 +5,7 @@ title WalkingLab
 rem Upload unpushed game logs before syncing; never stage user code here.
 call :push_logs
 echo [1/2] Pulling latest changes...
-git pull --ff-only origin main
+git pull --rebase origin main
 if errorlevel 1 (
  echo Git pull failed.
  pause
@@ -101,11 +101,11 @@ if not exist "logs" exit /b 0
 git add -- logs\*.log
 git diff --cached --quiet
 if not errorlevel 1 exit /b 0
-git commit -m "WalkingLab player debug run logs"
+git commit -m "WalkingLab player debug run logs" -- logs
 if errorlevel 1 (
  echo Warning: failed to commit run log.
  exit /b 0
 )
 git push origin main
-if errorlevel 1 echo Warning: log push failed; will retry on next launch.
+if errorlevel 1 echo Warning: log push failed; will retry on next launch after syncing.
 exit /b 0
