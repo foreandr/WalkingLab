@@ -57,6 +57,8 @@ var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
 var movement_clip_name: String = ""
 var combat_dead: bool = false
+var combat_death_time: float = 0.0
+var combat_initial_pitch: float = 0.0
 var combat_falling: bool = false
 var combat_hit_sequence: int = 0
 var movement_clip_time: float = 0.0
@@ -681,20 +683,31 @@ func combat_react(region: String, amount: float, remaining: float) -> void:
 
 func combat_die(region: String) -> void:
 	combat_dead = true
+	combat_death_time = 0.0
+	combat_initial_pitch = visual.rotation.x
+	punch_pending = false
 	flight_enabled = false
 	flight_windup_remaining = 0.0
 	var clips: Array[String] = ["Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx"]
 	start_movement_clip(clips[randi_range(0,clips.size()-1)] if region == "head" else "Stunned.fbx")
 
 func update_combat_fall(dt: float) -> void:
+	combat_death_time += dt
 	tree.advance(dt)
 	actor.velocity.x = move_toward(actor.velocity.x,0.0,dt*8.0)
 	actor.velocity.z = move_toward(actor.velocity.z,0.0,dt*8.0)
 	if not actor.is_on_floor():
 		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
 	else:
-		actor.velocity.y = 0.0
+		actor.velocity.y = -0.1
 	actor.move_and_slide()
+	# CharacterBody stays an upright physics capsule; the rendered character
+	# rolls prone separately, including during airborne death.
+	var landing_progress: float = smoothstep(0.0,0.9,combat_death_time)
+	var prone_angle: float = -PI*0.5
+	visual.rotation.x = lerpf(combat_initial_pitch,prone_angle,landing_progress)
+	# Lift the horizontal mesh pivot to keep the corpse above the floor.
+	visual.position.y = 0.86*sin(absf(visual.rotation.x))
 	apply_movement_clip(dt)
 
 func update_sky_target(dt: float) -> void:
@@ -1255,6 +1268,18 @@ func install_left_jab(player: AnimationPlayer, graph: AnimationNodeBlendTree) ->
 
 func update_cursor_aim() -> void:
 	if camera == null or actor == null: return
+	if selected_spell_target != null:
+		if not is_instance_valid(selected_spell_target):
+			clear_spell_lock()
+		else:
+			var target_center: Vector3 = selected_spell_target.global_position+Vector3.UP*1.1
+			var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+			if camera.is_position_behind(target_center):
+				clear_spell_lock()
+			else:
+				var screen: Vector2 = camera.unproject_position(target_center)
+				if screen.x < 0.0 or screen.y < 0.0 or screen.x > viewport_size.x or screen.y > viewport_size.y:
+					clear_spell_lock()
 	var cursor = get_viewport().get_mouse_position()
 	var bounds = get_viewport().get_visible_rect().size
 	cursor = Vector2(clampf(cursor.x,0.0,bounds.x),clampf(cursor.y,0.0,bounds.y))
