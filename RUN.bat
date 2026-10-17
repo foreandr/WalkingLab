@@ -41,6 +41,16 @@ for %%F in ("%USERPROFILE%\Downloads\Jump(2).fbx" "%USERPROFILE%\Desktop\Jump(2)
         )
     )
 )
+rem Jump(2).fbx is required. Never silently run the physics-only jump.
+if not exist "assets\custom_idle\Jump(2).fbx" (
+    echo.
+    echo [ERROR] Jump(2).fbx is missing. The jump animation cannot play.
+    echo Save Jump(2).fbx to your Downloads folder, Desktop, or
+    echo directly into assets\custom_idle, then run RUN.bat again.
+    echo.
+    pause
+    exit /b 1
+)
 rem The original supplied airborne flight animation.
 for %%F in ("%USERPROFILE%\Downloads\Flying (1).fbx" "%USERPROFILE%\Desktop\Flying (1).fbx") do (
     if exist "%%~fF" (
