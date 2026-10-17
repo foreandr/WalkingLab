@@ -1159,6 +1159,7 @@ func apply_jump_pose(dt: float) -> void:
 	var clip: Dictionary = {}
 	var moment: float = 0.0
 	var blend_weight: float = 0.0
+	var idle_moment: float = 0.0
 	if flight_enabled and flight_takeoff_time >= 0.0 and flight_takeoff_time < FLIGHT_TAKEOFF_POSE_DURATION and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
 		clip = jump_clips[chosen_jump_index]
 		flight_takeoff_time += dt
@@ -1174,7 +1175,7 @@ func apply_jump_pose(dt: float) -> void:
 		# Dedicated hovering loop: a settled flying pose with small,
 		# continuous breathing/micro-motion. Never sample the ground idle.
 		var cycle: float = sin(flight_idle_time*2.5)
-		var idle_moment: float = float(clip["length"])*(0.32+0.025*cycle)
+		idle_moment = float(clip["length"])*(0.32+0.025*cycle)
 		# Blend the actual bone rotations below, not timeline positions:
 		# time interpolation across a looping clip can cause sudden snaps.
 		moment = moving_moment
