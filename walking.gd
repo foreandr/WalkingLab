@@ -4,6 +4,7 @@ extends Node3D
 @export var autonomous_only = false
 @export var stationary_only = false
 @export var ai_abilities = false
+@export var ai_mode: String = ""
 var idle_variants: Array[String] = []
 var jab_ready := false
 var jab_cooldown := 0.0
@@ -50,11 +51,14 @@ var chosen_jump_index: int = -1
 var flight_animation_time: float = 0.0
 var flight_visual_pitch: float = 0.0
 var flight_pose_weight: float = 0.0
+var flight_idle_weight: float = 0.0
+var flight_idle_time: float = 0.0
 var speed_streaks: Control
 var streak_clock: float = 0.0
 var ai_action_clock: float = 0.0
 var flight_enabled: bool = false
 var flight_launch_remaining: float = 0.0
+var flight_clearance_time: float = 0.0
 const FLIGHT_LAUNCH_DURATION: float = 0.65
 const FLIGHT_LAUNCH_SPEED: float = 14.0
 const FLIGHT_LAND_HEIGHT: float = 0.42
@@ -439,6 +443,10 @@ func _physics_process(dt):
 	jab_aim_strength = move_toward(jab_aim_strength,1.0 if (player_controlled or ai_abilities) else 0.0,step*8.0)
 	if player_controlled: update_cursor_aim()
 	if ai_abilities: update_ai_abilities(step)
+	if ai_mode == "fly" and not flight_enabled:
+		flight_enabled = true
+		flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+		flight_clearance_time = 1.0
 	var active = {}
 	var old_blend = blend
 	var old_back_blend = back_blend
@@ -465,7 +473,12 @@ func _physics_process(dt):
 			# sequence while Alt+forward is held. Physics contacts must not
 			# silently lock the animation progression to the 6 m/s clip.
 			manual_sprint_clock += step
-	if crouch_driving:
+	if ai_mode in ["walk","sprint","fly"]:
+		signed_speed = move_toward(signed_speed,2.3 if ai_mode == "walk" else (12.0 if ai_mode == "sprint" else 9.0),step*5.0)
+		blend = speed_band(SPEEDS,absf(signed_speed))
+		backward = false
+		direction_weight = 0.0
+	elif crouch_driving:
 		signed_speed = crouch.forward_speed
 	elif player_controlled:
 		var target_speed = manual_target_speed()
@@ -513,7 +526,7 @@ func _physics_process(dt):
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
-	tree.set("parameters/Cadence/scale",speed/stride)
+	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
 		var moving_now = speed > 0.12 or crouch.active()
@@ -525,8 +538,8 @@ func _physics_process(dt):
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
-	feet.use_full_support = (crouch_driving or crouch.active()) and not (player_controlled and (jump_velocity > 0.1 or not actor.is_on_floor()))
-	feet.resolve(player_controlled and speed < 0.12 and not crouch.active() and jump_velocity <= 0.0 and actor.is_on_floor())
+	feet.use_full_support = (crouch_driving or crouch.active()) and not ((player_controlled or ai_abilities or ai_mode == "fly") and (flight_enabled or jump_velocity > 0.1 or not actor.is_on_floor()))
+	feet.resolve(player_controlled and speed < 0.12 and not crouch.active() and not flight_enabled and jump_velocity <= 0.0 and actor.is_on_floor())
 	crouch.update_capsule(step)
 	if test and frame%60==0: min_body = min(min_body,feet.lowest(feet.all_samples))
 	min_sole = min(min_sole,feet.minimum)
@@ -552,14 +565,14 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
-	if player_controlled or ai_abilities: actor.floor_snap_length = 0.0 if flight_enabled else 0.12
-	if player_controlled or ai_abilities:
+	if player_controlled or ai_abilities or ai_mode == "fly": actor.floor_snap_length = 0.0 if flight_enabled else 0.12
+	if player_controlled or ai_abilities or ai_mode == "fly":
 		if flight_enabled:
 			jump_requested = false
 			jump_prep_remaining = -1.0
 			jump_velocity = 0.0
-			if ai_abilities:
-				actor.velocity.y = sin(clock*0.9)*FLIGHT_SPEED
+			if ai_abilities or ai_mode == "fly":
+				actor.velocity.y = (1.0 if ai_mode == "fly" and actor.position.y < 5.0 else sin(clock*0.9)*0.6)*FLIGHT_SPEED
 			else:
 				# W moves in the camera's three-dimensional aim direction.
 				var forward_flight := Vector3(-sin(orbit)*cos(elevation),sin(elevation),-cos(orbit)*cos(elevation))
@@ -593,20 +606,21 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
+	if flight_clearance_time > 0.0: flight_clearance_time = maxf(0.0,flight_clearance_time-step)
 	if player_controlled and flight_enabled and flight_launch_remaining <= 0.0 and actor.velocity.y <= 0.0:
 		# Only land while approaching the floor, never on launch or ascent.
 		var floor_cast: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*0.12,actor.global_position+Vector3.DOWN*FLIGHT_LAND_HEIGHT)
 		floor_cast.exclude = [actor.get_rid()]
 		var floor_hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(floor_cast)
-		if not floor_hit.is_empty() and Vector3(floor_hit["normal"]).y > 0.72:
+		if not floor_hit.is_empty() and Vector3(floor_hit["normal"]).y > 0.72 and flight_clearance_time <= 0.0:
 			flight_enabled = false
 			flight_launch_remaining = 0.0
 			jump_velocity = -0.1
 			actor.floor_snap_length = 0.12
 			print("FLIGHT_AUTO_LANDED")
-	if player_controlled or ai_abilities:
+	if player_controlled or ai_abilities or ai_mode == "fly":
 		update_flight_orientation(step)
-	if (player_controlled or ai_abilities) and not flight_enabled:
+	if (player_controlled or ai_abilities or ai_mode == "fly") and not flight_enabled:
 		jump_velocity = actor.velocity.y
 		if actor.is_on_floor() and jump_velocity <= 0.0:
 			jump_velocity = 0.0
@@ -1085,14 +1099,19 @@ func apply_jump_pose(dt: float) -> void:
 		prep = clampf(1.0-jump_prep_remaining/JUMP_PREP_TIME,0.0,1.0)
 	jump_pose = move_toward(jump_pose,1.0 if airborne else 0.0,dt*7.0)
 	var flight_moving: bool = flight_enabled and actor.velocity.length() > 0.7
-	flight_pose_weight = move_toward(flight_pose_weight,1.0 if flight_moving else 0.0,dt*2.4)
+	flight_pose_weight = move_toward(flight_pose_weight,1.0 if flight_enabled else 0.0,dt*3.0)
+	flight_idle_weight = move_toward(flight_idle_weight,0.0 if flight_moving else 1.0,dt*2.0)
 	var clip: Dictionary = {}
 	var moment: float = 0.0
 	var blend_weight: float = 0.0
 	if flight_enabled and not flying_clip.is_empty():
 		clip = flying_clip
-		flight_animation_time += dt
-		moment = fmod(flight_animation_time,float(clip["length"]))
+		flight_animation_time += dt * 0.65
+		# Hover holds a restful frame; moving flight cycles at a fixed pace,
+		# independently of velocity and of the ground running cadence.
+		var moving_moment: float = fmod(flight_animation_time,float(clip["length"]))
+		var idle_moment: float = float(clip["length"])*0.32
+		moment = lerpf(moving_moment,idle_moment,flight_idle_weight)
 		blend_weight = flight_pose_weight
 	elif chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
 		# One randomly selected jump take for BOTH anticipation and airborne.
@@ -1237,6 +1256,7 @@ func _unhandled_input(event):
 				flight_enabled = not flight_enabled
 				if flight_enabled:
 					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+					flight_clearance_time = 1.0
 					flight_animation_time = 0.0
 					flight_pose_weight = 0.0
 				else:
