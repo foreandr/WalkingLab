@@ -48,6 +48,49 @@ func _ready():
 		make_label(extra.actor,"AI " + str(index+2),Color("ffbf69"))
 		mannequins.append(extra)
 	build_weapon_display()
+	build_water_basin()
+func build_water_basin() -> void:
+	# Open-top physical test tank; thick walls and floor, no roof.
+	var world := preload("res://water_system.gd").new()
+	world.name = "WaterSystem"
+	add_child(world)
+	var center: Vector3 = world.BASIN_CENTER
+	var width: float = world.INSIDE_WIDTH
+	var depth: float = world.INSIDE_DEPTH
+	var height: float = world.WALL_HEIGHT
+	var stone := StandardMaterial3D.new()
+	stone.albedo_color = Color(0.48,0.51,0.55)
+	stone.roughness = 0.9
+	for part in [
+		{"name":"Floor","size":Vector3(width+0.4,0.20,depth+0.4),"pos":Vector3(0,-0.10,0)},
+		{"name":"West","size":Vector3(0.20,height,depth+0.40),"pos":Vector3(-width*0.5-0.10,height*0.5,0)},
+		{"name":"East","size":Vector3(0.20,height,depth+0.40),"pos":Vector3(width*0.5+0.10,height*0.5,0)},
+		{"name":"North","size":Vector3(width+0.40,height,0.20),"pos":Vector3(0,height*0.5,-depth*0.5-0.10)},
+		{"name":"South","size":Vector3(width+0.40,height,0.20),"pos":Vector3(0,height*0.5,depth*0.5+0.10)}
+	]:
+		var body := StaticBody3D.new()
+		body.name = "Basin" + String(part["name"])
+		body.position = center + part["pos"]
+		add_child(body)
+		var mesh := MeshInstance3D.new()
+		var shape := BoxMesh.new()
+		shape.size = part["size"]
+		mesh.mesh = shape
+		mesh.material_override = stone
+		body.add_child(mesh)
+		var collider := CollisionShape3D.new()
+		var collision_box := BoxShape3D.new()
+		collision_box.size = part["size"]
+		collider.shape = collision_box
+		body.add_child(collider)
+	var label := Label3D.new()
+	label.text = "WATER FILL TEST  /  PRESS 2"
+	label.font_size = 42
+	label.pixel_size = 0.005
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = center + Vector3(0,2.8,0)
+	add_child(label)
+
 func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	var label = Label3D.new()
 	label.text = text
