@@ -7,7 +7,9 @@ var idle_variants: Array[String] = []
 var jab_ready := false
 var jab_cooldown := 0.0
 var jab_aim_remaining := 0.0
-var jab_aim_heading := 0.0
+var jab_aim_target := Vector3.ZERO
+var jab_left_arm := -1
+var jab_aim_strength := 0.0
 var cursor_reticle: Control
 var was_moving_for_idle := false
 var spawn_point = Vector3(0,0,40)
@@ -181,6 +183,9 @@ func _ready():
 	tree.tree_root = graph
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	tree.active = true
+	if player_controlled:
+		for bone_i in range(skeleton.get_bone_count()):
+			if normalized_idle_bone(String(skeleton.get_bone_name(bone_i))) == "leftarm": jab_left_arm = bone_i
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
@@ -301,6 +306,7 @@ func _physics_process(dt):
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
+	jab_aim_strength = move_toward(jab_aim_strength,1.0 if jab_aim_remaining > 0.0 else 0.0,step*10.0)
 	if player_controlled: update_cursor_aim()
 	var active = {}
 	var old_blend = blend
@@ -380,6 +386,7 @@ func _physics_process(dt):
 		if was_moving_for_idle and not moving_now: choose_random_idle()
 		was_moving_for_idle = moving_now
 	tree.advance(step)
+	if player_controlled: adjust_jab_arm()
 	feet.use_full_support = crouch_driving or crouch.active()
 	feet.resolve(player_controlled and speed < 0.12 and not crouch.active())
 	crouch.update_capsule(step)
@@ -699,17 +706,26 @@ func update_cursor_aim() -> void:
 	var cursor = get_viewport().get_mouse_position()
 	var bounds = get_viewport().get_visible_rect().size
 	cursor = Vector2(clampf(cursor.x,0.0,bounds.x),clampf(cursor.y,0.0,bounds.y))
-	if cursor_reticle != null:
-		cursor_reticle.position = cursor
-	var ray_origin: Vector3 = camera.project_ray_origin(cursor)
-	var ray_dir: Vector3 = camera.project_ray_normal(cursor)
-	# Project toward the cursor at a comfortable 3rd-person combat range.
-	var aim_point = ray_origin + ray_dir * 35.0
-	var relative = aim_point - (actor.global_position + Vector3.UP * 1.25)
-	relative.y = 0.0
-	if relative.length_squared() > 0.01:
-		# Visual Y Bot is rotated by PI relative to the actor root.
-		jab_aim_heading = atan2(-relative.x,-relative.z)
+	if cursor_reticle != null: cursor_reticle.position = cursor
+	var origin: Vector3 = camera.project_ray_origin(cursor)
+	var direction: Vector3 = camera.project_ray_normal(cursor)
+	jab_aim_target = origin + direction * 20.0
+
+func adjust_jab_arm() -> void:
+	# Apply a modest, bounded shoulder correction AFTER AnimationTree evaluation.
+	# No actor rotation, no torso twist and no changes to the feet.
+	if jab_left_arm < 0 or jab_aim_strength < 0.001: return
+	var shoulder_position = skeleton.global_transform * skeleton.get_bone_global_pose(jab_left_arm).origin
+	var to_target = jab_aim_target - shoulder_position
+	if to_target.length_squared() < 0.001: return
+	# Y Bot's shoulder aims approximately along its local forward axis.
+	# Limit correction to avoid turning the punch inside out.
+	var local_target = skeleton.global_transform.basis.inverse() * to_target.normalized()
+	var yaw = clampf(atan2(local_target.x,-local_target.z),-0.35,0.35)
+	var elevation_angle = clampf(asin(clampf(local_target.y,-1.0,1.0)),-0.30,0.30)
+	var adjustment = Quaternion(Vector3.UP,yaw)*Quaternion(Vector3.RIGHT,-elevation_angle)
+	var original = skeleton.get_bone_pose_rotation(jab_left_arm)
+	skeleton.set_bone_pose_rotation(jab_left_arm,(original*Quaternion.IDENTITY.slerp(adjustment,jab_aim_strength)).normalized())
 
 func throw_left_jab() -> void:
 	if not jab_ready or jab_cooldown > 0.0: return
