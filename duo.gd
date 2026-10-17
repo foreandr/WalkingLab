@@ -40,6 +40,17 @@ func _ready():
 		dummy.actor.rotation.y = PI
 		make_label(dummy.actor,entry["label"],Color("ffbf69"))
 		mannequins.append(dummy)
+	var static_dummy = preload("res://walking.gd").new()
+	static_dummy.name = "StaticMannequin"
+	static_dummy.autonomous_only = true
+	static_dummy.stationary_only = true
+	static_dummy.actor_only = true
+	static_dummy.spawn_point = Vector3(7.0,0,3.0)
+	static_dummy.character_tint = Color("c9d2cc")
+	add_child(static_dummy)
+	static_dummy.actor.rotation.y = PI
+	make_label(static_dummy.actor,"STATIC",Color("ffbf69"))
+	mannequins.append(static_dummy)
 	ai = mannequins[0]
 	ai_label = null
 
