@@ -636,9 +636,14 @@ func _physics_process(dt):
 		elif actor.is_on_floor():
 			vertical_jump_speed = 0.0
 			if jump_airborne_seen and jump_play_time >= 0.0:
-				debug_player("JUMP_LANDED","cancel_animation_at="+str(snappedf(jump_play_time,0.01)))
+				debug_player("JUMP_LANDED","cancel_animation_at="+str(snappedf(jump_play_time,0.01))+" -> ground animation")
 				jump_play_time = -1.0
 				jump_airborne_seen = false
+				# The FBX pose was applied earlier in this physics tick.
+				# Re-evaluate the regular animation tree immediately on contact,
+				# rather than leaving the airborne skeleton pose for another frame.
+				tree.advance(0.001)
+				skeleton.force_update_all_bone_transforms()
 	if flight_clearance_time > 0.0: flight_clearance_time = maxf(0.0,flight_clearance_time-step)
 	if player_controlled and flight_enabled and flight_launch_remaining <= 0.0 and actor.velocity.y <= 0.0:
 		# Only land while approaching the floor, never on launch or ascent.
