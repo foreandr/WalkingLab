@@ -421,7 +421,10 @@ func _physics_process(dt):
 		var building_sprint = not crouch_driving and not crouch.active() and not manual_launch_lock and Input.is_action_pressed("sprint") and not Input.is_action_pressed("walk") and manual_input.y>0.1
 		if not building_sprint:
 			manual_sprint_clock = 0.0
-		elif signed_speed>=SPEEDS[2]-0.05 and actor.get_real_velocity().length()>SPEEDS[2]*0.7:
+		else:
+			# Progress continuously through the full 6/8/10/12 m/s gait
+			# sequence while Alt+forward is held. Physics contacts must not
+			# silently lock the animation progression to the 6 m/s clip.
 			manual_sprint_clock += step
 	if crouch_driving:
 		signed_speed = crouch.forward_speed
