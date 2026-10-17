@@ -1188,8 +1188,12 @@ func apply_jump_windup_pose() -> void:
 		var bone_name: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
 		if bone_name == "leftfoot" or bone_name == "rightfoot":
 			feet_after += skeleton.get_bone_global_pose(bone).origin.y
-	# Translate the entire mesh down so feet remain planted as legs shorten.
-	visual.position.y -= (feet_after-feet_before)/float(feet_count)
+	# The leg-scale axes do not necessarily align with the Mixamo leg length.
+	# Anchor from the higher foot, and enforce an actual downward hip/torso
+	# drop so the crouch cannot visually lift the legs toward a stationary torso.
+	var foot_rise: float = (feet_after-feet_before)/float(feet_count)
+	visual.position.y = -maxf(0.70*bend,foot_rise)
+
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
