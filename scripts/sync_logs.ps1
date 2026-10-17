@@ -34,6 +34,10 @@ try {
             throw "Unable to inspect staged logs"
         }
     }
+    # Keep log writes separate: save finished logs first, then stash only
+    # other tracked source changes so a rebase is never rejected as dirty.
+    # The pathspec excludes the logs directory from stash deletion.
+    Invoke-Git @("stash","push","-m","WalkingLab tracked source backup","--",".",":(exclude)logs")
     for ($attempt=1; $attempt -le 3; $attempt++) {
         Invoke-Git @("fetch","origin","main")
         Invoke-Git @("rebase","origin/main")
