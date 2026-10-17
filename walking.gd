@@ -52,6 +52,9 @@ var backward_flying_clip: Dictionary = {}
 var selected_spell_target: CharacterBody3D = null
 var movement_clips: Dictionary = {}
 var movement_clip_name: String = ""
+var combat_dead: bool = false
+var combat_falling: bool = false
+var combat_hit_sequence: int = 0
 var movement_clip_time: float = 0.0
 var jump_clip_pending: bool = false
 var squat_amount: float = 0.0
@@ -656,8 +659,56 @@ func update_animation_test(dt: float) -> void:
 		feet.resolve(true)
 	apply_movement_clip(dt)
 
+func combat_react(region: String, amount: float, remaining: float) -> void:
+	if combat_dead: return
+	combat_hit_sequence += 1
+	var clip: String = "Reaction.fbx" if combat_hit_sequence % 2 == 0 else "Reaction (1).fbx"
+	if region == "head":
+		clip = ("Light Hit To Head.fbx" if combat_hit_sequence % 2 == 0 else "Light Hit To Head (1).fbx") if amount < 25.0 else ("Medium Hit To Head.fbx" if combat_hit_sequence % 2 == 0 else "Medium Hit To Head (1).fbx")
+	elif region == "torso":
+		clip = "Big Kidney Hit.fbx" if combat_hit_sequence % 2 == 0 else "Big Kidney Hit (1).fbx"
+	start_movement_clip(clip)
+
+func combat_die(region: String) -> void:
+	combat_dead = true
+	flight_enabled = false
+	flight_windup_remaining = 0.0
+	var clips: Array[String] = ["Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx"]
+	start_movement_clip(clips[randi_range(0,clips.size()-1)] if region == "head" else "Stunned.fbx")
+
+func update_combat_fall(dt: float) -> void:
+	tree.advance(dt)
+	actor.velocity.x = move_toward(actor.velocity.x,0.0,dt*8.0)
+	actor.velocity.z = move_toward(actor.velocity.z,0.0,dt*8.0)
+	if not actor.is_on_floor():
+		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
+	else:
+		actor.velocity.y = 0.0
+	actor.move_and_slide()
+	apply_movement_clip(dt)
+
+func update_sky_target(dt: float) -> void:
+	tree.advance(dt)
+	if actor.position.y < 20.0:
+		flight_enabled = true
+		actor.velocity = Vector3.UP*9.0
+		actor.move_and_slide()
+		apply_flight_pose(dt)
+	else:
+		actor.position.y = 20.0
+		actor.velocity = Vector3.ZERO
+		flight_enabled = true
+		apply_flight_pose(dt)
+	apply_movement_clip(dt)
+
 func _physics_process(dt):
 	if paused: return
+	if combat_dead:
+		update_combat_fall(dt)
+		return
+	if animation_test_mode == "sky_target":
+		update_sky_target(dt)
+		return
 	if animation_test_mode == "hunter":
 		update_hunter_mannequin(dt)
 		return
@@ -671,6 +722,7 @@ func _physics_process(dt):
 		tree.advance(dt)
 		feet.use_full_support = false
 		feet.resolve(true)
+		apply_movement_clip(dt)
 		return
 	var step = dt*(0.35 if slow else 1.0)
 	if player_controlled:
@@ -1301,7 +1353,7 @@ func adjust_jab_arm() -> void:
 
 func load_flight_clips() -> void:
 
-	for filename in ["Flying (1).fbx","Jumping Up.fbx","Sitting Idle.fbx"]:
+	for filename in ["Flying (1).fbx","Jumping Up.fbx","Sitting Idle.fbx","Punching (1).fbx","Punching(2).fbx","Reaction.fbx","Reaction (1).fbx","Medium Hit To Head.fbx","Medium Hit To Head (1).fbx","Light Hit To Head.fbx","Light Hit To Head (1).fbx","Big Kidney Hit.fbx","Big Kidney Hit (1).fbx","Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx","Stunned.fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path):
 			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
@@ -1446,6 +1498,7 @@ func throw_left_jab() -> void:
 	update_cursor_aim()
 	jab_aim_remaining = 0.45
 	jab_cooldown = 0.45
+	start_movement_clip("Punching (1).fbx" if controlled_arm == "left" else "Punching(2).fbx")
 	jab_strike_target = get_cursor_world_target()
 	if player_controlled:
 		var aim: Vector3 = get_cursor_world_target()
