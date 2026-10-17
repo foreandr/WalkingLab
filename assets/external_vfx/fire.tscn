@@ -4,7 +4,7 @@
 
 [sub_resource type="Gradient" id="Gradient_eonhu"]
 offsets = PackedFloat32Array(0.104693, 0.238267, 0.78865, 1)
-colors = PackedColorArray(0, 0.356863, 1, 1, 0.894118, 0.290196, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1)
+colors = PackedColorArray(1, 0.3, 0.06, 1, 1, 0.08, 0.02, 1, 0.82, 0.015, 0.005, 0.90, 0.22, 0, 0, 0)
 
 [sub_resource type="GradientTexture1D" id="GradientTexture1D_cmn7d"]
 gradient = SubResource("Gradient_eonhu")
@@ -19,7 +19,7 @@ curve = SubResource("Curve_d3nfl")
 [sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ytneo"]
 angle_min = -30.0
 angle_max = 30.0
-gravity = Vector3(2.08165e-12, 2, 2.08165e-12)
+gravity = Vector3(0, 0.1, 0)
 tangential_accel_min = -2.0
 tangential_accel_max = 2.0
 scale_curve = SubResource("CurveTexture_r6vt7")
