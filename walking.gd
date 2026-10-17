@@ -93,7 +93,7 @@ func _ready():
 		add_child(floor_body)
 		var shape = CollisionShape3D.new()
 		var box = BoxShape3D.new()
-		box.size = Vector3(600,0.2,600)
+		box.size = Vector3(200,0.2,200)
 		shape.shape = box
 		shape.position.y = -0.1
 		floor_body.add_child(shape)
