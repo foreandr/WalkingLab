@@ -467,7 +467,15 @@ func begin_direction_change(target_backward: bool):
 	turn_start_forward = blend
 	turn_start_back = back_blend
 func update_fire_mannequin(dt: float) -> void:
-	# Stationary ranged-casting test, using the normal fireball pipeline.
+	# Keep the test mannequin planted and aim each cast at the player.
+	tree.set("parameters/StandingMove/blend_amount",0.0)
+	jab_aim_strength = 1.0
+	var target_node: Node3D = get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
+	if target_node != null:
+		var target_actor: Node3D = target_node.get("actor") as Node3D
+		if target_actor != null:
+			var delta: Vector3 = target_actor.global_position - actor.global_position
+			actor.rotation.y = atan2(-delta.x,-delta.z)
 	tree.advance(dt)
 	actor.velocity = Vector3.ZERO
 	actor.move_and_slide()
@@ -478,8 +486,8 @@ func update_fire_mannequin(dt: float) -> void:
 		ai_action_clock = 0.0
 		controlled_arm = "left" if controlled_arm == "right" else "right"
 		cast_fireball()
-	update_cast_motion(dt)
 	adjust_jab_arm()
+	update_cast_motion(dt)
 
 func update_animation_test(dt: float) -> void:
 	tree.advance(dt)
@@ -525,9 +533,9 @@ func update_animation_test(dt: float) -> void:
 			animation_test_clock = 0.0
 	elif animation_test_phase == "down":
 		actor.velocity = Vector3.DOWN * (7.0 if jumping else animation_test_speed)
-		# Match the player: stop flying when the ground is within landing range.
+		# Begin recovering to feet-first well before touchdown.
 		if not jumping and flight_enabled:
-			var floor_cast: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*0.12,actor.global_position+Vector3.DOWN*FLIGHT_LAND_HEIGHT)
+			var floor_cast: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*0.12,actor.global_position+Vector3.DOWN*1.6)
 			floor_cast.exclude = [actor.get_rid()]
 			var hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(floor_cast)
 			if not hit.is_empty() and Vector3(hit["normal"]).y > 0.72:
@@ -560,7 +568,9 @@ func update_animation_test(dt: float) -> void:
 				actor.rotation.y = atan2(-v.x,-v.z)
 			if v.length_squared() > 0.01:
 				var aim_pitch: float = clampf(atan2(horizontal_speed,v.y),0.08,PI-0.08)
-				flight_visual_pitch = move_toward(flight_visual_pitch,aim_pitch,dt*7.0)
+				if animation_test_phase == "down" and actor.position.y <= 7.0:
+					aim_pitch = 0.0
+				flight_visual_pitch = move_toward(flight_visual_pitch,aim_pitch,dt*(20.0 if animation_test_phase == "down" and actor.position.y <= 7.0 else 7.0))
 			visual.rotation.x = flight_visual_pitch
 			visual.position.y = 0.95*sin(flight_visual_pitch)
 	else:
