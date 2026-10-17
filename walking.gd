@@ -38,6 +38,11 @@ var manual_input = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
 var flying_clip: Dictionary = {}
+var single_jump_clip: Dictionary = {}
+var jump_play_time: float = -1.0
+var vertical_jump_speed: float = 0.0
+const SIMPLE_JUMP_IMPULSE: float = 6.0
+const SIMPLE_JUMP_GRAVITY: float = 18.0
 var flying_idle_clip: Dictionary = {}
 var flight_animation_time: float = 0.0
 var flight_visual_pitch: float = 0.0
@@ -335,7 +340,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move\nAlt + W: Sprint\nCtrl: Walk / descend in flight\nSpace: Ascend in flight\nMB3 + drag: Camera rotation\nMB2: No camera action\nShift: Switch selected arm\nLeft click: Arm reach\n1: Fire | 2: Water | 3: Flight\nC: Crouch | F11: Fullscreen"
+	controls_details.text = "WASD: Move\nAlt + W: Sprint\nCtrl: Walk / descend in flight\nSpace: Jump / ascend in flight\nMB3 + drag: Camera rotation\nMB2: No camera action\nShift: Switch selected arm\nLeft click: Arm reach\n1: Fire | 2: Water | 3: Flight\nC: Crouch | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
@@ -546,6 +551,8 @@ func _physics_process(dt):
 	tree.advance(step)
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		apply_flight_pose(step)
+	if player_controlled and not flight_enabled:
+		apply_single_jump_pose(step)
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
@@ -597,10 +604,13 @@ func _physics_process(dt):
 				actor.velocity.y = maxf(actor.velocity.y,FLIGHT_LAUNCH_SPEED*launch_weight)
 				flight_launch_remaining = maxf(0.0,flight_launch_remaining-step)
 		else:
-			actor.velocity.y = -0.3
+			vertical_jump_speed -= SIMPLE_JUMP_GRAVITY * step
+			actor.velocity.y = vertical_jump_speed
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
+	if player_controlled and not flight_enabled and actor.is_on_floor():
+		vertical_jump_speed = 0.0
 	if flight_clearance_time > 0.0: flight_clearance_time = maxf(0.0,flight_clearance_time-step)
 	if player_controlled and flight_enabled and flight_launch_remaining <= 0.0 and actor.velocity.y <= 0.0:
 		# Only land while approaching the floor, never on launch or ascent.
@@ -1019,7 +1029,7 @@ func adjust_jab_arm() -> void:
 
 func load_flight_clips() -> void:
 
-	for filename in ["Flying (1).fbx","Warrior Idle.fbx"]:
+	for filename in ["Flying (1).fbx","Warrior Idle.fbx","Jump(2).fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path): continue
 		var packed = load(resource_path)
@@ -1063,7 +1073,9 @@ func load_flight_clips() -> void:
 					keys.append({"time":selected.track_get_key_time(t,k),"rot":(correction*selected.track_get_key_value(t,k)*correction.inverse()).normalized()})
 				if not keys.is_empty(): curves.append({"bone":dst_index,"keys":keys})
 			if not curves.is_empty():
-				if filename == "Flying (1).fbx":
+				if filename == "Jump(2).fbx":
+					single_jump_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
+				elif filename == "Flying (1).fbx":
 					flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				elif filename == "Warrior Idle.fbx":
 					flying_idle_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
@@ -1099,6 +1111,18 @@ func update_flight_orientation(dt: float) -> void:
 	# Rig pivot is at the feet. Raise the visible mesh as it pitches so
 	# the head and chest do not cut through the ground at low altitude.
 	visual.position.y = 0.95 * sin(flight_visual_pitch)
+
+func apply_single_jump_pose(dt: float) -> void:
+	if jump_play_time < 0.0 or single_jump_clip.is_empty(): return
+	# Exactly one imported FBX, sampled once from beginning to end.
+	jump_play_time += dt
+	if jump_play_time >= float(single_jump_clip["length"]):
+		jump_play_time = -1.0
+		return
+	for entry in single_jump_clip["curves"]:
+		var bone: int = int(entry["bone"])
+		skeleton.set_bone_pose_rotation(bone,sample_flight_curve(entry["keys"],jump_play_time))
+	skeleton.force_update_all_bone_transforms()
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
@@ -1272,10 +1296,15 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_C: crouch.toggle()
+			if event.keycode == KEY_SPACE and not flight_enabled and actor.is_on_floor() and not crouch.active():
+				vertical_jump_speed = SIMPLE_JUMP_IMPULSE
+				jump_play_time = 0.0
 
 			if event.keycode==KEY_3:
 				flight_enabled = not flight_enabled
 				if flight_enabled:
+					jump_play_time = -1.0
+					vertical_jump_speed = 0.0
 					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
 					flight_clearance_time = 1.0
 					flight_animation_time = 0.0
