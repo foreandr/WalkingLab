@@ -6,6 +6,8 @@ var ai_label: Label3D
 var player_label: Label3D
 var ai_wait = 0.0
 var watching_ai = false
+var battle_fireball_speed: float = 1.0
+var announced_winner: bool = false
 func _ready():
 	for entry in [["move_forward",KEY_W],["move_back",KEY_S],["move_left",KEY_A],["move_right",KEY_D],["sprint",KEY_ALT],["walk",KEY_CTRL]]:
 		if not InputMap.has_action(entry[0]): InputMap.add_action(entry[0])
@@ -19,7 +21,7 @@ func _ready():
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(64.0,0.2,64.0)
+	floor_box.size = Vector3(192.0,0.2,192.0)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -27,35 +29,27 @@ func _ready():
 	player.name = "PlayerMan"
 	player.player_controlled = true
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,7)
+	player.spawn_point = Vector3(0,0,70)
 	player.character_tint = Color("101114")
 	add_child(player)
 	player.camera.current = true
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	var opponent = preload("res://walking.gd").new()
-	opponent.name = "VioletOpponent"
-	opponent.autonomous_only = true
-	opponent.actor_only = true
-	opponent.stationary_only = true
-	opponent.spawn_point = Vector3(0,0,0)
-	opponent.character_tint = Color("7962cb")
-	add_child(opponent)
-	opponent.actor.rotation.y = PI
-	make_label(opponent.actor,"VIOLET",Color("a795ed"))
-	mannequins.append(opponent)
-	var sky_target = preload("res://walking.gd").new()
-	sky_target.name = "CyanSkyTarget"
-	sky_target.autonomous_only = true
-	sky_target.actor_only = true
-	sky_target.animation_test_mode = "sky_target"
-	sky_target.spawn_point = Vector3(5.0,0.0,0.0)
-	sky_target.character_tint = Color("21c8d6")
-	add_child(sky_target)
-	sky_target.actor.rotation.y = PI
-	make_label(sky_target.actor,"CYAN 20M",Color("21c8d6"))
-	mannequins.append(sky_target)
+	var palette: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
+	for i in range(10):
+		var fighter = preload("res://walking.gd").new()
+		fighter.name = "Fighter%02d" % (i+1)
+		fighter.autonomous_only = true
+		fighter.actor_only = true
+		fighter.ai_abilities = true
+		fighter.animation_test_mode = "war"
+		fighter.spawn_point = Vector3(sin(i*TAU/10.0)*23.0,0,cos(i*TAU/10.0)*23.0)
+		fighter.character_tint = Color(palette[i])
+		add_child(fighter)
+		fighter.actor.rotation.y = i*TAU/10.0+PI
+		make_label(fighter.actor,"FIGHTER %02d" % (i+1),fighter.character_tint)
+		mannequins.append(fighter)
 	ai = mannequins[0]
 	ai_label = null
 
@@ -117,16 +111,29 @@ func make_boundary():
 		var angle = i*TAU/64.0
 		var collision = CollisionShape3D.new()
 		var shape = BoxShape3D.new()
-		shape.size = Vector3(TAU*25.0/64.0+0.15,3.0,0.5)
+		shape.size = Vector3(TAU*75.0/64.0+0.5,300.0,1.5)
 		collision.shape = shape
-		collision.position = Vector3(sin(angle)*25.0,1.5,cos(angle)*25.0)
+		collision.position = Vector3(sin(angle)*75.0,150.0,cos(angle)*75.0)
 		collision.rotation.y = angle
 		boundary.add_child(collision)
-func _physics_process(dt):
-	if ai==null or player==null: return
-	if ai_label != null: ai_label.position.y = ai.crouch.capsule.height+0.3
+func _physics_process(_dt):
+	if player == null: return
 	player_label.position.y = player.crouch.capsule.height+0.3
-	if ai_label != null: ai_label.text = ""
+	if announced_winner: return
+	var survivors: Array = []
+	for fighter in mannequins:
+		if is_instance_valid(fighter) and not fighter.combat_dead: survivors.append(fighter)
+	if survivors.size() == 1:
+		announced_winner = true
+		print("[WAR WINNER] ",survivors[0].name)
+		var banner := Label3D.new()
+		banner.text = "WINNER"
+		banner.font_size = 90
+		banner.pixel_size = 0.009
+		banner.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		banner.modulate = Color("ffd05b")
+		banner.position = Vector3.UP*3.5
+		survivors[0].actor.add_child(banner)
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
