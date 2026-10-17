@@ -58,6 +58,8 @@ var movement_clips: Dictionary = {}
 var movement_clip_name: String = ""
 var combat_dead: bool = false
 var combat_death_time: float = 0.0
+var ragdoll: Node = null
+var combat_last_velocity: Vector3 = Vector3.ZERO
 var combat_initial_pitch: float = 0.0
 var combat_falling: bool = false
 var combat_hit_sequence: int = 0
@@ -212,6 +214,10 @@ func _ready():
 	actor.add_child(visual)
 	visual.rotation.y = PI
 	skeleton = visual.find_children("*","Skeleton3D",true,false)[0]
+	ragdoll = preload("res://combat_ragdoll.gd").new()
+	ragdoll.name = "RagdollController"
+	add_child(ragdoll)
+	ragdoll.setup(skeleton)
 	var damage_system = preload("res://combat_damage.gd").new()
 	damage_system.name = "DamageSystem"
 	add_child(damage_system)
@@ -684,6 +690,7 @@ func combat_react(region: String, amount: float, remaining: float) -> void:
 func combat_die(region: String) -> void:
 	combat_dead = true
 	combat_death_time = 0.0
+	combat_last_velocity = actor.velocity
 	combat_initial_pitch = visual.rotation.x
 	punch_pending = false
 	flight_enabled = false
@@ -693,6 +700,9 @@ func combat_die(region: String) -> void:
 
 func update_combat_fall(dt: float) -> void:
 	combat_death_time += dt
+	if ragdoll != null and ragdoll.active:
+		# The physics bones are authoritative after the animation handoff.
+		return
 	tree.advance(dt)
 	actor.velocity.x = move_toward(actor.velocity.x,0.0,dt*8.0)
 	actor.velocity.z = move_toward(actor.velocity.z,0.0,dt*8.0)
@@ -701,14 +711,19 @@ func update_combat_fall(dt: float) -> void:
 	else:
 		actor.velocity.y = -0.1
 	actor.move_and_slide()
-	# CharacterBody stays an upright physics capsule; the rendered character
-	# rolls prone separately, including during airborne death.
-	var landing_progress: float = smoothstep(0.0,0.9,combat_death_time)
-	var prone_angle: float = -PI*0.5
-	visual.rotation.x = lerpf(combat_initial_pitch,prone_angle,landing_progress)
-	# Lift the horizontal mesh pivot to keep the corpse above the floor.
-	visual.position.y = 0.86*sin(absf(visual.rotation.x))
 	apply_movement_clip(dt)
+	if combat_death_time >= 0.35 and ragdoll != null:
+		# Disable the upright capsule before enabling limb collision.
+		actor.collision_layer = 0
+		actor.collision_mask = 0
+		ragdoll.activate(combat_last_velocity)
+		if ragdoll.active:
+			tree.active = false
+			print("[RAGDOLL] ",name," physical simulation started")
+		else:
+			# Fallback only if this model lacks usable physical bones.
+			visual.rotation.x = lerpf(combat_initial_pitch,-PI*0.5,smoothstep(0.0,0.9,combat_death_time))
+			visual.position.y = 0.86*sin(absf(visual.rotation.x))
 
 func update_sky_target(dt: float) -> void:
 	tree.advance(dt)
