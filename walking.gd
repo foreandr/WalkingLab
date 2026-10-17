@@ -41,6 +41,9 @@ var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
 var squat_amount: float = 0.0
 var squat_key_down: bool = false
+var squat_hold_seconds: float = 0.0
+const SQUAT_MAX_CHARGE_SECONDS: float = 2.0
+const SQUAT_MAX_HOP_IMPULSE: float = 7.0
 const SQUAT_HOP_IMPULSE: float = 3.0
 const SQUAT_BLEND_SPEED: float = 1.8
 var debug_tick: float = 0.0
@@ -459,6 +462,7 @@ func _physics_process(dt):
 	if player_controlled:
 		var want_squat: bool = (squat_key_down or Input.is_physical_key_pressed(KEY_SPACE)) and not flight_enabled
 		squat_amount = move_toward(squat_amount,1.0 if want_squat else 0.0,step*SQUAT_BLEND_SPEED)
+		if want_squat: squat_hold_seconds = minf(squat_hold_seconds+step,SQUAT_MAX_CHARGE_SECONDS)
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
@@ -1316,9 +1320,10 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.keycode == KEY_SPACE:
 			if not event.pressed and squat_key_down and squat_amount > 0.12 and not flight_enabled and actor.is_on_floor():
-				vertical_jump_speed = SQUAT_HOP_IMPULSE
-				debug_player("SQUAT_HOP","release impulse="+str(SQUAT_HOP_IMPULSE))
+				vertical_jump_speed = lerpf(SQUAT_HOP_IMPULSE,SQUAT_MAX_HOP_IMPULSE,clampf(squat_hold_seconds/SQUAT_MAX_CHARGE_SECONDS,0.0,1.0))
+				debug_player("SQUAT_HOP","hold="+str(snappedf(squat_hold_seconds,0.01))+" impulse="+str(vertical_jump_speed))
 			squat_key_down = event.pressed
+			if event.pressed and not event.echo: squat_hold_seconds = 0.0
 			if not event.echo: debug_player("SQUAT_KEY","pressed="+str(event.pressed))
 		if event is InputEventKey and event.pressed and not event.echo:
 			debug_player("KEY_DOWN",OS.get_keycode_string(event.keycode)+" grounded="+str(actor.is_on_floor())+" flying="+str(flight_enabled)+" crouch="+str(crouch.active()))
