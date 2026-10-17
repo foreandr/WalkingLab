@@ -39,14 +39,10 @@ var manual_launch_lock = false
 var manual_sprint_clock = 0.0
 var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
-var single_jump_clip: Dictionary = {}
-var jump_play_time: float = -1.0
-var jump_airborne_seen: bool = false
 var jump_windup_time: float = -1.0
 const JUMP_WINDUP_SECONDS: float = 0.65
 var debug_tick: float = 0.0
 var last_debug_state: String = ""
-var jump_pose_reported: bool = false
 var vertical_jump_speed: float = 0.0
 const SIMPLE_JUMP_IMPULSE: float = 6.0
 const SIMPLE_JUMP_GRAVITY: float = 18.0
@@ -466,9 +462,6 @@ func _physics_process(dt):
 			if jump_windup_time >= JUMP_WINDUP_SECONDS:
 				jump_windup_time = -1.0
 				vertical_jump_speed = SIMPLE_JUMP_IMPULSE
-				jump_play_time = 0.0
-				jump_airborne_seen = false
-				jump_pose_reported = false
 				debug_player("JUMP_TAKEOFF","impulse="+str(SIMPLE_JUMP_IMPULSE))
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
@@ -571,7 +564,6 @@ func _physics_process(dt):
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		apply_flight_pose(step)
 	if player_controlled and not flight_enabled:
-		apply_single_jump_pose(step)
 		apply_jump_windup_pose()
 	if player_controlled:
 		debug_tick += step
@@ -581,7 +573,7 @@ func _physics_process(dt):
 			if state != last_debug_state:
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
-			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" jump_time="+str(snappedf(jump_play_time,0.01))+" jump_loaded="+str(not single_jump_clip.is_empty())+" animation="+(str(single_jump_clip.get("file","")) if jump_play_time>=0.0 and not single_jump_clip.is_empty() else "ground/flight")+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
+			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" windup="+str(snappedf(jump_windup_time,0.01))+" animation=procedural_jump"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
@@ -645,20 +637,8 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
-	if player_controlled and not flight_enabled:
-		if jump_play_time >= 0.0 and not actor.is_on_floor():
-			jump_airborne_seen = true
-		elif actor.is_on_floor():
-			vertical_jump_speed = 0.0
-			if jump_airborne_seen and jump_play_time >= 0.0:
-				debug_player("JUMP_LANDED","cancel_animation_at="+str(snappedf(jump_play_time,0.01))+" -> ground animation")
-				jump_play_time = -1.0
-				jump_airborne_seen = false
-				# The FBX pose was applied earlier in this physics tick.
-				# Re-evaluate the regular animation tree immediately on contact,
-				# rather than leaving the airborne skeleton pose for another frame.
-				tree.advance(0.001)
-				skeleton.force_update_all_bone_transforms()
+	if player_controlled and not flight_enabled and actor.is_on_floor():
+		vertical_jump_speed = 0.0
 	if flight_clearance_time > 0.0: flight_clearance_time = maxf(0.0,flight_clearance_time-step)
 	if player_controlled and flight_enabled and flight_launch_remaining <= 0.0 and actor.velocity.y <= 0.0:
 		# Only land while approaching the floor, never on launch or ascent.
@@ -1077,7 +1057,7 @@ func adjust_jab_arm() -> void:
 
 func load_flight_clips() -> void:
 
-	for filename in ["Flying (1).fbx","Jump.fbx"]:
+	for filename in ["Flying (1).fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path):
 			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
@@ -1123,11 +1103,7 @@ func load_flight_clips() -> void:
 					keys.append({"time":selected.track_get_key_time(t,k),"rot":(correction*selected.track_get_key_value(t,k)*correction.inverse()).normalized()})
 				if not keys.is_empty(): curves.append({"bone":dst_index,"keys":keys})
 			if not curves.is_empty():
-				if filename == "Jump.fbx":
-					single_jump_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
-					if player_controlled: debug_player("JUMP_SELECTED",filename)
-				elif filename == "Flying (1).fbx":
-					flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
+				flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				if player_controlled: debug_player("ANIMATION_LOADED",filename+" tracks="+str(curves.size())+" seconds="+str(selected.length))
 		root.free()
 	if flying_clip.is_empty():
@@ -1174,6 +1150,10 @@ func apply_jump_windup_pose() -> void:
 	for i in range(skeleton.get_bone_count()):
 		var name: String = normalized_idle_bone(String(skeleton.get_bone_name(i)))
 		var angle: float = 0.0
+		if name == "hips":
+			var start_position: Vector3 = skeleton.get_bone_pose_position(i)
+			skeleton.set_bone_pose_position(i,start_position+Vector3.DOWN*0.42*bend)
+			continue
 		if name == "leftupleg" or name == "rightupleg":
 			angle = 0.9*bend
 		elif name == "leftleg" or name == "rightleg":
@@ -1184,22 +1164,6 @@ func apply_jump_windup_pose() -> void:
 			continue
 		var base: Quaternion = skeleton.get_bone_pose_rotation(i)
 		skeleton.set_bone_pose_rotation(i,(base*Quaternion(Vector3.RIGHT,angle)).normalized())
-	skeleton.force_update_all_bone_transforms()
-
-func apply_single_jump_pose(dt: float) -> void:
-	if jump_play_time < 0.0: return
-	if single_jump_clip.is_empty():
-		if player_controlled and not jump_pose_reported:
-			debug_player("JUMP_ANIMATION_MISSING","Jump.fbx did not load")
-			jump_pose_reported = true
-		return
-	# Do not cram a 2.6 second animation into a 0.67 second jump.
-	# Play its original frames while airborne and stop on physical landing.
-	jump_play_time += dt
-	var source_time: float = minf(jump_play_time,float(single_jump_clip["length"]))
-	for entry in single_jump_clip["curves"]:
-		var bone: int = int(entry["bone"])
-		skeleton.set_bone_pose_rotation(bone,sample_flight_curve(entry["keys"],source_time))
 	skeleton.force_update_all_bone_transforms()
 
 func apply_flight_pose(dt: float) -> void:
@@ -1385,7 +1349,6 @@ func _unhandled_input(event):
 				if flight_enabled:
 					jump_windup_time = -1.0
 					flight_acceleration_time = 0.0
-					jump_play_time = -1.0
 					vertical_jump_speed = 0.0
 					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
 					flight_clearance_time = 1.0
