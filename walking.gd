@@ -564,7 +564,7 @@ func _physics_process(dt):
 			if state != last_debug_state:
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
-			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" jump_time="+str(snappedf(jump_play_time,0.01))+" jump_loaded="+str(not single_jump_clip.is_empty())+" animation="+("Jump(2).fbx" if jump_play_time>=0.0 and not single_jump_clip.is_empty() else "ground/flight")+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
+			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" jump_time="+str(snappedf(jump_play_time,0.01))+" jump_loaded="+str(not single_jump_clip.is_empty())+" animation="+(str(single_jump_clip.get("file","")) if jump_play_time>=0.0 and not single_jump_clip.is_empty() else "ground/flight")+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
@@ -1041,7 +1041,7 @@ func adjust_jab_arm() -> void:
 
 func load_flight_clips() -> void:
 
-	for filename in ["Flying (1).fbx","Jump(2).fbx"]:
+	for filename in ["Flying (1).fbx","Jump(2).fbx","Jump.fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path):
 			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
@@ -1087,8 +1087,9 @@ func load_flight_clips() -> void:
 					keys.append({"time":selected.track_get_key_time(t,k),"rot":(correction*selected.track_get_key_value(t,k)*correction.inverse()).normalized()})
 				if not keys.is_empty(): curves.append({"bone":dst_index,"keys":keys})
 			if not curves.is_empty():
-				if filename == "Jump(2).fbx":
+				if filename == "Jump(2).fbx" or (filename == "Jump.fbx" and single_jump_clip.is_empty()):
 					single_jump_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
+					if player_controlled: debug_player("JUMP_SELECTED",filename)
 				elif filename == "Flying (1).fbx":
 					flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				if player_controlled: debug_player("ANIMATION_LOADED",filename+" tracks="+str(curves.size())+" seconds="+str(selected.length))
@@ -1132,7 +1133,7 @@ func apply_single_jump_pose(dt: float) -> void:
 	if jump_play_time < 0.0: return
 	if single_jump_clip.is_empty():
 		if player_controlled and not jump_pose_reported:
-			debug_player("JUMP_ANIMATION_MISSING","Jump(2).fbx did not load; no pose applied")
+			debug_player("JUMP_ANIMATION_MISSING","Neither Jump(2).fbx nor Jump.fbx loaded")
 			jump_pose_reported = true
 		return
 	# Exactly one imported FBX, sampled once from beginning to end.
