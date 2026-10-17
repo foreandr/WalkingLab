@@ -13,6 +13,13 @@ func _physics_process(delta: float) -> void:
 	var space: PhysicsDirectSpaceState3D = projectile.get_world_3d().direct_space_state
 	var ray := PhysicsRayQueryParameters3D.create(projectile.global_position, projectile.global_position + displacement)
 	if owner_rid.is_valid(): ray.exclude = [owner_rid]
+	# The spectator is not a combatant and cannot obstruct AI shots.
+	var scene: Node = projectile.get_tree().current_scene
+	if scene != null and scene.get("battle_fireball_speed") != null:
+		var spectator: Node = scene.get_node_or_null("PlayerMan")
+		if spectator != null:
+			var spectator_body: CharacterBody3D = spectator.get("actor") as CharacterBody3D
+			if spectator_body != null: ray.exclude.append(spectator_body.get_rid())
 	var hit: Dictionary = space.intersect_ray(ray)
 	if not hit.is_empty():
 		var victim: Object = hit.get("collider")
