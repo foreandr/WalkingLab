@@ -498,7 +498,7 @@ func make_standing_idle(player: AnimationPlayer):
 		destination_paths[n] = target_path
 	var library = AnimationLibrary.new()
 	idle_variants.clear()
-	var wanted = ["Idle (3).fbx", "Idle (2).fbx", "Offensive Idle.fbx", "Neutral Idle.fbx"]
+	var wanted = ["Breathing Idle.fbx", "Idle (2).fbx", "Offensive Idle.fbx", "Neutral Idle.fbx"]
 	for filename in wanted:
 		var path = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(path): continue
@@ -562,7 +562,7 @@ func make_standing_idle(player: AnimationPlayer):
 							break
 					idle.rotation_track_insert_key(out,0.0,upright)
 					idle.rotation_track_insert_key(out,idle.length,upright)
-				elif filename == "Idle (3).fbx" and (n.begins_with("spine") or n == "neck" or n == "head"):
+				elif filename == "Neutral Idle.fbx" and (n.begins_with("spine") or n == "neck" or n == "head"):
 					# Keep the imported idle upright on the destination skeleton.
 					# Use the proven upright Y Bot torso/head orientation only for
 					# these joints; keep its arms and other motion as imported.
@@ -579,7 +579,7 @@ func make_standing_idle(player: AnimationPlayer):
 						idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
 				tracks += 1
 			if tracks >= 12:
-				var id = "Idle3" if filename == "Idle (3).fbx" else ("Idle1" if filename == "Idle (2).fbx" else ("Idle2" if filename == "Offensive Idle.fbx" else "Idle0"))
+				var id = "BreathingIdle" if filename == "Breathing Idle.fbx" else ("Idle1" if filename == "Idle (2).fbx" else ("Idle2" if filename == "Offensive Idle.fbx" else "Idle0"))
 				library.add_animation(id,idle)
 				idle_variants.append("manual/"+id)
 				print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
@@ -587,7 +587,7 @@ func make_standing_idle(player: AnimationPlayer):
 				print("IDLE_REJECTED ",filename," mapped_tracks=",tracks)
 		root.free()
 	if idle_variants.is_empty():
-		push_warning("No compatible Mixamo idle FBX installed; using fallback pose. Place Idle (3).fbx in Downloads to try Idle3.")
+		push_warning("No compatible idle FBX installed; put Breathing Idle.fbx in Downloads and rerun RUN.bat.")
 		var fallback = Animation.new()
 		fallback.length = 1.0
 		fallback.loop_mode = Animation.LOOP_LINEAR
@@ -820,7 +820,7 @@ func throw_left_jab() -> void:
 	print("ARM_REACH ",controlled_arm)
 
 func choose_random_idle():
-	# Historical name retained for existing callers. Fixed best available idle (Idle3 preferred); never swap.
+	# Historical name retained for existing callers. Breathing Idle preferred for everyone; never swap.
 	if idle_variants.is_empty() or crouch.standing_idle_node == null: return
 	var chosen: String = idle_variants[0]
 	if String(crouch.standing_idle_node.animation) == chosen: return
