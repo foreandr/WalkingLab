@@ -438,7 +438,7 @@ func _physics_process(dt):
 	update_camera()
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nRight drag camera  |  Tab watch AI\nFront-only aiming: wider lateral arm movement, torso-safe elbows" % [player_state,speed]
+		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nRight drag camera  |  Tab watch AI\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
@@ -759,40 +759,27 @@ func adjust_jab_arm() -> void:
 	var wrist: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand).origin
 	var reach = shoulder.distance_to(elbow) + elbow.distance_to(wrist)
 	if reach < 0.1: return
-	# Find where the mouse ray passes closest to the shoulder, not a fixed
-	# point 20m away. The arm reaches along this direction at its own scale.
-	var cursor = get_viewport().get_mouse_position()
-	var eye: Vector3 = camera.project_ray_origin(cursor)
-	var ray: Vector3 = camera.project_ray_normal(cursor)
-	var depth = maxf(3.0,(shoulder-eye).dot(ray))
-	var aim_point = eye + ray * depth
-	var direction: Vector3 = (aim_point-shoulder).normalized()
-	if direction.length_squared() < 0.5: return
-	# Hard front-only hemisphere, but full lateral sweep IN FRONT of the chest.
-	# Across-body aiming is permitted only when the target is forward enough
-	# to avoid passing a hand or elbow through the torso.
-	var actor_space: Vector3 = actor.global_basis.inverse() * direction
-	actor_space.z = minf(actor_space.z, -0.45)
-	actor_space = actor_space.normalized()
-	direction = (actor.global_basis * actor_space).normalized()
-	# Mouse movement controls aim continuously. Clicking extends the hand
-	# along that SAME ray and retracts it, without competing FBX arm keys.
-	var elapsed = clampf(0.45-jab_aim_remaining,0.0,0.45)
-	var punch = 0.0
-	if jab_aim_remaining > 0.0:
-		punch = smoothstep(0.0,0.14,elapsed)*(1.0-smoothstep(0.23,0.43,elapsed))
-	var distance_to_goal = reach * lerpf(0.60,0.94,punch)
-	var goal_world = shoulder + direction * distance_to_goal
-	# Guard the actual goal against entering the torso volume.
-	var actor_goal: Vector3 = actor.global_transform.affine_inverse() * goal_world
+	# Shift selects an arm. Its wrist target lives on a fixed plane in
+	# actor-local XY, with Z permanently in FRONT of the body (-Z).
+	# Screen mouse positions move it freely horizontally and vertically.
+	# Do not derive target depth from the camera ray.
+	var bounds: Vector2 = get_viewport().get_visible_rect().size
+	var cursor: Vector2 = get_viewport().get_mouse_position()
+	var nx: float = clampf(cursor.x / maxf(bounds.x,1.0) * 2.0 - 1.0,-1.0,1.0)
+	var ny: float = clampf(1.0 - cursor.y / maxf(bounds.y,1.0) * 2.0,-1.0,1.0)
 	var side_sign: float = 1.0 if controlled_arm == "right" else -1.0
-	# A crossing wrist may pass over the centre only out in front of the ribs.
-	if actor_goal.x * side_sign < 0.31:
-		actor_goal.z = minf(actor_goal.z, -0.55)
-	actor_goal.z = minf(actor_goal.z, -0.24)
-	goal_world = actor.global_transform * actor_goal
+	# Each hand can sweep across the centre line without ever moving behind it.
+	# Scale horizontal travel to the actual arm length, not a screen-pixel radius.
+	var horizontal: float = nx * reach * 0.80
+	var height: float = 1.32 + ny * reach * 0.75
+	# The forearm must have room to clear the ribcage when crossing the centre.
+	var crossing: bool = horizontal * side_sign < 0.20
+	var safe_front: float = maxf(0.55,reach * 0.65) if crossing else maxf(0.46,reach * 0.52)
+	var goal_actor := Vector3(horizontal,clampf(height,0.42,2.15),-safe_front)
+	# Clicking does not push the hand into or away from the chest.
+	var goal_world: Vector3 = actor.global_transform * goal_actor
 	var goal_local: Vector3 = skeleton.global_transform.affine_inverse() * goal_world
-	# IK is the sole driver of left-arm aim; the punch changes only reach.
+	# The selected arm follows an XY target on a depth-locked plane.
 	var influence = jab_aim_strength
 	if influence < 0.002: return
 	# Solve the upper arm first. The elbow is kept outside the torso, not
@@ -810,8 +797,8 @@ func adjust_jab_arm() -> void:
 		var safe_side: float = 1.0 if controlled_arm == "right" else -1.0
 		# Permit lateral and even across-centre reach only in FRONT of the chest.
 		# The elbow remains safely outside the body or forward of its front face.
-		var elbow_clear: bool = (elbow_actor.x * safe_side >= 0.18 or elbow_actor.z <= -0.38) and elbow_actor.z <= 0.08
-		var hand_clear: bool = hand_actor.z <= -0.22 and (hand_actor.x * safe_side >= 0.20 or hand_actor.z <= -0.48)
+		var elbow_clear: bool = (elbow_actor.x * safe_side >= 0.14 or elbow_actor.z <= -0.36) and elbow_actor.z <= 0.08
+		var hand_clear: bool = hand_actor.z <= -0.24 and (hand_actor.x * safe_side >= 0.14 or hand_actor.z <= -0.46)
 		if elbow_clear and hand_clear:
 			base_arm = skeleton.get_bone_pose_rotation(arm)
 			base_forearm = skeleton.get_bone_pose_rotation(forearm)
