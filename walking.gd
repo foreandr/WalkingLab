@@ -11,6 +11,10 @@ var jab_aim_target := Vector3.ZERO
 var jab_left_arm := -1
 var jab_left_forearm := -1
 var jab_left_hand := -1
+var jab_right_arm := -1
+var jab_right_forearm := -1
+var jab_right_hand := -1
+var controlled_arm := "right"
 var jab_aim_strength := 0.0
 var cursor_reticle: Control
 var was_moving_for_idle := false
@@ -176,7 +180,7 @@ func _ready():
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
 	graph.connect_node("Cadence",0,"Direction")
 	crouch.setup(self,player,graph)
-	if player_controlled: install_left_jab(player,graph)
+	
 	if player_controlled or stationary_only: choose_random_idle()
 	print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
@@ -191,6 +195,9 @@ func _ready():
 			if bone_label == "leftarm": jab_left_arm = bone_i
 			if bone_label == "leftforearm": jab_left_forearm = bone_i
 			if bone_label == "lefthand": jab_left_hand = bone_i
+			if bone_label == "rightarm": jab_right_arm = bone_i
+			if bone_label == "rightforearm": jab_right_forearm = bone_i
+			if bone_label == "righthand": jab_right_hand = bone_i
 		print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
@@ -251,7 +258,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Hold Shift to build sprint | Ctrl walk | C crouch | V AI showcase | Tab watch AI | Right-drag camera"
+		controls.text = "WASD move | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Right-drag camera"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func smooth_gait(t: float) -> float:
@@ -741,12 +748,15 @@ func rotate_arm_joint_toward(bone: int, hand: int, goal: Vector3, weight: float)
 func adjust_jab_arm() -> void:
 	# Fist-directed two-bone IK, layered over the original Mixamo jab.
 	# The actor, pelvis, torso and both legs remain completely untouched.
-	if jab_left_arm < 0 or jab_left_forearm < 0 or jab_left_hand < 0: return
+	var arm = jab_right_arm if controlled_arm == "right" else jab_left_arm
+	var forearm = jab_right_forearm if controlled_arm == "right" else jab_left_forearm
+	var hand = jab_right_hand if controlled_arm == "right" else jab_left_hand
+	if arm < 0 or forearm < 0 or hand < 0: return
 	if jab_aim_strength < 0.001: return
 	skeleton.force_update_all_bone_transforms()
-	var shoulder: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(jab_left_arm).origin
-	var elbow: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(jab_left_forearm).origin
-	var wrist: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(jab_left_hand).origin
+	var shoulder: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(arm).origin
+	var elbow: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(forearm).origin
+	var wrist: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand).origin
 	var reach = shoulder.distance_to(elbow) + elbow.distance_to(wrist)
 	if reach < 0.1: return
 	# Find where the mouse ray passes closest to the shoulder, not a fixed
@@ -771,19 +781,17 @@ func adjust_jab_arm() -> void:
 	var influence = jab_aim_strength
 	if influence < 0.002: return
 	for iteration in range(3):
-		rotate_arm_joint_toward(jab_left_forearm,jab_left_hand,goal_local,influence)
-		rotate_arm_joint_toward(jab_left_arm,jab_left_hand,goal_local,influence)
+		rotate_arm_joint_toward(forearm,hand,goal_local,influence)
+		rotate_arm_joint_toward(arm,hand,goal_local,influence)
 	skeleton.force_update_all_bone_transforms()
 
 func throw_left_jab() -> void:
-	if not jab_ready or jab_cooldown > 0.0: return
-	if crouch.active(): return
-	# Aim follows the on-screen mouse crosshair continuously.
+	# Procedural reach only. No imported punching animation.
+	if jab_cooldown > 0.0 or crouch.active(): return
 	update_cursor_aim()
 	jab_aim_remaining = 0.45
-	tree.set("parameters/JabOneShot/request",AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
-	jab_cooldown = 0.4
-	print("LEFT_JAB_TRIGGERED")
+	jab_cooldown = 0.45
+	print("ARM_REACH ",controlled_arm)
 
 func choose_random_idle():
 	if idle_variants.is_empty() or crouch.standing_idle_node == null: return
@@ -799,6 +807,9 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_C: crouch.toggle()
+			if event.keycode==KEY_SHIFT:
+				controlled_arm = "left" if controlled_arm == "right" else "right"
+				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
 			orbit -= event.relative.x*0.006
