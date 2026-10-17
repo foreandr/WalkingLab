@@ -43,6 +43,9 @@ const JUMP_PREP_TIME: float = 0.32
 var jump_prep_remaining: float = -1.0
 var jump_thighs: Array[int] = []
 var jump_calves: Array[int] = []
+var jump_clips: Array[Dictionary] = []
+var flight_enabled: bool = false
+const FLIGHT_SPEED: float = 7.0
 var camera_sensitivity: float = 1.0
 var jump_power: float = 6.0
 var fireball_speed_scale: float = 1.0
@@ -223,6 +226,7 @@ func _ready():
 			if bone_label in ["leftupleg","rightupleg","leftthigh","rightthigh"]: jump_thighs.append(bone_i)
 			if bone_label in ["leftleg","rightleg","leftcalf","rightcalf"]: jump_calves.append(bone_i)
 		print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
+	if player_controlled: load_jump_clips()
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
@@ -283,7 +287,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Space jump | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fire / 2 water"
+		controls.text = "WASD move | Space jump | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fire / 2 water / 3 fly"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func install_options_menu(canvas: CanvasLayer) -> void:
@@ -499,7 +503,15 @@ func _physics_process(dt):
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
 	if player_controlled:
-		if jump_requested and actor.is_on_floor() and not crouch.active() and jump_prep_remaining < 0.0:
+		if flight_enabled:
+			jump_requested = false
+			jump_prep_remaining = -1.0
+			jump_velocity = 0.0
+			var altitude_input: float = float(Input.is_key_pressed(KEY_SPACE))-float(Input.is_key_pressed(KEY_CTRL))
+			actor.velocity.y = altitude_input * FLIGHT_SPEED
+		else:
+			actor.velocity.y = jump_velocity
+		if not flight_enabled and jump_requested and actor.is_on_floor() and not crouch.active() and jump_prep_remaining < 0.0:
 			jump_prep_remaining = JUMP_PREP_TIME
 		jump_requested = false
 		if jump_prep_remaining >= 0.0:
@@ -510,12 +522,13 @@ func _physics_process(dt):
 				if jump_prep_remaining < 0.0:
 					jump_velocity = jump_power
 					jump_phase = 0.0
-		jump_velocity -= 18.0 * step
-		actor.velocity.y = jump_velocity
+		if not flight_enabled:
+			jump_velocity -= 18.0 * step
+			actor.velocity.y = jump_velocity
 	else:
 		actor.velocity.y = -0.3
 	actor.move_and_slide()
-	if player_controlled:
+	if player_controlled and not flight_enabled:
 		jump_velocity = actor.velocity.y
 		if actor.is_on_floor() and jump_velocity <= 0.0:
 			jump_velocity = 0.0
@@ -530,7 +543,7 @@ func _physics_process(dt):
 	update_camera()
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Space jump | Settings: top-right cog\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed]
+		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Space jump / rise | Ctrl descend in flight | 3 fly toggle | Settings: top-right cog\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
@@ -911,24 +924,93 @@ func adjust_jab_arm() -> void:
 	# Keep Godot bone transforms synchronized for foot solver and skinning.
 	skeleton.force_update_all_bone_transforms()
 
+func load_jump_clips() -> void:
+	# Mixamo jump takes are supplied locally, never approximated by rotating
+	# knee joints the wrong way. Cache mapped rotation curves per clip.
+	for filename in ["Jumping.fbx","Jump.fbx"]:
+		var resource_path: String = "res://assets/custom_idle/" + filename
+		if not ResourceLoader.exists(resource_path): continue
+		var packed = load(resource_path)
+		if not packed is PackedScene: continue
+		var root = packed.instantiate()
+		var rigs = root.find_children("*","Skeleton3D",true,false)
+		var animators = root.find_children("*","AnimationPlayer",true,false)
+		if rigs.is_empty() or animators.is_empty():
+			root.free()
+			continue
+		var source_rig: Skeleton3D = rigs[0]
+		var selected: Animation = null
+		for animation_player in animators:
+			for animation_name in animation_player.get_animation_list():
+				if animation_name == "RESET": continue
+				var candidate: Animation = animation_player.get_animation(animation_name)
+				if selected == null or candidate.get_track_count() > selected.get_track_count():
+					selected = candidate
+		if selected != null:
+			var curves: Array = []
+			for t in range(selected.get_track_count()):
+				if selected.track_get_type(t) != Animation.TYPE_ROTATION_3D: continue
+				var track_path: NodePath = selected.track_get_path(t)
+				if track_path.get_subname_count() == 0: continue
+				var bone_label: String = normalized_idle_bone(String(track_path.get_subname(track_path.get_subname_count()-1)))
+				# Only legs; original locomotion owns the upper body and arms.
+				if not (bone_label.contains("upleg") or bone_label.contains("leg") or bone_label.contains("foot") or bone_label.contains("toe")): continue
+				var src_index: int = -1
+				var dst_index: int = -1
+				for bi in range(source_rig.get_bone_count()):
+					if normalized_idle_bone(String(source_rig.get_bone_name(bi))) == bone_label: src_index = bi
+				for bi in range(skeleton.get_bone_count()):
+					if normalized_idle_bone(String(skeleton.get_bone_name(bi))) == bone_label: dst_index = bi
+				if src_index < 0 or dst_index < 0: continue
+				var source_rest: Quaternion = source_rig.get_bone_rest(src_index).basis.get_rotation_quaternion()
+				var target_rest: Quaternion = skeleton.get_bone_rest(dst_index).basis.get_rotation_quaternion()
+				var correction: Quaternion = (target_rest.inverse()*source_rest).normalized()
+				var keys: Array = []
+				for k in range(selected.track_get_key_count(t)):
+					keys.append({"time":selected.track_get_key_time(t,k),"rot":(correction*selected.track_get_key_value(t,k)*correction.inverse()).normalized()})
+				if not keys.is_empty(): curves.append({"bone":dst_index,"keys":keys})
+			if not curves.is_empty():
+				jump_clips.append({"file":filename,"length":maxf(selected.length,0.001),"curves":curves})
+				print("JUMP_CLIP_READY ",filename," tracks=",curves.size()," duration=",selected.length)
+		root.free()
+
+func sample_jump_curve(keys: Array, time: float) -> Quaternion:
+	if keys.size() == 1 or time <= float(keys[0]["time"]): return keys[0]["rot"]
+	for n in range(1,keys.size()):
+		if time <= float(keys[n]["time"]):
+			var before: Dictionary = keys[n-1]
+			var after: Dictionary = keys[n]
+			var fraction: float = clampf((time-float(before["time"]))/maxf(float(after["time"])-float(before["time"]),0.0001),0.0,1.0)
+			var q1: Quaternion = before["rot"]
+			var q2: Quaternion = after["rot"]
+			return q1.slerp(q2,fraction)
+	return keys[keys.size()-1]["rot"]
+
 func apply_jump_pose(dt: float) -> void:
-	# Smooth local leg animation layered over the existing gait clips.
-	# Takeoff tuck, airborne hold and soft landing blend independently.
-	var airborne: bool = jump_velocity > 0.1 or not actor.is_on_floor()
-	var desired: float = 1.0 if airborne else 0.0
-	# Deep, dramatic 320 ms anticipation squat before takeoff.
+	var airborne: bool = flight_enabled or jump_velocity > 0.1 or not actor.is_on_floor()
 	var prep: float = 0.0
-	if jump_prep_remaining >= 0.0:
-		prep = sin(PI * (1.0-jump_prep_remaining/JUMP_PREP_TIME) * 0.5)
-	jump_pose = move_toward(jump_pose,desired,dt*(8.0 if airborne else 6.0))
+	if jump_prep_remaining >= 0.0 and not flight_enabled:
+		prep = clampf(1.0-jump_prep_remaining/JUMP_PREP_TIME,0.0,1.0)
+	var desired: float = 1.0 if airborne else 0.0
+	jump_pose = move_toward(jump_pose,desired,dt*(7.0 if airborne else 5.0))
 	if jump_pose < 0.002 and prep < 0.002: return
-	var knee_bend: float = 0.43 * smooth_gait(jump_pose) + 1.10 * prep
-	for thigh in jump_thighs:
-		var q: Quaternion = skeleton.get_bone_pose_rotation(thigh)
-		skeleton.set_bone_pose_rotation(thigh,(q * Quaternion(Vector3.RIGHT,-0.26*jump_pose - 0.75*prep)).normalized())
-	for calf in jump_calves:
-		var q: Quaternion = skeleton.get_bone_pose_rotation(calf)
-		skeleton.set_bone_pose_rotation(calf,(q * Quaternion(Vector3.RIGHT,knee_bend)).normalized())
+	if not jump_clips.is_empty():
+		# Jumping.fbx: crouch/preparation. Jump.fbx: actual airborne jump.
+		var clip: Dictionary = jump_clips[0] if prep > 0.0 else jump_clips[jump_clips.size()-1]
+		var normalized: float = prep if prep > 0.0 else clampf(jump_pose,0.0,1.0)
+		var moment: float = normalized * float(clip["length"]) * (0.42 if prep > 0.0 else 0.85)
+		var blend_weight: float = clampf(prep*2.0 if prep > 0.0 else jump_pose,0.0,1.0)
+		for entry in clip["curves"]:
+			var bone: int = entry["bone"]
+			var target: Quaternion = sample_jump_curve(entry["keys"],moment)
+			var current: Quaternion = skeleton.get_bone_pose_rotation(bone)
+			skeleton.set_bone_pose_rotation(bone,current.slerp(target,blend_weight))
+	else:
+		# Conservative backup only if the actual uploaded FBX clips are absent.
+		var bend: float = 0.22 * prep
+		for thigh in jump_thighs:
+			var q: Quaternion = skeleton.get_bone_pose_rotation(thigh)
+			skeleton.set_bone_pose_rotation(thigh,(q*Quaternion(Vector3.RIGHT,bend)).normalized())
 	skeleton.force_update_all_bone_transforms()
 
 func throw_left_jab() -> void:
@@ -1031,7 +1113,13 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_C: crouch.toggle()
-			if event.keycode==KEY_SPACE: jump_requested = true
+			if event.keycode==KEY_SPACE and not flight_enabled: jump_requested = true
+			if event.keycode==KEY_3:
+				flight_enabled = not flight_enabled
+				jump_requested = false
+				jump_prep_remaining = -1.0
+				jump_velocity = 0.0
+				print("FLIGHT_ENABLED ",flight_enabled)
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode==KEY_1: cast_fireball()
 			if event.keycode==KEY_2: cast_water()
