@@ -31,26 +31,13 @@ for %%F in ("%USERPROFILE%\Downloads\*Idle*.fbx" "%USERPROFILE%\Downloads\*idle*
         )
     )
 )
-rem Import the user's sole ground jump animation, exactly as supplied.
-for %%F in ("%USERPROFILE%\Downloads\Jump(2).fbx" "%USERPROFILE%\Desktop\Jump(2).fbx") do (
+rem Import the one selected jump animation from local Downloads or Desktop.
+for %%F in ("%USERPROFILE%\Downloads\Jump.fbx" "%USERPROFILE%\Desktop\Jump.fbx") do (
     if exist "%%~fF" (
-        if not exist "assets\custom_idle\Jump(2).fbx" (
-            echo Found selected jump animation: %%~nxF
-            copy /Y "%%~fF" "assets\custom_idle\Jump(2).fbx" >nul
+        if not exist "assets\custom_idle\Jump.fbx" (
+            echo Found jump animation
+            copy /Y "%%~fF" "assets\custom_idle\Jump.fbx" >nul
             set "IDLE_NEW=1"
-        )
-    )
-)
-rem Fall back to the previously supplied Jump.fbx from Downloads or Desktop.
-rem This does not pretend Jump.fbx is the newer Jump(2).fbx animation.
-if not exist "assets\custom_idle\Jump(2).fbx" (
-    for %%F in ("%USERPROFILE%\Downloads\Jump.fbx" "%USERPROFILE%\Desktop\Jump.fbx") do (
-        if exist "%%~fF" (
-            if not exist "assets\custom_idle\Jump.fbx" (
-                echo Found existing jump animation
-                copy /Y "%%~fF" "assets\custom_idle\Jump.fbx" >nul
-                set "IDLE_NEW=1"
-            )
         )
     )
 )
