@@ -47,6 +47,8 @@ var manual_launch_lock = false
 var manual_sprint_clock = 0.0
 var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
+var backward_flying_clip: Dictionary = {}
+var selected_spell_target: CharacterBody3D = null
 var movement_clips: Dictionary = {}
 var movement_clip_name: String = ""
 var movement_clip_time: float = 0.0
@@ -703,7 +705,7 @@ func _physics_process(dt):
 			var camera_right = Vector3(cos(orbit),0,-sin(orbit))
 			var desired = camera_forward*manual_input.y+camera_right*manual_input.x
 			
-			manual_heading = atan2(-desired.x,-desired.z)
+			manual_heading = atan2(-desired.x,-desired.z) if manual_input.y >= 0.0 else atan2(desired.x,desired.z)
 		if not (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)): manual_launch_lock = false
 		if Input.is_action_just_pressed("sprint") and crouch.active():
 			manual_launch_lock = true
@@ -1288,7 +1290,7 @@ func adjust_jab_arm() -> void:
 
 func load_flight_clips() -> void:
 
-	for filename in ["Flying (1).fbx","Jumping Up.fbx"]:
+	for filename in ["Flying (1).fbx","Jumping Up.fbx","Sitting Idle.fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path):
 			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
@@ -1336,6 +1338,8 @@ func load_flight_clips() -> void:
 			if not curves.is_empty():
 				if filename == "Flying (1).fbx":
 					flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
+				elif filename == "Sitting Idle.fbx":
+					backward_flying_clip = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				else:
 					movement_clips[filename] = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				if player_controlled: debug_player("ANIMATION_LOADED",filename+" tracks="+str(curves.size())+" seconds="+str(selected.length))
@@ -1408,7 +1412,7 @@ func apply_flight_pose(dt: float) -> void:
 	flight_idle_weight = move_toward(flight_idle_weight,0.0 if moving else 1.0,dt*4.0)
 	flight_animation_time += dt*0.65
 	flight_idle_time += dt
-	var source: Dictionary = flying_clip
+	var source: Dictionary = backward_flying_clip if player_controlled and manual_input.y < -0.1 and not backward_flying_clip.is_empty() else flying_clip
 	if source.is_empty(): return
 	var moment: float = fmod(flight_animation_time,float(source["length"]))
 	for entry in source["curves"]:
@@ -1486,13 +1490,37 @@ func update_ai_abilities(dt: float) -> void:
 func cast_fireball() -> void:
 	cast_spell("fire")
 
+func selected_target_aim_point() -> Vector3:
+	if selected_spell_target != null and is_instance_valid(selected_spell_target) and camera != null:
+		var target_position: Vector3 = selected_spell_target.global_position + Vector3.UP*1.1
+		var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+		if not camera.is_position_behind(target_position):
+			var screen: Vector2 = camera.unproject_position(target_position)
+			if screen.x >= 0.0 and screen.y >= 0.0 and screen.x <= viewport_size.x and screen.y <= viewport_size.y:
+				return target_position
+	return get_cursor_world_target()
+
+func select_hovered_target() -> void:
+	if camera == null: return
+	var pointer: Vector2 = get_viewport().get_mouse_position()
+	var origin: Vector3 = camera.project_ray_origin(pointer)
+	var direction: Vector3 = camera.project_ray_normal(pointer)
+	var ray: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(origin,origin+direction*200.0)
+	ray.exclude = [actor.get_rid()]
+	var result: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
+	if result.is_empty(): return
+	var hit: Object = result.get("collider")
+	if hit is CharacterBody3D and hit != actor:
+		selected_spell_target = hit as CharacterBody3D
+		debug_player("TARGET_SELECTED",selected_spell_target.name)
+
 func cast_spell(element: String) -> void:
 	# Passive animation until casting; fire uses the same arm thrust.
 	if cast_elapsed >= 0.0 or crouch.active(): return
 	if not ResourceLoader.exists("res://assets/external_vfx/" + element + ".tscn"): return
 	cast_element = element
 	cast_arm_name = controlled_arm
-	cast_aim_point = ai_target_position() if ai_abilities else get_cursor_world_target()
+	cast_aim_point = ai_target_position() if ai_abilities else selected_target_aim_point()
 	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
 	if hand_id < 0: return
 	skeleton.force_update_all_bone_transforms()
@@ -1516,6 +1544,7 @@ func update_cast_motion(dt: float) -> void:
 	cast_elapsed += dt
 	if not cast_released and cast_elapsed >= CAST_RELEASE:
 		cast_released = true
+		if player_controlled: cast_aim_point = selected_target_aim_point()
 		release_fireball(hand_now)
 	if cast_elapsed >= CAST_DURATION:
 		cast_elapsed = -1.0
@@ -1600,6 +1629,7 @@ func _unhandled_input(event):
 				print("FLIGHT_ENABLED ",flight_enabled)
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode==KEY_1: cast_fireball()
+			if event.keycode==KEY_F: select_hovered_target()
 			if event.keycode==KEY_SHIFT:
 				if cast_elapsed < 0.0:
 					controlled_arm = "left" if controlled_arm == "right" else "right"
