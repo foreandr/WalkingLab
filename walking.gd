@@ -282,7 +282,7 @@ func _ready():
 			if bone_label == "righthand": jab_right_hand = bone_i
 
 		if player_controlled: print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
-	if player_controlled or ai_abilities or ai_mode == "fly" or animation_test_mode != "": load_flight_clips()
+	if player_controlled or ai_abilities or ai_mode == "fly" or animation_test_mode != "" or stationary_only: load_flight_clips()
 	feet.setup(visual,skeleton)
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
@@ -888,6 +888,8 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
+	var injury_system: Node = get_node_or_null("DamageSystem")
+	if injury_system != null: actor.velocity *= injury_system.movement_penalty()
 	if player_controlled and not flight_enabled and not actor.is_on_floor():
 		actor.velocity.x *= AIR_JUMP_TRAVEL_MULTIPLIER
 		actor.velocity.z *= AIR_JUMP_TRAVEL_MULTIPLIER
@@ -1272,6 +1274,8 @@ func rotate_arm_joint_toward(bone: int, hand: int, goal: Vector3, weight: float)
 	skeleton.set_bone_pose_rotation(bone,(local_delta*old_rotation).normalized())
 
 func adjust_jab_arm() -> void:
+	# Preserve the supplied authored punch instead of fighting it with IK.
+	if movement_clip_name in ["Punching (1).fbx","Punching(2).fbx"]: return
 	# Fist-directed two-bone IK, layered over the original Mixamo jab.
 	# The actor, pelvis, torso and both legs remain completely untouched.
 	var aiming_arm: String = cast_arm_name if cast_elapsed >= 0.0 else controlled_arm
