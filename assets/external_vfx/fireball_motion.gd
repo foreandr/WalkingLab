@@ -3,7 +3,7 @@ extends Node
 var travel_direction: Vector3 = Vector3.FORWARD
 var travel_speed: float = 3.0
 var owner_rid: RID
-const LIFETIME: float = 2.5
+const LIFETIME: float = 25.0
 var lived: float = 0.0
 
 func _physics_process(delta: float) -> void:
