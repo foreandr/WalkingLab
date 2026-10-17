@@ -502,6 +502,7 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
+	if player_controlled: actor.floor_snap_length = 0.0 if flight_enabled else 0.12
 	if player_controlled:
 		if flight_enabled:
 			jump_requested = false
