@@ -438,7 +438,7 @@ func _physics_process(dt):
 	update_camera()
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move   |   Hold Shift: build sprint   |   Ctrl walk   |   C crouch\nV replays the AI showcase   |   Tab watches AI\nCrouch launch: 6 m/s | Release Shift before sprinting faster" % [player_state,speed]
+		hud.text = "YOU  |  %s  |  %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nRight drag camera  |  Tab watch AI\nAim prefers front; push cursor toward screen edge to reach behind" % [player_state,speed]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
