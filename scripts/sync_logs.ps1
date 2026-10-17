@@ -4,6 +4,25 @@ function Invoke-Git([string[]]$GitArgs) {
     if ($LASTEXITCODE -ne 0) { throw ("git.exe " + ($GitArgs -join " ") + " exited " + $LASTEXITCODE) }
 }
 try {
+    # A forcibly interrupted Git operation can leave the index lock behind.
+    # Never remove a lock while any Git executable is running.
+    $lock = Join-Path (Get-Location) ".git\\index.lock"
+    if (Test-Path -LiteralPath $lock) {
+        $deadline = (Get-Date).AddSeconds(8)
+        while ((Test-Path -LiteralPath $lock) -and (Get-Date) -lt $deadline) {
+            Start-Sleep -Milliseconds 500
+        }
+        if (Test-Path -LiteralPath $lock) {
+            $gitRunning = @(Get-CimInstance Win32_Process -Filter "Name = 'git.exe' OR Name = 'git-remote-https.exe'" -ErrorAction Stop)
+            if ($gitRunning.Count -gt 0) {
+                throw "Git index is locked while a Git process is running. Close the other process and retry."
+            }
+            $age = ((Get-Date) - (Get-Item -LiteralPath $lock).LastWriteTime).TotalSeconds
+            if ($age -lt 8) { throw "Git lock is new; refusing to delete it. Retry shortly." }
+            Remove-Item -LiteralPath $lock -Force -ErrorAction Stop
+            Write-Host "Cleared abandoned Git index lock."
+        }
+    }
     Invoke-Git @("stash","push","-m","WalkingLab automatic backup before sync")
     if (Test-Path "logs") {
         Invoke-Git @("add","--","logs")
