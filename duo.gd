@@ -50,6 +50,30 @@ func _ready():
 		mannequins.append(extra)
 	build_weapon_display()
 	build_water_basin()
+	spawn_moving_cpus()
+func spawn_moving_cpus() -> void:
+	# Two walkers, two high-speed runners, two immediate flyers.
+	var assignments := [
+		{"mode":"walk","name":"WALKER 1","pos":Vector3(-11,0,2)},
+		{"mode":"walk","name":"WALKER 2","pos":Vector3(-13,0,5)},
+		{"mode":"sprint","name":"SPRINTER 1","pos":Vector3(-15,0,-3)},
+		{"mode":"sprint","name":"SPRINTER 2","pos":Vector3(-17,0,1)},
+		{"mode":"fly","name":"FLYER 1","pos":Vector3(12,0,-5)},
+		{"mode":"fly","name":"FLYER 2","pos":Vector3(16,0,-6)}
+	]
+	for entry in assignments:
+		var cpu = preload("res://walking.gd").new()
+		cpu.name = String(entry["name"]).replace(" ","")
+		cpu.ai_mode = String(entry["mode"])
+		cpu.autonomous_only = true
+		cpu.actor_only = true
+		cpu.spawn_point = entry["pos"]
+		cpu.route_center = Vector3.ZERO
+		cpu.route_radius = 18.0 if entry["mode"] == "fly" else 25.0
+		add_child(cpu)
+		make_label(cpu.actor,String(entry["name"]),Color("91ddfa"))
+		mannequins.append(cpu)
+
 func build_water_basin() -> void:
 	# Open-top physical test tank; thick walls and floor, no roof.
 	var world := preload("res://water_system.gd").new()
