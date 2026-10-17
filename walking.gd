@@ -1923,6 +1923,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	mover.travel_direction = travel
 	mover.travel_speed = launch_speed * fireball_speed_scale
 	if animation_test_mode == "war":
+		mover.battle_base_speed = mover.travel_speed
 		mover.travel_speed *= float(get_tree().current_scene.get("battle_fireball_speed"))
 	mover.owner_rid = actor.get_rid()
 	projectile.add_child(mover)
