@@ -28,15 +28,15 @@ func _ready():
 	player.player_controlled = true
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,13)
-	player.character_tint = Color("bdcedf")
+	player.character_tint = Color("101114")
 	add_child(player)
 	player.camera.current = true
-	player_label = make_label(player.actor,"YOU",Color("ff2020"))
+	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
 	var tests = [
-		{"name":"Flight15","mode":"flight","speed":15.0,"pos":Vector3(-4.0,0,3.0),"label":"FLIGHT 15 m/s"},
-		{"name":"Flight20","mode":"flight","speed":20.0,"pos":Vector3(4.0,0,3.0),"label":"FLIGHT 20 m/s"},
-		{"name":"JumpTest","mode":"jump","speed":7.0,"pos":Vector3(0.0,0,3.0),"label":"JUMP LOOP"}
+		{"name":"Flight15","mode":"flight","speed":15.0,"pos":Vector3(-4.0,0,3.0),"label":"BLUE","color":"2266ff"},
+		{"name":"Flight20","mode":"flight","speed":20.0,"pos":Vector3(4.0,0,3.0),"label":"RED","color":"e32a35"},
+		{"name":"JumpTest","mode":"jump","speed":7.0,"pos":Vector3(0.0,0,3.0),"label":"GREEN","color":"26b04b"}
 	]
 	for entry in tests:
 		var dummy = preload("res://walking.gd").new()
@@ -46,10 +46,10 @@ func _ready():
 		dummy.animation_test_mode = entry["mode"]
 		dummy.animation_test_speed = entry["speed"]
 		dummy.spawn_point = entry["pos"]
-		dummy.character_tint = Color("191b20")
+		dummy.character_tint = Color(entry["color"])
 		add_child(dummy)
 		dummy.actor.rotation.y = PI
-		make_label(dummy.actor,entry["label"],Color("ffbf69"))
+		make_label(dummy.actor,entry["label"],Color(entry["color"]))
 		mannequins.append(dummy)
 	var static_dummy = preload("res://walking.gd").new()
 	static_dummy.name = "StaticMannequin"
@@ -57,10 +57,10 @@ func _ready():
 	static_dummy.stationary_only = true
 	static_dummy.actor_only = true
 	static_dummy.spawn_point = Vector3(7.0,0,3.0)
-	static_dummy.character_tint = Color("191b20")
+	static_dummy.character_tint = Color("e5bc2d")
 	add_child(static_dummy)
 	static_dummy.actor.rotation.y = PI
-	make_label(static_dummy.actor,"STATIC",Color("ffbf69"))
+	make_label(static_dummy.actor,"YELLOW",Color("e5bc2d"))
 	mannequins.append(static_dummy)
 	ai = mannequins[0]
 	ai_label = null
