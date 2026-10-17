@@ -41,7 +41,7 @@ var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
 var squat_amount: float = 0.0
 var squat_key_down: bool = false
-const SQUAT_DEPTH: float = 1.15
+const SQUAT_HOP_IMPULSE: float = 3.0
 const SQUAT_BLEND_SPEED: float = 1.8
 var debug_tick: float = 0.0
 var last_debug_state: String = ""
@@ -1146,7 +1146,7 @@ func apply_jump_windup_pose() -> void:
 	# A root translation put the character underground where the ground hid it.
 	# No knee or thigh joint rotations; restore normal scale when Space is released.
 	var bend: float = squat_amount*squat_amount*(3.0-2.0*squat_amount)
-	visual.scale.y = lerpf(1.0,0.32,bend)
+	visual.scale.y = lerpf(1.0,0.66,bend)
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
@@ -1315,6 +1315,9 @@ func _unhandled_input(event):
 	if autonomous_only: return
 	if player_controlled:
 		if event is InputEventKey and event.keycode == KEY_SPACE:
+			if not event.pressed and squat_key_down and squat_amount > 0.12 and not flight_enabled and actor.is_on_floor():
+				vertical_jump_speed = SQUAT_HOP_IMPULSE
+				debug_player("SQUAT_HOP","release impulse="+str(SQUAT_HOP_IMPULSE))
 			squat_key_down = event.pressed
 			if not event.echo: debug_player("SQUAT_KEY","pressed="+str(event.pressed))
 		if event is InputEventKey and event.pressed and not event.echo:
