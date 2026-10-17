@@ -795,7 +795,7 @@ func adjust_jab_arm() -> void:
 	# Only disallow a hand target behind the character; crossing the chest
 	# in front is intentional to preserve full lateral aiming.
 	goal_actor.z = minf(goal_actor.z,-0.30)
-		var goal_world: Vector3 = actor.global_transform * goal_actor
+	var goal_world: Vector3 = actor.global_transform * goal_actor
 	var goal_local: Vector3 = skeleton.global_transform.affine_inverse() * goal_world
 	# The selected arm follows an XY target on a depth-locked plane.
 	var influence = jab_aim_strength
@@ -888,7 +888,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	var local_direction: Vector3 = actor.global_basis.inverse() * raw_direction
 	local_direction.z = minf(local_direction.z,-0.10)
 	var travel: Vector3 = (actor.global_basis * local_direction.normalized()).normalized()
-		# Measure actual animated hand velocity and project it along the shot.
+	# Measure actual animated hand velocity and project it along the shot.
 	var launch_speed: float = clampf(cast_hand_velocity.dot(travel),3.0,25.0)
 	var projectile := Node3D.new()
 	projectile.name = "Fireball"
