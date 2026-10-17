@@ -40,7 +40,7 @@ var manual_sprint_clock = 0.0
 var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
 var squat_amount: float = 0.0
-const SQUAT_DEPTH: float = 0.65
+const SQUAT_DEPTH: float = 1.15
 const SQUAT_BLEND_SPEED: float = 1.8
 var debug_tick: float = 0.0
 var last_debug_state: String = ""
@@ -456,7 +456,7 @@ func _physics_process(dt):
 		return
 	var step = dt*(0.35 if slow else 1.0)
 	if player_controlled:
-		var want_squat: bool = Input.is_key_pressed(KEY_SPACE) and actor.is_on_floor() and not flight_enabled
+		var want_squat: bool = Input.is_key_pressed(KEY_SPACE) and not flight_enabled
 		squat_amount = move_toward(squat_amount,1.0 if want_squat else 0.0,step*SQUAT_BLEND_SPEED)
 	clock += step
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
@@ -575,7 +575,7 @@ func _physics_process(dt):
 		adjust_jab_arm()
 		update_cast_motion(step)
 	feet.use_full_support = (crouch_driving or crouch.active()) and not ((player_controlled or ai_abilities or ai_mode == "fly") and (flight_enabled or not actor.is_on_floor()))
-	feet.resolve(player_controlled and speed < 0.12 and not crouch.active() and not flight_enabled and actor.is_on_floor())
+	feet.resolve(player_controlled and speed < 0.12 and not crouch.active() and not flight_enabled and actor.is_on_floor() and squat_amount < 0.001)
 	crouch.update_capsule(step)
 	if test and frame%60==0: min_body = min(min_body,feet.lowest(feet.all_samples))
 	min_sole = min(min_sole,feet.minimum)
@@ -1140,15 +1140,11 @@ func debug_player(event_type: String, details: String) -> void:
 
 func apply_jump_windup_pose() -> void:
 	if squat_amount <= 0.0 or flight_enabled: return
-	# Static squat test: ONLY translate the pelvis downward.
-	# No knee, thigh, ankle or other leg-joint rotations.
+	# Deliberately unmistakable visual-only pose test.
+	# Keep knee and thigh rotations untouched and lower the character root.
+	# Feet will clip below the floor until we implement genuine squat IK.
 	var bend: float = squat_amount*squat_amount*(3.0-2.0*squat_amount)
-	for bone in range(skeleton.get_bone_count()):
-		if normalized_idle_bone(String(skeleton.get_bone_name(bone))) == "hips":
-			var original: Vector3 = skeleton.get_bone_pose_position(bone)
-			skeleton.set_bone_pose_position(bone,original+Vector3.DOWN*SQUAT_DEPTH*bend)
-			break
-	skeleton.force_update_all_bone_transforms()
+	visual.position.y = -SQUAT_DEPTH*bend
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
