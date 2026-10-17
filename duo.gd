@@ -75,6 +75,17 @@ func _ready():
 	fire_dummy.actor.rotation.y = PI
 	make_label(fire_dummy.actor,"ORANGE",Color("ff8b25"))
 	mannequins.append(fire_dummy)
+	var hunter = preload("res://walking.gd").new()
+	hunter.name = "PurpleHunter"
+	hunter.autonomous_only = true
+	hunter.actor_only = true
+	hunter.ai_abilities = true
+	hunter.animation_test_mode = "hunter"
+	hunter.spawn_point = Vector3(0.0,0.0,-5.0)
+	hunter.character_tint = Color("9444e5")
+	add_child(hunter)
+	make_label(hunter.actor,"PURPLE",Color("9444e5"))
+	mannequins.append(hunter)
 	ai = mannequins[0]
 	ai_label = null
 
