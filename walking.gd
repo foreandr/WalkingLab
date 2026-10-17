@@ -258,7 +258,7 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 6.5
-		controls.text = "WASD move | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works)"
+		controls.text = "WASD move | Alt sprint | Shift swap aim arm | Left-click reach | Ctrl walk | C crouch | Middle-drag camera (right-drag also works) | 1 fireball"
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func smooth_gait(t: float) -> float:
@@ -498,7 +498,7 @@ func make_standing_idle(player: AnimationPlayer):
 		destination_paths[n] = target_path
 	var library = AnimationLibrary.new()
 	idle_variants.clear()
-	var wanted = ["Breathing Idle.fbx", "Idle (2).fbx", "Offensive Idle.fbx", "Neutral Idle.fbx"]
+	var wanted = ["Idle (3).fbx", "Breathing Idle.fbx", "Idle (2).fbx", "Offensive Idle.fbx", "Neutral Idle.fbx"]
 	for filename in wanted:
 		var path = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(path): continue
@@ -579,7 +579,7 @@ func make_standing_idle(player: AnimationPlayer):
 						idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
 				tracks += 1
 			if tracks >= 12:
-				var id = "BreathingIdle" if filename == "Breathing Idle.fbx" else ("Idle1" if filename == "Idle (2).fbx" else ("Idle2" if filename == "Offensive Idle.fbx" else "Idle0"))
+				var id = "Idle3" if filename == "Idle (3).fbx" else ("BreathingIdle" if filename == "Breathing Idle.fbx" else ("Idle1" if filename == "Idle (2).fbx" else ("Idle2" if filename == "Offensive Idle.fbx" else "Idle0")))
 				library.add_animation(id,idle)
 				idle_variants.append("manual/"+id)
 				print("IDLE_REGISTERED ",filename," name=",id," tracks=",tracks," length=",idle.length)
@@ -587,7 +587,7 @@ func make_standing_idle(player: AnimationPlayer):
 				print("IDLE_REJECTED ",filename," mapped_tracks=",tracks)
 		root.free()
 	if idle_variants.is_empty():
-		push_warning("No compatible idle FBX installed; put Breathing Idle.fbx in Downloads and rerun RUN.bat.")
+		push_warning("No compatible idle FBX installed; put Idle (3).fbx in Downloads and rerun RUN.bat.")
 		var fallback = Animation.new()
 		fallback.length = 1.0
 		fallback.loop_mode = Animation.LOOP_LINEAR
@@ -821,8 +821,41 @@ func throw_left_jab() -> void:
 	jab_cooldown = 0.45
 	print("ARM_REACH ",controlled_arm)
 
+func cast_fireball() -> void:
+	# Visuals are the imported MIT-licensed 3D fire particle scene, NOT a
+	# generated primitive or a hand-written fire shader.
+	var vfx_path = "res://assets/external_vfx/fire.tscn"
+	if not ResourceLoader.exists(vfx_path):
+		push_warning("FIREBALL_VFX_MISSING " + vfx_path)
+		return
+	var arm: int = jab_right_arm if controlled_arm == "right" else jab_left_arm
+	var hand: int = jab_right_hand if controlled_arm == "right" else jab_left_hand
+	if arm < 0 or hand < 0: return
+	skeleton.force_update_all_bone_transforms()
+	var shoulder_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(arm).origin
+	var hand_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand).origin
+	var direction_actor: Vector3 = actor.global_basis.inverse() * (hand_world - shoulder_world).normalized()
+	# Use the current wrist aiming direction, but never fire backwards.
+	direction_actor.z = minf(direction_actor.z,-0.25)
+	direction_actor = direction_actor.normalized()
+	var travel: Vector3 = (actor.global_basis * direction_actor).normalized()
+	var projectile = Node3D.new()
+	projectile.name = "Fireball"
+	get_tree().current_scene.add_child(projectile)
+	projectile.global_position = hand_world + travel * 0.25
+	var visual_effect = load(vfx_path).instantiate()
+	projectile.add_child(visual_effect)
+	if visual_effect is GPUParticles3D:
+		visual_effect.emitting = true
+		visual_effect.restart()
+	var mover = preload("res://assets/external_vfx/fireball_motion.gd").new()
+	mover.name = "Motion"
+	mover.travel_direction = travel
+	projectile.add_child(mover)
+	print("FIREBALL_CAST ",controlled_arm)
+
 func choose_random_idle():
-	# Historical name retained for existing callers. Breathing Idle preferred for everyone; never swap.
+	# Historical name retained for existing callers. Idle (3).fbx preferred for everyone; never swap.
 	if idle_variants.is_empty() or crouch.standing_idle_node == null: return
 	var chosen: String = idle_variants[0]
 	if String(crouch.standing_idle_node.animation) == chosen: return
@@ -834,6 +867,7 @@ func _unhandled_input(event):
 	if player_controlled:
 		if event is InputEventKey and event.pressed and not event.echo:
 			if event.keycode==KEY_C: crouch.toggle()
+			if event.keycode==KEY_1: cast_fireball()
 			if event.keycode==KEY_SHIFT:
 				controlled_arm = "left" if controlled_arm == "right" else "right"
 				print("CONTROLLED_ARM ",controlled_arm)
