@@ -65,6 +65,7 @@ func _ready():
 	var fire_dummy = preload("res://walking.gd").new()
 	fire_dummy.name = "OrangeFireCaster"
 	fire_dummy.autonomous_only = true
+	fire_dummy.stationary_only = true
 	fire_dummy.actor_only = true
 	fire_dummy.ai_abilities = true
 	fire_dummy.animation_test_mode = "fire"
