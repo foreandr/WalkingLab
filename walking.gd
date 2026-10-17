@@ -891,8 +891,8 @@ func _physics_process(dt):
 	if player_controlled or ai_abilities or ai_mode == "fly":
 		apply_flight_pose(step)
 	if player_controlled:
-		apply_movement_clip(step)
 		apply_injured_walk(step)
+		apply_movement_clip(step)
 		update_punch_contact(step)
 	if player_controlled:
 		debug_tick += step
@@ -1526,6 +1526,10 @@ func start_movement_clip(clip_name: String) -> void:
 	movement_clip_time = 0.0
 	if player_controlled: debug_player("MOVEMENT_CLIP",clip_name)
 
+func is_upper_body_bone(bone: int) -> bool:
+	var part: String = normalized_idle_bone(String(skeleton.get_bone_name(bone)))
+	return part.begins_with("spine") or part.begins_with("neck") or part.begins_with("head") or part.begins_with("leftshoulder") or part.begins_with("rightshoulder") or part.begins_with("leftarm") or part.begins_with("rightarm") or part.begins_with("leftforearm") or part.begins_with("rightforearm") or part.begins_with("lefthand") or part.begins_with("righthand") or part.begins_with("leftthumb") or part.begins_with("rightthumb") or part.begins_with("leftindex") or part.begins_with("rightindex") or part.begins_with("leftmiddle") or part.begins_with("rightmiddle") or part.begins_with("leftring") or part.begins_with("rightring") or part.begins_with("leftpinky") or part.begins_with("rightpinky")
+
 func apply_movement_clip(dt: float) -> void:
 	if movement_clip_name == "" or not movement_clips.has(movement_clip_name): return
 	var clip: Dictionary = movement_clips[movement_clip_name]
@@ -1546,6 +1550,7 @@ func apply_movement_clip(dt: float) -> void:
 		return
 	for entry in clip["curves"]:
 		var bone: int = entry["bone"]
+		if movement_clip_name in ["Punching (1).fbx","Punching(2).fbx"] and not is_upper_body_bone(bone): continue
 		var base_pose: Quaternion = skeleton.get_bone_pose_rotation(bone)
 		var target_pose: Quaternion = sample_flight_curve(entry["keys"],movement_clip_time)
 		skeleton.set_bone_pose_rotation(bone,base_pose.slerp(target_pose,weight))
@@ -1568,6 +1573,7 @@ func apply_injured_walk(dt: float) -> void:
 	injury_walk_time = fmod(injury_walk_time+dt*maxf(0.25,absf(signed_speed)/SPEEDS[0]),length)
 	for entry in clip["curves"]:
 		var bone: int = entry["bone"]
+		if is_upper_body_bone(bone): continue
 		var pose: Quaternion = sample_flight_curve(entry["keys"],injury_walk_time)
 		skeleton.set_bone_pose_rotation(bone,pose)
 	skeleton.force_update_all_bone_transforms()
