@@ -49,6 +49,9 @@ var flying_clip: Dictionary = {}
 var chosen_jump_index: int = -1
 var flight_animation_time: float = 0.0
 var flight_visual_pitch: float = 0.0
+var flight_pose_weight: float = 0.0
+var speed_streaks: Control
+var streak_clock: float = 0.0
 var ai_action_clock: float = 0.0
 var flight_enabled: bool = false
 const FLIGHT_SPEED: float = 7.0
@@ -282,6 +285,7 @@ func _ready():
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		reticle.add_child(dot)
 		install_options_menu(canvas)
+		install_speed_streaks(canvas)
 	var controls = Label.new()
 	controls.position = Vector2(28,675)
 	controls.text = "C crouch/stand | Shift launch | V showcase | B direction | Space pause | T slow | Right-drag orbit"
@@ -339,6 +343,36 @@ func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: 
 			"jump": jump_power = value
 			"fireball": fireball_speed_scale = value
 	)
+
+func install_speed_streaks(canvas: CanvasLayer) -> void:
+	speed_streaks = Control.new()
+	speed_streaks.name = "SpeedStreaks"
+	speed_streaks.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	speed_streaks.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(speed_streaks)
+	speed_streaks.draw.connect(draw_speed_streaks)
+
+func update_speed_streaks(dt: float) -> void:
+	if speed_streaks == null: return
+	streak_clock += dt
+	speed_streaks.queue_redraw()
+
+func draw_speed_streaks() -> void:
+	if speed_streaks == null: return
+	var move_speed: float = Vector2(actor.velocity.x,actor.velocity.z).length() if not flight_enabled else actor.velocity.length()
+	var intensity: float = clampf((move_speed-5.0)/15.0,0.0,1.0)
+	if intensity <= 0.001: return
+	var region: Vector2 = get_viewport().get_visible_rect().size
+	var center: Vector2 = region*0.5
+	var count: int = int(5.0+intensity*45.0)
+	for i in range(count):
+		var angle: float = float(i)*2.39996323
+		var cycle: float = fposmod(float(i)*0.6180339+streak_clock*(0.2+intensity*2.2),1.0)
+		var radius: float = lerpf(0.20,0.79,cycle)
+		var offset := Vector2(cos(angle),sin(angle))
+		var edge: Vector2 = center+offset*radius*region.y
+		var length: float = (12.0+65.0*intensity)*(0.3+cycle)
+		speed_streaks.draw_line(edge-offset*length,edge,Color(0.8,0.9,1.0,0.10+intensity*0.32),1.0+intensity*1.2,true)
 
 func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
@@ -500,7 +534,9 @@ func _physics_process(dt):
 	# The body keeps facing the same tangent while its travel reverses.
 	var facing = tangent*max(speed,0.1)-radial.normalized()*(radial.length()-route_radius)*2.0*movement_sign
 	if player_controlled:
-		if crouch_driving and crouch.state in ["crouched","settle"]:
+		if flight_enabled:
+			actor.rotation.y = rotate_toward(actor.rotation.y,orbit,step*7.0)
+		elif crouch_driving and crouch.state in ["crouched","settle"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,orbit,step*5.0)
 		elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,manual_heading,step*5.0)
@@ -518,8 +554,16 @@ func _physics_process(dt):
 			jump_requested = false
 			jump_prep_remaining = -1.0
 			jump_velocity = 0.0
-			var altitude_input: float = (sin(clock*0.9) if ai_abilities else float(Input.is_key_pressed(KEY_SPACE))-float(Input.is_key_pressed(KEY_CTRL)))
-			actor.velocity.y = altitude_input * FLIGHT_SPEED
+			if ai_abilities:
+				actor.velocity.y = sin(clock*0.9)*FLIGHT_SPEED
+			else:
+				# W moves in the camera's three-dimensional aim direction.
+				var forward_flight := Vector3(-sin(orbit)*cos(elevation),sin(elevation),-cos(orbit)*cos(elevation))
+				var right_flight := Vector3(cos(orbit),0.0,-sin(orbit))
+				var flight_direction: Vector3 = forward_flight * manual_input.y + right_flight * manual_input.x
+				if flight_direction.length_squared() > 1.0: flight_direction = flight_direction.normalized()
+				actor.velocity = flight_direction * maxf(absf(signed_speed),FLIGHT_SPEED)
+				actor.velocity.y += (float(Input.is_key_pressed(KEY_SPACE))-float(Input.is_key_pressed(KEY_CTRL)))*FLIGHT_SPEED
 		else:
 			actor.velocity.y = jump_velocity
 		if not flight_enabled and jump_requested and actor.is_on_floor() and not crouch.active() and jump_prep_remaining < 0.0:
@@ -555,6 +599,7 @@ func _physics_process(dt):
 		minimum_facing_alignment = min(minimum_facing_alignment,(-actor.global_basis.z).dot(tangent))
 	traveled += speed*step
 	update_camera()
+	if player_controlled: update_speed_streaks(step)
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
 		hud.text = "YOU  |  %s  |  %.1f m/s  |  SPRINT %.1fs  |  TARGET %.1f m/s\nWASD move  |  Alt sprint  |  Shift switch arm  |  Left click reach  |  Ctrl walk  |  C crouch\nMiddle drag camera (right drag also works)  |  Space jump / rise | Ctrl descend in flight | 3 fly toggle | Settings: top-right cog\nMouse X/Y aim on a fixed forward plane | Shift swap arms" % [player_state,speed,manual_sprint_clock,manual_target_speed()]
@@ -1005,18 +1050,12 @@ func sample_jump_curve(keys: Array, time: float) -> Quaternion:
 	return keys[keys.size()-1]["rot"]
 
 func update_flight_orientation(dt: float) -> void:
-	# Tilt ONLY the visual skeleton into a head-first Superman silhouette.
-	# Keep the upright CharacterBody3D collider and camera independent.
+	# Head-first along camera aiming direction; physical collider remains upright.
 	var target_pitch: float = 0.0
 	if flight_enabled:
-		var horizontal: float = Vector2(actor.velocity.x,actor.velocity.z).length()
-		if horizontal > 0.15 or absf(actor.velocity.y) > 0.15:
-			target_pitch = atan2(horizontal,actor.velocity.y)
-			# Do not invert the mesh while diving; a deep forward pitch suffices.
-			target_pitch = clampf(target_pitch,0.05,2.5)
-		else:
-			target_pitch = 1.25
-	flight_visual_pitch = move_toward(flight_visual_pitch,target_pitch,dt*2.7)
+		target_pitch = clampf(PI*0.5-elevation,0.08,PI-0.08)
+		if actor.velocity.length() < 0.5: target_pitch = 1.35
+	flight_visual_pitch = move_toward(flight_visual_pitch,target_pitch,dt*(3.5 if flight_enabled else 8.0))
 	visual.rotation.x = flight_visual_pitch
 
 func apply_jump_pose(dt: float) -> void:
@@ -1024,7 +1063,9 @@ func apply_jump_pose(dt: float) -> void:
 	var prep: float = 0.0
 	if jump_prep_remaining >= 0.0 and not flight_enabled:
 		prep = clampf(1.0-jump_prep_remaining/JUMP_PREP_TIME,0.0,1.0)
-	jump_pose = move_toward(jump_pose,1.0 if airborne else 0.0,dt*(7.0 if airborne else 5.0))
+	jump_pose = move_toward(jump_pose,1.0 if airborne else 0.0,dt*7.0)
+	var flight_moving: bool = flight_enabled and actor.velocity.length() > 0.7
+	flight_pose_weight = move_toward(flight_pose_weight,1.0 if flight_moving else 0.0,dt*2.4)
 	var clip: Dictionary = {}
 	var moment: float = 0.0
 	var blend_weight: float = 0.0
@@ -1032,11 +1073,11 @@ func apply_jump_pose(dt: float) -> void:
 		clip = flying_clip
 		flight_animation_time += dt
 		moment = fmod(flight_animation_time,float(clip["length"]))
-		blend_weight = jump_pose
+		blend_weight = flight_pose_weight
 	elif chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
 		# One randomly selected jump take for BOTH anticipation and airborne.
 		clip = jump_clips[chosen_jump_index]
-		var normalized: float = smoothstep(0.0,1.0,prep)*0.52 if prep > 0.0 else 0.52+jump_pose*0.43
+		var normalized: float = smoothstep(0.0,1.0,prep)*0.50 if prep > 0.0 else 0.70+jump_pose*0.27
 		moment = normalized*float(clip["length"])
 		blend_weight = clampf(maxf(prep*2.2,jump_pose),0.0,1.0)
 	if not clip.is_empty() and blend_weight > 0.001:
