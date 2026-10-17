@@ -134,7 +134,9 @@ foreach ($part in @(
 )) {
     $folder = Join-Path $kenney $part.Kit
     Save-Asset "$kenneyBase/$($part.Kit)/$($part.Model)" (Join-Path $folder $part.Model)
-    Save-Asset "$kenneyBase/$($part.Kit)/Textures/colormap.png" (Join-Path (Join-Path $folder 'Textures') 'colormap.png')
+    if ($part.Kit -ne 'weapon') {
+        Save-Asset "$kenneyBase/$($part.Kit)/Textures/colormap.png" (Join-Path (Join-Path $folder 'Textures') 'colormap.png')
+    }
 }
 
 if ($changed) {
