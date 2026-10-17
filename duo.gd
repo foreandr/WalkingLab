@@ -37,15 +37,16 @@ func _ready():
 	mannequins.append(ai)
 	for index in range(2):
 		var extra = preload("res://walking.gd").new()
-		extra.name = "IdleMannequin" + str(index+2)
+		extra.name = "SpellcasterAI" if index == 0 else "IdleMannequin3"
 		extra.autonomous_only = true
-		extra.stationary_only = true
+		extra.ai_abilities = index == 0
+		extra.stationary_only = index != 0
 		extra.actor_only = true
 		extra.spawn_point = Vector3(float(index)*2.4,0,0)
 		extra.character_tint = Color("c9d2cc") if index == 0 else Color("d6c8d1")
 		add_child(extra)
 		extra.actor.rotation.y = PI
-		make_label(extra.actor,"AI " + str(index+2),Color("ffbf69"))
+		make_label(extra.actor,"AI CASTER" if index == 0 else "AI 3",Color("ffbf69"))
 		mannequins.append(extra)
 	build_weapon_display()
 	build_water_basin()
