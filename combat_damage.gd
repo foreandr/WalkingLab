@@ -44,6 +44,13 @@ func setup(body: CharacterBody3D, rig: Skeleton3D) -> void:
 		owner_actor.add_child(marker)
 		markers[region] = marker
 
+func apply_damage_material() -> void:
+	if shader_material == null or owner_actor == null: return
+	var character_visual: Node3D = owner_actor.get_parent().get("visual") as Node3D
+	if character_visual == null: return
+	for part in character_visual.find_children("*","MeshInstance3D",true,false):
+		part.material_override = shader_material
+
 func bone_position(region: String) -> Vector3:
 	var index: int = int(bone_map[region])
 	if index < 0: return owner_actor.global_position + Vector3.UP
