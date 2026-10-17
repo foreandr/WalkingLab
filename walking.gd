@@ -211,7 +211,7 @@ func _ready():
 	graph.connect_node("Cadence",0,"Direction")
 	crouch.setup(self,player,graph)
 	
-	if player_controlled or stationary_only: choose_random_idle()
+	if player_controlled or stationary_only or ai_abilities: choose_random_idle()
 	print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
 	visual.add_child(tree)
@@ -219,7 +219,7 @@ func _ready():
 	tree.tree_root = graph
 	tree.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	tree.active = true
-	if player_controlled:
+	if player_controlled or ai_abilities:
 		for bone_i in range(skeleton.get_bone_count()):
 			var bone_label = normalized_idle_bone(String(skeleton.get_bone_name(bone_i)))
 			if bone_label == "leftarm": jab_left_arm = bone_i
@@ -1062,7 +1062,7 @@ func update_ai_abilities(dt: float) -> void:
 	if ai_action_clock >= 4.0:
 		ai_action_clock = 0.0
 		controlled_arm = "left" if controlled_arm == "right" else "right"
-		flight_enabled = not flight_enabled if randi() % 3 == 0 else flight_enabled
+		if randi() % 3 == 0: flight_enabled = not flight_enabled
 		cast_spell("water" if randi() % 2 == 0 else "fire")
 
 func cast_fireball() -> void:
