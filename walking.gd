@@ -16,8 +16,8 @@ var jab_right_forearm := -1
 var jab_right_hand := -1
 var controlled_arm := "right"
 var jab_aim_strength := 0.0
-const CAST_DURATION: float = 0.30
-const CAST_RELEASE: float = 0.18
+const CAST_DURATION: float = 1.10
+const CAST_RELEASE: float = 0.76
 var cast_aim_point: Vector3 = Vector3.ZERO
 var cast_shot_direction: Vector3 = Vector3.FORWARD
 var cast_elapsed: float = -1.0
@@ -781,17 +781,34 @@ func adjust_jab_arm() -> void:
 	shot = (actor.global_basis * local_shot.normalized()).normalized()
 	var goal_world_position: Vector3 = shoulder + shot * reach * 0.75
 	var goal_actor: Vector3 = actor.global_transform.affine_inverse() * goal_world_position
-	# Casting thrust pushes the hand farther down the SAME cursor ray.
+	# Broad, theatrical ONE-ARM casting stroke: draw hand far back and
+	# upward, swing it forward, then hold the fully extended palm at release.
+	# Body, pelvis, feet and the other arm do not participate.
 	if cast_elapsed >= 0.0:
-		var phase: float = cast_elapsed / CAST_DURATION
-		var extension: float = 0.0
-		if phase < 0.18:
-			extension = -0.10 * smoothstep(0.0,0.18,phase)
-		elif phase < 0.60:
-			extension = lerpf(-0.10,0.97,smoothstep(0.18,0.60,phase))
+		var phase: float = clampf(cast_elapsed / CAST_DURATION,0.0,1.0)
+		var along_ray: float = 0.0
+		var lift: float = 0.0
+		var outward: float = 0.0
+		var hand_side: float = 1.0 if aiming_arm == "right" else -1.0
+		if phase < 0.31:
+			var gather: float = smoothstep(0.0,0.31,phase)
+			along_ray = -0.48 * gather
+			lift = 0.25 * gather
+			outward = 0.22 * gather
+		elif phase < 0.69:
+			var stroke: float = smoothstep(0.31,0.69,phase)
+			along_ray = lerpf(-0.48,0.34,stroke)
+			lift = lerpf(0.25,0.0,stroke)
+			outward = lerpf(0.22,0.0,stroke)
+		elif phase < 0.79:
+			# The release occurs during this fully extended hold.
+			along_ray = 0.34
 		else:
-			extension = lerpf(0.97,0.0,smoothstep(0.60,1.0,phase))
-		goal_actor += actor.global_basis.inverse() * shot * extension * reach * 0.28
+			var recover: float = smoothstep(0.79,1.0,phase)
+			along_ray = lerpf(0.34,0.0,recover)
+		goal_actor += actor.global_basis.inverse() * shot * (along_ray * reach)
+		goal_actor.y += lift * reach
+		goal_actor.x += hand_side * outward * reach
 	# Only disallow a hand target behind the character; crossing the chest
 	# in front is intentional to preserve full lateral aiming.
 	goal_actor.z = minf(goal_actor.z,-0.30)
