@@ -1370,11 +1370,15 @@ func update_flight_orientation(dt: float) -> void:
 		var steering: bool = manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL) if player_controlled else actor.velocity.length() > 0.7
 		if steering:
 			target_pitch = clampf(PI*0.5-elevation,0.08,PI-0.08)
+		# Backward flight uses the sitting pose and reclines toward the tail,
+		# rather than pitching head-first as if travelling forward.
+		if player_controlled and manual_input.y < -0.1:
+			target_pitch = deg_to_rad(-65.0)
 	flight_visual_pitch = move_toward(flight_visual_pitch,target_pitch,dt*(3.5 if flight_enabled else 8.0))
 	visual.rotation.x = flight_visual_pitch
 	# Rig pivot is at the feet. Raise the visible mesh as it pitches so
 	# the head and chest do not cut through the ground at low altitude.
-	visual.position.y = 0.95 * sin(flight_visual_pitch)
+	visual.position.y = 0.95 * absf(sin(flight_visual_pitch))
 
 func debug_player(event_type: String, details: String) -> void:
 	if not player_controlled: return
