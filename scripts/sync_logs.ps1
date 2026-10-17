@@ -4,7 +4,7 @@ function Invoke-Git([string[]]$GitArgs) {
     if ($LASTEXITCODE -ne 0) { throw ("git.exe " + ($GitArgs -join " ") + " exited " + $LASTEXITCODE) }
 }
 # Serialize launcher sync and detached game logger sync across processes.
-$mutex = [System.Threading.Mutex]::new($false, "Local\\WalkingLab_foreandr_git_sync")
+$mutex = [System.Threading.Mutex]::new($false, "Local\WalkingLab_foreandr_git_sync")
 $hasMutex = $false
 try {
     try { $hasMutex = $mutex.WaitOne([TimeSpan]::FromSeconds(90)) }
