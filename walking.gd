@@ -466,6 +466,21 @@ func begin_direction_change(target_backward: bool):
 	turn_start_weight = direction_weight
 	turn_start_forward = blend
 	turn_start_back = back_blend
+func update_fire_mannequin(dt: float) -> void:
+	# Stationary ranged-casting test, using the normal fireball pipeline.
+	tree.advance(dt)
+	actor.velocity = Vector3.ZERO
+	actor.move_and_slide()
+	feet.use_full_support = false
+	feet.resolve(true)
+	ai_action_clock += dt
+	if ai_action_clock >= 1.7:
+		ai_action_clock = 0.0
+		controlled_arm = "left" if controlled_arm == "right" else "right"
+		cast_fireball()
+	update_cast_motion(dt)
+	adjust_jab_arm()
+
 func update_animation_test(dt: float) -> void:
 	tree.advance(dt)
 	animation_test_clock += dt
@@ -510,6 +525,13 @@ func update_animation_test(dt: float) -> void:
 			animation_test_clock = 0.0
 	elif animation_test_phase == "down":
 		actor.velocity = Vector3.DOWN * (7.0 if jumping else animation_test_speed)
+		# Match the player: stop flying when the ground is within landing range.
+		if not jumping and flight_enabled:
+			var floor_cast: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*0.12,actor.global_position+Vector3.DOWN*FLIGHT_LAND_HEIGHT)
+			floor_cast.exclude = [actor.get_rid()]
+			var hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(floor_cast)
+			if not hit.is_empty() and Vector3(hit["normal"]).y > 0.72:
+				flight_enabled = false
 		actor.move_and_slide()
 		if actor.is_on_floor() or actor.position.y <= 0.02:
 			actor.position.y = maxf(actor.position.y,0.0)
@@ -528,7 +550,7 @@ func update_animation_test(dt: float) -> void:
 			animation_test_clock = 0.0
 	if animation_test_phase == "up" or animation_test_phase == "orbit" or animation_test_phase == "down":
 		visual.position.y = 0.0
-		if not jumping:
+		if not jumping and flight_enabled:
 			apply_flight_pose(dt)
 			# Pitch the visual rig into the actual 3D velocity (head-first).
 			# The collider stays upright; yaw follows horizontal velocity.
@@ -550,6 +572,9 @@ func update_animation_test(dt: float) -> void:
 
 func _physics_process(dt):
 	if paused: return
+	if animation_test_mode == "fire":
+		update_fire_mannequin(dt)
+		return
 	if animation_test_mode != "":
 		update_animation_test(dt)
 		return
