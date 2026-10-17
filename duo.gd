@@ -59,49 +59,37 @@ func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	label.position.y = 2.1
 	body.add_child(label)
 	return label
-func weapon_piece(parent: Node3D, label: String, dimensions: Vector3, location: Vector3, color: Color) -> void:
-	var mesh := MeshInstance3D.new()
-	mesh.name = label
-	var box := BoxMesh.new()
-	box.size = dimensions
-	mesh.mesh = box
-	mesh.position = location
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.metallic = 0.7
-	material.roughness = 0.35
-	mesh.material_override = material
-	parent.add_child(mesh)
-
 func build_weapon_display() -> void:
-	# Simple props laid flat on the floor, 10 metres in front of the row.
-	var steel = Color("c6d6dd")
-	var wood = Color("67472c")
-	for entry in [
-		{"name":"Sword","x":-2.4,"length":1.15,"type":"sword"},
-		{"name":"One-handed Axe","x":0.0,"length":0.85,"type":"axe"},
-		{"name":"Dagger","x":2.4,"length":0.55,"type":"dagger"}
-	]:
-		var prop := Node3D.new()
-		prop.name = String(entry["name"])
-		prop.position = Vector3(float(entry["x"]),0,10.0)
-		add_child(prop)
-		var length: float = float(entry["length"])
-		weapon_piece(prop,"Grip",Vector3(0.085,0.09,length*0.40),Vector3(0,0.13,length*0.25),wood)
-		weapon_piece(prop,"Metal",Vector3(0.10,0.055,length*0.64),Vector3(0,0.13,-length*0.23),steel)
-		if entry["type"] == "sword":
-			weapon_piece(prop,"Crossguard",Vector3(0.36,0.075,0.08),Vector3(0,0.13,0.0),steel)
-		elif entry["type"] == "axe":
-			weapon_piece(prop,"Axe Head",Vector3(0.43,0.09,0.29),Vector3(0.16,0.13,-length*0.42),steel)
-		else:
-			weapon_piece(prop,"Guard",Vector3(0.20,0.065,0.05),Vector3(0,0.13,0.0),steel)
+	# Original, unmodified CC0 mesh assets from Kenney's 3D packs.
+	# They are installed by RUN.bat before Godot starts.
+	var assets = [
+		{"name":"Sword","x":-2.4,"file":"weapon-sword.glb"},
+		{"name":"One-handed Axe","x":0.0,"file":"tool-axe.glb"},
+		{"name":"Dagger","x":2.4,"file":"knife_sharp.glb"}
+	]
+	for entry in assets:
+		var path = "res://assets/kenney_weapons/" + String(entry["file"])
+		if not ResourceLoader.exists(path):
+			push_warning("WEAPON_ASSET_MISSING " + path)
+			continue
+		var packed = load(path)
+		if not packed is PackedScene:
+			push_warning("WEAPON_ASSET_NOT_SCENE " + path)
+			continue
+		var scene: Node3D = packed.instantiate()
+		scene.name = String(entry["name"])
+		scene.position = Vector3(float(entry["x"]),0.15,10.0)
+		# Rotate the imported mesh onto the floor; geometry stays original.
+		scene.rotation.x = PI * 0.5
+		add_child(scene)
 		var title := Label3D.new()
 		title.text = String(entry["name"])
 		title.font_size = 34
 		title.pixel_size = 0.006
 		title.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		title.position = Vector3(0,0.52,0)
-		prop.add_child(title)
+		title.position = Vector3(0,0.65,0)
+		title.rotation.x = -PI * 0.5
+		scene.add_child(title)
 
 func make_boundary():
 	var boundary = StaticBody3D.new()
