@@ -38,6 +38,18 @@ for %%F in ("%USERPROFILE%\Downloads\Flying (1).fbx" "%USERPROFILE%\Desktop\Flyi
         )
     )
 )
+rem Import the user's original jumping and landing Mixamo animations.
+for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
+    for %%F in ("Jumping Up.fbx" "Landing.fbx" "Hard Landing.fbx") do (
+        if exist "%%~D\%%~F" (
+            if not exist "assets\custom_idle\%%~F" (
+                copy /Y "%%~D\%%~F" "assets\custom_idle\%%~F" >nul
+                set "IDLE_NEW=1"
+                echo Found animation: %%~F
+            )
+        )
+    )
+)
 rem One supplied unskinned jab clip; copy locally before Godot imports.
 for %%D in ("%USERPROFILE%\Downloads" "%USERPROFILE%\Desktop" "%~dp0") do (
     if exist "%%~D\Punching.fbx" (
