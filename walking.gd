@@ -18,6 +18,7 @@ var jab_ready := false
 var jab_cooldown := 0.0
 var jab_aim_remaining := 0.0
 var jab_aim_target := Vector3.ZERO
+var jab_strike_target: Vector3 = Vector3.ZERO
 var jab_left_arm := -1
 var jab_left_forearm := -1
 var jab_left_hand := -1
@@ -1236,7 +1237,7 @@ func adjust_jab_arm() -> void:
 	# The cursor defines the shared arm + spell target. The hand reaches
 	# along the direction from shoulder to that cursor's world-space ray.
 	# The same forward aim vector is used for projectile release.
-	var aim_world: Vector3 = cast_aim_point if cast_elapsed >= 0.0 else jab_aim_target
+	var aim_world: Vector3 = cast_aim_point if cast_elapsed >= 0.0 else jab_strike_target
 	var shot: Vector3 = (aim_world - shoulder).normalized()
 	var local_shot: Vector3 = actor.global_basis.inverse() * shot
 	local_shot.z = minf(local_shot.z,-0.12)
@@ -1445,7 +1446,7 @@ func throw_left_jab() -> void:
 	update_cursor_aim()
 	jab_aim_remaining = 0.45
 	jab_cooldown = 0.45
-	jab_aim_target = get_cursor_world_target()
+	jab_strike_target = get_cursor_world_target()
 	if player_controlled:
 		var aim: Vector3 = get_cursor_world_target()
 		var ray_origin: Vector3 = actor.global_position + Vector3.UP*1.15
