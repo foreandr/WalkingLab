@@ -54,18 +54,18 @@ func make_arena():
 	fill.light_energy = 0.16
 	add_child(fill)
 	var ground = PlaneMesh.new()
-	ground.size = Vector2(80,80)
+	ground.size = Vector2(200,200)
 	mesh_node(ground,Vector3(0,-0.13,0),texture("forest_ground_04",0.35))
 	var stone = texture("medieval_blocks_03",0.4)
 	var platform = CylinderMesh.new()
-	platform.top_radius = 24.0
-	platform.bottom_radius = 24.4
+	platform.top_radius = 75.0
+	platform.bottom_radius = 75.4
 	platform.height = 0.3
 	platform.radial_segments = 64
 	mesh_node(platform,Vector3(0,-0.16,0),stone)
 	var border = TorusMesh.new()
-	border.inner_radius = 24.0
-	border.outer_radius = 24.6
+	border.inner_radius = 74.0
+	border.outer_radius = 75.0
 	border.rings = 64
 	border.ring_segments = 8
 	mesh_node(border,Vector3.ZERO,stone)
@@ -85,6 +85,6 @@ func make_arena():
 		var factor = (3.8 if i%3 else 2.5)/bounds.size.y
 		p.scale = Vector3.ONE*factor
 		p.position = Vector3(-bounds.get_center().x,-bounds.position.y,-bounds.get_center().z)*factor
-		holder.position = Vector3(sin(i*TAU/12)*27,0,cos(i*TAU/12)*27)
+		holder.position = Vector3(sin(i*TAU/12)*79,0,cos(i*TAU/12)*79)
 
 
