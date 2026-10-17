@@ -39,6 +39,9 @@ var manual_launch_lock = false
 var manual_sprint_clock = 0.0
 var jump_velocity: float = 0.0
 var jump_phase: float = 0.0
+var jump_animation_time: float = -1.0
+var flight_takeoff_time: float = -1.0
+const FLIGHT_TAKEOFF_POSE_DURATION: float = 0.38
 var jump_pose: float = 0.0
 var jump_requested: bool = false
 const JUMP_PREP_TIME: float = 0.52
@@ -446,6 +449,8 @@ func _physics_process(dt):
 	if ai_mode == "fly" and not flight_enabled:
 		flight_enabled = true
 		flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+		flight_takeoff_time = 0.0
+		chosen_jump_index = randi_range(0,jump_clips.size()-1) if not jump_clips.is_empty() else -1
 		flight_clearance_time = 1.0
 	var active = {}
 	var old_blend = blend
@@ -591,6 +596,7 @@ func _physics_process(dt):
 		if not flight_enabled and jump_requested and actor.is_on_floor() and not crouch.active() and jump_prep_remaining < 0.0:
 			jump_prep_remaining = JUMP_PREP_TIME
 			chosen_jump_index = randi_range(0,jump_clips.size()-1) if not jump_clips.is_empty() else -1
+			jump_animation_time = 0.0
 		jump_requested = false
 		if jump_prep_remaining >= 0.0:
 			if not actor.is_on_floor() or crouch.active():
@@ -1114,7 +1120,13 @@ func apply_jump_pose(dt: float) -> void:
 	var clip: Dictionary = {}
 	var moment: float = 0.0
 	var blend_weight: float = 0.0
-	if flight_enabled and not flying_clip.is_empty():
+	if flight_enabled and flight_takeoff_time >= 0.0 and flight_takeoff_time < FLIGHT_TAKEOFF_POSE_DURATION and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
+		clip = jump_clips[chosen_jump_index]
+		flight_takeoff_time += dt
+		var takeoff_alpha: float = clampf(flight_takeoff_time/FLIGHT_TAKEOFF_POSE_DURATION,0.0,1.0)
+		moment = lerpf(0.08,0.76,takeoff_alpha)*float(clip["length"])
+		blend_weight = sin(takeoff_alpha*PI)*0.95
+	elif flight_enabled and not flying_clip.is_empty():
 		clip = flying_clip
 		flight_animation_time += dt * 0.65
 		# Hover holds a restful frame; moving flight cycles at a fixed pace,
@@ -1123,12 +1135,17 @@ func apply_jump_pose(dt: float) -> void:
 		var idle_moment: float = float(clip["length"])*0.32
 		moment = lerpf(moving_moment,idle_moment,flight_idle_weight)
 		blend_weight = flight_pose_weight
-	elif chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
-		# One randomly selected jump take for BOTH anticipation and airborne.
+	elif jump_animation_time >= 0.0 and chosen_jump_index >= 0 and chosen_jump_index < jump_clips.size():
+		# Advance this ONE clip monotonically. The old pose-weight logic
+		# repeatedly sampled the squat and caused a double-crouch.
 		clip = jump_clips[chosen_jump_index]
-		var normalized: float = smoothstep(0.0,1.0,prep)*0.50 if prep > 0.0 else 0.70+jump_pose*0.27
-		moment = normalized*float(clip["length"])
-		blend_weight = clampf(maxf(prep*2.2,jump_pose),0.0,1.0)
+		jump_animation_time += dt
+		var in_prep: bool = jump_prep_remaining >= 0.0
+		var fraction: float = clampf(jump_animation_time/JUMP_PREP_TIME,0.0,1.0) if in_prep else clampf((jump_animation_time-JUMP_PREP_TIME)/0.72,0.0,1.0)
+		moment = float(clip["length"])*lerpf(0.02,0.51,fraction) if in_prep else float(clip["length"])*lerpf(0.51,0.98,fraction)
+		blend_weight = minf(1.0,jump_animation_time/0.12) if in_prep else (jump_pose if not actor.is_on_floor() else 0.0)
+		if not in_prep and actor.is_on_floor() and jump_animation_time > JUMP_PREP_TIME+0.10:
+			jump_animation_time = -1.0
 	if not clip.is_empty() and blend_weight > 0.001:
 		for entry in clip["curves"]:
 			var bone: int = entry["bone"]
@@ -1266,6 +1283,8 @@ func _unhandled_input(event):
 				flight_enabled = not flight_enabled
 				if flight_enabled:
 					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+					flight_takeoff_time = 0.0
+					chosen_jump_index = randi_range(0,jump_clips.size()-1) if not jump_clips.is_empty() else -1
 					flight_clearance_time = 1.0
 					flight_animation_time = 0.0
 					flight_pose_weight = 0.0
