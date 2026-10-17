@@ -1145,19 +1145,29 @@ func debug_player(event_type: String, details: String) -> void:
 
 func apply_jump_windup_pose() -> void:
 	if jump_windup_time < 0.0 or not actor.is_on_floor(): return
-	# Deliberately exaggerated wind-up, layered over the current ground pose.
-	# Both knees flex slowly before the actual physics impulse.
+	# Feet are the anchors. Bend hip and knee joints, then compensate the
+	# rig's vertical offset so the feet remain at their original ground height.
 	var p: float = clampf(jump_windup_time/JUMP_WINDUP_SECONDS,0.0,1.0)
 	var bend: float = p*p*(3.0-2.0*p)
-	# Lower the whole visible rig, not merely lift its knees toward the chest.
-	visual.position.y = -0.38*bend
+	skeleton.force_update_all_bone_transforms()
+	var foot_bones: Array[int] = []
+	var feet_before: float = 0.0
+	for i in range(skeleton.get_bone_count()):
+		var name: String = normalized_idle_bone(String(skeleton.get_bone_name(i)))
+		if name == "leftfoot" or name == "rightfoot":
+			foot_bones.append(i)
+			feet_before += skeleton.get_bone_global_pose(i).origin.y
+	if not foot_bones.is_empty():
+		feet_before /= float(foot_bones.size())
 	for i in range(skeleton.get_bone_count()):
 		var name: String = normalized_idle_bone(String(skeleton.get_bone_name(i)))
 		var angle: float = 0.0
 		if name == "leftupleg" or name == "rightupleg":
-			angle = 0.9*bend
+			angle = 1.25*bend
 		elif name == "leftleg" or name == "rightleg":
-			angle = -1.55*bend
+			angle = -2.05*bend
+		elif name == "leftfoot" or name == "rightfoot":
+			angle = 0.8*bend
 		elif name == "spine":
 			angle = deg_to_rad(10.0)*bend
 		else:
@@ -1165,6 +1175,14 @@ func apply_jump_windup_pose() -> void:
 		var base: Quaternion = skeleton.get_bone_pose_rotation(i)
 		skeleton.set_bone_pose_rotation(i,(base*Quaternion(Vector3.RIGHT,angle)).normalized())
 	skeleton.force_update_all_bone_transforms()
+	if not foot_bones.is_empty():
+		var feet_after: float = 0.0
+		for bone in foot_bones:
+			feet_after += skeleton.get_bone_global_pose(bone).origin.y
+		feet_after /= float(foot_bones.size())
+		# Joint flexion shortens the effective legs. Keep the feet planted
+		# and let the pelvis descend naturally toward them.
+		visual.position.y = feet_before-feet_after
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
