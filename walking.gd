@@ -641,10 +641,17 @@ func _physics_process(dt):
 		hud.text = crouch.status()
 	elif was_turning or turning:
 		hud.text = "MALE Y BOT  |  CHANGING DIRECTION\n%.2f m/s   |   easing through a stop\nB changes direction   |   AI automatically demonstrates both\nW compares the two walks" % speed
+	elif ai_mode != "":
+		# Dedicated autonomous locomotion does not populate schedule()'s
+		# a/b/weight keys. Never use the demo HUD in these modes.
+		hud.text = "%s  |  %.1f m/s  |  %s" % [name,absf(signed_speed),"FLYING" if flight_enabled else ai_mode.to_upper()]
 	else:
 		var names = BACK_LABELS if backward else LABELS
 		var files = BACK_FILES if backward else FILE_LABELS
-		hud.text = "MALE Y BOT  |  %s -> %s\n%.2f m/s   |   %s   |   blend %.0f%%\nFile: %s\nB changes direction   |   W compares walks" % [names[active.a],names[active.b],speed,"BACKWARD" if backward else "FORWARD",active.weight*100,files[active.a] if backward or active.a!=0 or walk_choice<0.5 else "Walking.fbx"]
+		if active.has("a") and active.has("b") and active.has("weight"):
+			hud.text = "MALE Y BOT  |  %s -> %s\n%.2f m/s   |   %s   |   blend %.0f%%\nFile: %s\nB changes direction   |   W compares walks" % [names[active["a"]],names[active["b"]],speed,"BACKWARD" if backward else "FORWARD",active["weight"]*100,files[active["a"]] if backward or active["a"]!=0 or walk_choice<0.5 else "Walking.fbx"]
+		else:
+			hud.text = "%s  |  %.1f m/s" % [name,absf(signed_speed)]
 func update_camera():
 	var subject = camera_target if camera_target!=null else actor
 	var subject_controller = subject.get_parent().crouch if camera_target!=null else crouch
