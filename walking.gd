@@ -393,9 +393,9 @@ func _physics_process(dt):
 	# The body keeps facing the same tangent while its travel reverses.
 	var facing = tangent*max(speed,0.1)-radial.normalized()*(radial.length()-route_radius)*2.0*movement_sign
 	if player_controlled:
-		if (jab_aim_remaining > 0.0 or (speed < 0.20 and not crouch.active())) and not crouch_driving:
+		if jab_aim_remaining > 0.0 and not crouch_driving:
 			# Keep the jab facing the screen-center camera ray for its duration.
-			actor.rotation.y = rotate_toward(actor.rotation.y,jab_aim_heading,step*(15.0 if jab_aim_remaining > 0.0 else 7.5))
+			actor.rotation.y = rotate_toward(actor.rotation.y,jab_aim_heading,step*12.0)
 		elif crouch_driving and crouch.state in ["crouched","settle"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,orbit,step*5.0)
 		elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
@@ -709,7 +709,7 @@ func update_cursor_aim() -> void:
 	relative.y = 0.0
 	if relative.length_squared() > 0.01:
 		# Visual Y Bot is rotated by PI relative to the actor root.
-		jab_aim_heading = atan2(relative.x,relative.z)
+		jab_aim_heading = atan2(-relative.x,-relative.z)
 
 func throw_left_jab() -> void:
 	if not jab_ready or jab_cooldown > 0.0: return
