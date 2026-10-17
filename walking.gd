@@ -488,9 +488,22 @@ func make_standing_idle(player: AnimationPlayer):
 				var correction: Quaternion = (dst_rest.inverse() * src_rest).normalized()
 				var out = idle.add_track(Animation.TYPE_ROTATION_3D)
 				idle.track_set_path(out,destination_paths[n])
-				for k in range(motion.track_get_key_count(t)):
-					var rot: Quaternion = motion.track_get_key_value(t,k)
-					idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
+				# The imported Mixamo Hips rotation uses the source character's root
+				# orientation. Applying it on the Y Bot turns the entire body sideways.
+				# Lock only the target root to its own known-upright standing orientation;
+				# all other joints retain their imported idle motion.
+				if n == "hips":
+					var upright: Quaternion = Quaternion.IDENTITY
+					for template_track in range(source_template.get_track_count()):
+						if source_template.track_get_type(template_track) == Animation.TYPE_ROTATION_3D and source_template.track_get_path(template_track) == destination_paths[n]:
+							upright = source_template.rotation_track_interpolate(template_track, source_template.length * 0.48)
+							break
+					idle.rotation_track_insert_key(out,0.0,upright)
+					idle.rotation_track_insert_key(out,idle.length,upright)
+				else:
+					for k in range(motion.track_get_key_count(t)):
+						var rot: Quaternion = motion.track_get_key_value(t,k)
+						idle.rotation_track_insert_key(out,motion.track_get_key_time(t,k),(correction*rot*correction.inverse()).normalized())
 				tracks += 1
 			if tracks >= 12:
 				var id = "Idle" + str(idle_variants.size())
