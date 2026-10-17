@@ -711,7 +711,9 @@ func update_combat_fall(dt: float) -> void:
 	# Stable animation-driven fallback: gravity moves the collider, while
 	# the mesh lays prone instead of expanding under invalid bone transforms.
 	visual.rotation.x = lerpf(combat_initial_pitch,-PI*0.5,smoothstep(0.0,0.95,combat_death_time))
-	visual.position.y = 0.86*sin(absf(visual.rotation.x))
+	# Pivot is already at floor level. Raising the corpse by 0.86 m
+	# left horizontal bodies visibly floating above the arena.
+	visual.position.y = 0.0
 
 func update_sky_target(dt: float) -> void:
 	tree.advance(dt)
