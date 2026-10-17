@@ -19,6 +19,9 @@ var jab_cooldown := 0.0
 var jab_aim_remaining := 0.0
 var jab_aim_target := Vector3.ZERO
 var jab_strike_target: Vector3 = Vector3.ZERO
+var punch_pending: bool = false
+var punch_clock: float = 0.0
+var punch_hand: String = "right"
 var jab_left_arm := -1
 var jab_left_forearm := -1
 var jab_left_hand := -1
@@ -189,6 +192,7 @@ func _ready():
 		floor_body.add_child(shape)
 	actor = CharacterBody3D.new()
 	add_child(actor)
+	add_to_group("combat_fighters")
 	if ai_mode != "" or ai_abilities: add_to_group("walking_agents")
 	actor.position = spawn_point
 	actor.rotation.y = -PI/2
@@ -846,6 +850,7 @@ func _physics_process(dt):
 		apply_flight_pose(step)
 	if player_controlled:
 		apply_movement_clip(step)
+		update_punch_contact(step)
 	if player_controlled:
 		debug_tick += step
 		if debug_tick >= 0.25:
@@ -1506,26 +1511,43 @@ func apply_flight_pose(dt: float) -> void:
 	skeleton.force_update_all_bone_transforms()
 
 func throw_left_jab() -> void:
-	# Procedural reach only. No imported punching animation.
 	if jab_cooldown > 0.0 or crouch.active(): return
-	update_cursor_aim()
+	jab_cooldown = 0.55
 	jab_aim_remaining = 0.45
-	jab_cooldown = 0.45
-	start_movement_clip("Punching (1).fbx" if controlled_arm == "left" else "Punching(2).fbx")
+	punch_clock = 0.0
+	punch_pending = true
+	punch_hand = controlled_arm
 	jab_strike_target = get_cursor_world_target()
-	if player_controlled:
-		var aim: Vector3 = get_cursor_world_target()
-		var ray_origin: Vector3 = actor.global_position + Vector3.UP*1.15
-		var direction: Vector3 = (aim-camera.global_position).normalized()
-		var ray := PhysicsRayQueryParameters3D.create(ray_origin,ray_origin+direction*2.6)
-		ray.exclude = [actor.get_rid()]
-		var hit: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
-		if not hit.is_empty():
-			var victim: Object = hit.get("collider")
-			if victim is CharacterBody3D:
-				var damage: Node = victim.get_parent().get_node_or_null("DamageSystem")
-				if damage != null: damage.receive_hit(hit["position"],18.0)
-	if player_controlled: print("ARM_REACH ",controlled_arm)
+	# User testing established these imported clips have opposite hands.
+	var clip: String = "Punching(2).fbx" if punch_hand == "left" else "Punching (1).fbx"
+	start_movement_clip(clip)
+	if player_controlled: print("PUNCH ",punch_hand," ",clip)
+
+func update_punch_contact(dt: float) -> void:
+	if not punch_pending: return
+	punch_clock += dt
+	# Impact only at the end of extension, not during the windup.
+	if punch_clock < 0.36: return
+	punch_pending = false
+	var hand_index: int = jab_left_hand if punch_hand == "left" else jab_right_hand
+	if hand_index < 0: return
+	skeleton.force_update_all_bone_transforms()
+	var fist: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand_index).origin
+	for candidate in get_tree().get_nodes_in_group("combat_fighters"):
+		if candidate == self: continue
+		var damage: Node = candidate.get_node_or_null("DamageSystem")
+		if damage == null or damage.dead: continue
+		var nearest: String = ""
+		var nearest_distance: float = 0.65
+		for region in damage.REGIONS:
+			var point: Vector3 = damage.bone_position(region)
+			var distance_to_hit: float = point.distance_to(fist)
+			if distance_to_hit < nearest_distance:
+				nearest_distance = distance_to_hit
+				nearest = region
+		if nearest != "":
+			damage.receive_hit(damage.bone_position(nearest),18.0)
+			break
 
 func get_cursor_world_target() -> Vector3:
 	var cursor: Vector2 = get_viewport().get_mouse_position()
