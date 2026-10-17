@@ -124,8 +124,24 @@ func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	label.pixel_size = 0.006
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = false
-	label.position.y = 2.1
+	label.position.y = 2.25
 	body.add_child(label)
+	# Readable circular identity marker at each character's feet.
+	var ring := MeshInstance3D.new()
+	ring.name = "NameCircle"
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.58
+	torus.outer_radius = 0.63
+	torus.rings = 48
+	torus.ring_segments = 8
+	ring.mesh = torus
+	var ring_material := StandardMaterial3D.new()
+	ring_material.albedo_color = color
+	ring_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_material.no_depth_test = false
+	ring.material_override = ring_material
+	ring.position.y = 0.045
+	body.add_child(ring)
 	return label
 func build_weapon_display() -> void:
 	# External CC0 weapons only: no primitive geometry and no material overrides.
