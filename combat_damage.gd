@@ -43,6 +43,8 @@ func setup(body: CharacterBody3D, rig: Skeleton3D) -> void:
 		material.no_depth_test = true
 		marker.material_override = material
 		owner_actor.add_child(marker)
+		# Test hitbox overlays are expensive transparent draws; disable in wars.
+		marker.visible = owner_controller.get("animation_test_mode") != "war"
 		markers[region] = marker
 
 func apply_damage_material() -> void:
@@ -63,12 +65,13 @@ func _process(dt: float) -> void:
 	# Updating at 15 Hz saves bone transforms and shader updates during wars.
 	visual_update_clock -= dt
 	if visual_update_clock > 0.0: return
-	visual_update_clock = 1.0/15.0
+	visual_update_clock = 1.0/(8.0 if owner_actor.get_parent().get("animation_test_mode") == "war" else 15.0)
 	skeleton.force_update_all_bone_transforms()
 	for region in REGIONS:
 		var location: Vector3 = bone_position(region)
 		shader_material.set_shader_parameter(region+"_world",location)
-		(markers[region] as MeshInstance3D).global_position = location
+		if (markers[region] as MeshInstance3D).visible:
+			(markers[region] as MeshInstance3D).global_position = location
 
 func update_damage_colors() -> void:
 	shader_material.set_shader_parameter("region_hp",Vector3(float(hp["head"]),float(hp["torso"]),float(hp["left_arm"])))
@@ -116,6 +119,7 @@ func receive_hit(world_point: Vector3, amount: float, attacker: String = "") -> 
 
 func flash_hit_region(region: String) -> void:
 	var marker: MeshInstance3D = markers[region]
+	if not marker.visible: return
 	var mat: StandardMaterial3D = marker.material_override
 	mat.albedo_color = Color(1.0,0.95,0.18,0.78)
 	var flash := create_tween()
