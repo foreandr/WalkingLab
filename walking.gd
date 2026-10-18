@@ -653,7 +653,7 @@ func update_war_fighter(dt: float) -> void:
 	var spectator: Node = get_tree().current_scene.get("player")
 	var near_player: bool = spectator != null and is_instance_valid(spectator) and actor.global_position.distance_squared_to(spectator.actor.global_position) < 324.0
 	var in_combat: bool = cast_elapsed >= 0.0 or (war_target != null and is_instance_valid(war_target) and actor.global_position.distance_squared_to(war_target.actor.global_position) < 400.0)
-	var visual_rate: float = 60.0 if near_player or cast_elapsed >= 0.0 or flight_enabled else (30.0 if in_combat else 15.0)
+	var visual_rate: float = 30.0 if near_player or cast_elapsed >= 0.0 or flight_enabled or in_combat else 15.0
 	war_visual_accumulator += dt
 	var advance_visual: bool = war_visual_accumulator + 0.00001 >= 1.0 / visual_rate
 	var animation_start: int = Time.get_ticks_usec() if sampled else 0
@@ -691,7 +691,7 @@ func update_war_fighter(dt: float) -> void:
 	# War fighters use this cast IK path rather than the player movement path.
 	# Without an initialized weight their cast arm stays motionless.
 	jab_aim_strength = 1.0
-	if advance_visual or cast_elapsed >= 0.0: adjust_jab_arm()
+	if advance_visual: adjust_jab_arm()
 	update_cast_motion(dt)
 	if sampled:
 		get_tree().current_scene.record_performance_sample("war_cast_and_ik",Time.get_ticks_usec()-profile_phase)
