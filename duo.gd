@@ -316,7 +316,10 @@ func make_boundary():
 
 func tick_war_fighters(dt: float) -> void:
 	for fighter in mannequins:
-		if is_instance_valid(fighter) and not fighter.combat_dead:
+		if not is_instance_valid(fighter): continue
+		if fighter.combat_dead:
+			if not fighter.combat_pose_frozen: fighter.update_combat_fall(dt)
+		else:
 			fighter.war_simulation_tick(dt)
 
 func _physics_process(_dt):
