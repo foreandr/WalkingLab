@@ -7,9 +7,20 @@ var minimum = INF
 var lift = 0.0
 var support_groups = []
 var use_full_support = false
+# Immutable geometry/support data is identical for every imported Mixamo fighter.
+static var shared_mixamo_support_ready: bool = false
+static var shared_mixamo_samples: Array = []
+static var shared_mixamo_all_samples: Array = []
+static var shared_mixamo_support_groups: Array = []
 func setup(root: Node3D, skel: Skeleton3D):
 	visual = root
 	skeleton = skel
+	var is_mixamo: bool = root.scene_file_path.ends_with("user_mixamo.glb")
+	if is_mixamo and shared_mixamo_support_ready:
+		samples = shared_mixamo_samples
+		all_samples = shared_mixamo_all_samples
+		support_groups = shared_mixamo_support_groups
+		return
 	for instance in root.find_children("*","MeshInstance3D",true,false):
 		if not instance.skin or not instance.mesh: continue
 		var skin = instance.skin
@@ -56,6 +67,12 @@ func setup(root: Node3D, skel: Skeleton3D):
 				for influence in point:
 					influence[0] = int(influence[0])
 					influence[1] = Vector3(influence[1][0],influence[1][1],influence[1][2])
+	if is_mixamo:
+		shared_mixamo_samples = samples
+		shared_mixamo_all_samples = all_samples
+		shared_mixamo_support_groups = support_groups
+		shared_mixamo_support_ready = true
+		print("[FOOT_SUPPORT_CACHE] samples=",samples.size()," all_samples=",all_samples.size())
 func full_support_lowest() -> float:
 	if support_groups.is_empty(): return lowest()
 	var transforms = []
