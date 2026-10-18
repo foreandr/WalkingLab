@@ -6,6 +6,7 @@ var active_war_projectiles: Array = []
 # Uniform spatial hash rebuilt once per physics step, shared across all AI.
 const WAR_GRID_CELL: float = 12.0
 var war_spatial_cells: Dictionary = {}
+var war_projectile_cells: Dictionary = {}
 var player
 var ai_label: Label3D
 var player_label: Label3D
@@ -332,12 +333,28 @@ func war_nearby_fighters(position: Vector3, radius_cells: int = 1) -> Array:
 			if war_spatial_cells.has(key): result.append_array(war_spatial_cells[key])
 	return result
 
+func war_nearby_projectiles(position: Vector3, radius_cells: int = 2) -> Array:
+	var result: Array = []
+	var center := Vector2i(floori(position.x / WAR_GRID_CELL),floori(position.z / WAR_GRID_CELL))
+	for x in range(center.x-radius_cells,center.x+radius_cells+1):
+		for z in range(center.y-radius_cells,center.y+radius_cells+1):
+			var key := Vector2i(x,z)
+			if war_projectile_cells.has(key): result.append_array(war_projectile_cells[key])
+	return result
+
 func tick_war_fighters(dt: float) -> void:
 	var tick_start: int = Time.get_ticks_usec()
 	# One authoritative living roster shared by every fighter this tick.
 	active_war_fighters.clear()
 	war_spatial_cells.clear()
+	war_projectile_cells.clear()
 	active_war_projectiles = get_tree().get_nodes_in_group("battle_fireballs")
+	for projectile in active_war_projectiles:
+		if not is_instance_valid(projectile): continue
+		var at: Vector3 = projectile.global_position
+		var cell := Vector2i(floori(at.x/WAR_GRID_CELL),floori(at.z/WAR_GRID_CELL))
+		if not war_projectile_cells.has(cell): war_projectile_cells[cell] = []
+		war_projectile_cells[cell].append(projectile)
 	for fighter in mannequins:
 		if is_instance_valid(fighter) and not fighter.combat_dead:
 			active_war_fighters.append(fighter)
