@@ -36,6 +36,25 @@ func _physics_process(delta: float) -> void:
 		explode(projectile,hit["position"])
 		projectile.queue_free()
 		return
+	# For enlarged fireballs, the visible body of the projectile must be
+	# collidable too. Query spheres along this physics step, preserving the
+	# swept center ray above for narrow/high-speed shots.
+	if blast_width > 1.0:
+		var width_radius: float = 0.45 * blast_width
+		var ball := SphereShape3D.new()
+		ball.radius = width_radius
+		var sphere_query := PhysicsShapeQueryParameters3D.new()
+		sphere_query.shape = ball
+		sphere_query.exclude = ray.exclude
+		var segments: int = mini(6,maxi(1,int(ceil(displacement.length() / maxf(width_radius,0.5)))))
+		for segment in range(segments):
+			var probe: Vector3 = projectile.global_position + displacement * (float(segment + 1) / float(segments))
+			sphere_query.transform = Transform3D(Basis.IDENTITY,probe)
+			var overlaps: Array[Dictionary] = space.intersect_shape(sphere_query,1)
+			if not overlaps.is_empty():
+				explode(projectile,probe)
+				projectile.queue_free()
+				return
 	if sampled:
 		var scene_for_profile: Node = projectile.get_tree().current_scene
 		if scene_for_profile != null and scene_for_profile.has_method("record_performance_sample"):
