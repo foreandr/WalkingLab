@@ -62,6 +62,13 @@ func bone_position(region: String) -> Vector3:
 
 func _process(dt: float) -> void:
 	if skeleton == null or not is_instance_valid(skeleton): return
+	# Once the dead fighter has settled, its damage colors and bone markers
+	# are static; stop all per-frame material/bone polling permanently.
+	if dead:
+		var owner_controller: Node = owner_actor.get_parent() if is_instance_valid(owner_actor) else null
+		if owner_controller != null and bool(owner_controller.get("combat_pose_frozen")):
+			set_process(false)
+			return
 	# Damage regions are visual feedback, not collision physics.
 	# Updating at 15 Hz saves bone transforms and shader updates during wars.
 	visual_update_clock -= dt
