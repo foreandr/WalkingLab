@@ -506,8 +506,9 @@ func begin_direction_change(target_backward: bool):
 func update_war_fighter(dt: float) -> void:
 	# Re-evaluate a local opponent as the battle changes; never select a spectator.
 	var opponents: Array = []
-	for other in get_tree().get_nodes_in_group("combat_fighters"):
-		if other == self or other.animation_test_mode != "war" or other.combat_dead: continue
+	# Scene owns the fighter roster; avoid searching the entire node tree.
+	for other in get_tree().current_scene.mannequins:
+		if other == self or other.combat_dead: continue
 		opponents.append(other)
 	if opponents.is_empty():
 		actor.velocity = Vector3.ZERO
