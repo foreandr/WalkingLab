@@ -69,8 +69,8 @@ func create_performance_hud() -> void:
 	overlay.name = "PerformanceHUD"
 	add_child(overlay)
 	performance_label = Label.new()
-	performance_label.position = Vector2(14,14)
-	performance_label.add_theme_font_size_override("font_size",20)
+	performance_label.position = Vector2(14,10)
+	performance_label.add_theme_font_size_override("font_size",16)
 	performance_label.add_theme_color_override("font_color",Color("d9ffab"))
 	overlay.add_child(performance_label)
 
@@ -95,8 +95,9 @@ func create_battle_feed() -> void:
 	ui.name = "BattleHUD"
 	add_child(ui)
 	var panel := PanelContainer.new()
-	panel.position = Vector2(12,64)
+	panel.position = Vector2(12,100)
 	panel.custom_minimum_size = Vector2(310,280)
+	panel.modulate.a = 0.88
 	ui.add_child(panel)
 	var column := VBoxContainer.new()
 	panel.add_child(column)
