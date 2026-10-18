@@ -55,6 +55,12 @@ var backward_flying_clip: Dictionary = {}
 var selected_spell_target: CharacterBody3D = null
 var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
+# All arena combatants use the same imported rig. Share immutable retargeted
+# animation curves rather than import and retarget twenty FBX files per fighter.
+static var shared_flight_clips_ready: bool = false
+static var shared_flying_clip: Dictionary = {}
+static var shared_backward_flying_clip: Dictionary = {}
+static var shared_movement_clips: Dictionary = {}
 var movement_clip_name: String = ""
 var combat_dead: bool = false
 var combat_death_time: float = 0.0
@@ -1688,6 +1694,12 @@ func adjust_jab_arm() -> void:
 	skeleton.force_update_all_bone_transforms()
 
 func load_flight_clips() -> void:
+	if shared_flight_clips_ready:
+		flying_clip = shared_flying_clip
+		backward_flying_clip = shared_backward_flying_clip
+		movement_clips = shared_movement_clips.duplicate()
+		return
+	var import_start_usec: int = Time.get_ticks_usec()
 
 	for filename in ["Flying (1).fbx","Jumping Up.fbx","Sitting Idle.fbx","Punching (1).fbx","Punching(2).fbx","Reaction.fbx","Reaction (1).fbx","Medium Hit To Head.fbx","Medium Hit To Head (1).fbx","Light Hit To Head.fbx","Light Hit To Head (1).fbx","Big Kidney Hit.fbx","Big Kidney Hit (1).fbx","Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx","Stunned.fbx","Injured Walk (1).fbx","Injured Walk.fbx"]:
 		var resource_path: String = "res://assets/custom_idle/" + filename
@@ -1743,6 +1755,11 @@ func load_flight_clips() -> void:
 					movement_clips[filename] = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				if player_controlled: debug_player("ANIMATION_LOADED",filename+" tracks="+str(curves.size())+" seconds="+str(selected.length))
 		root.free()
+	shared_flying_clip = flying_clip
+	shared_backward_flying_clip = backward_flying_clip
+	shared_movement_clips = movement_clips.duplicate()
+	shared_flight_clips_ready = true
+	print("[ANIMATION_CACHE_BUILD] duration_ms=%.2f imported_clips=%d" % [float(Time.get_ticks_usec()-import_start_usec)/1000.0,movement_clips.size()+int(not flying_clip.is_empty())+int(not backward_flying_clip.is_empty())])
 	if flying_clip.is_empty():
 		push_warning("FLIGHT_ANIMATION_MISSING: res://assets/custom_idle/Flying (1).fbx not imported or no matching bones. Flight hover will use fallback pose.")
 	else:
