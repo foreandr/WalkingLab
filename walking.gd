@@ -650,7 +650,7 @@ func update_war_fighter(dt: float) -> void:
 	var spectator: Node = get_tree().current_scene.get("player")
 	var near_player: bool = spectator != null and is_instance_valid(spectator) and actor.global_position.distance_squared_to(spectator.actor.global_position) < 324.0
 	var in_combat: bool = cast_elapsed >= 0.0 or (war_target != null and is_instance_valid(war_target) and actor.global_position.distance_squared_to(war_target.actor.global_position) < 400.0)
-	var visual_rate: float = 30.0 if near_player or flight_enabled else 15.0
+	var visual_rate: float = 30.0 if near_player or flight_enabled else 10.0
 	war_visual_accumulator += dt
 	var advance_visual: bool = war_visual_accumulator + 0.00001 >= 1.0 / visual_rate
 	var animation_start: int = Time.get_ticks_usec() if sampled else 0
