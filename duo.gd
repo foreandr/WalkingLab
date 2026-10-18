@@ -2,6 +2,7 @@ extends Node3D
 var ai
 var mannequins: Array = []
 var active_war_fighters: Array = []
+var active_war_projectiles: Array = []
 var player
 var ai_label: Label3D
 var player_label: Label3D
@@ -323,6 +324,7 @@ func tick_war_fighters(dt: float) -> void:
 	var tick_start: int = Time.get_ticks_usec()
 	# One authoritative living roster shared by every fighter this tick.
 	active_war_fighters.clear()
+	active_war_projectiles = get_tree().get_nodes_in_group("battle_fireballs")
 	for fighter in mannequins:
 		if is_instance_valid(fighter) and not fighter.combat_dead:
 			active_war_fighters.append(fighter)
