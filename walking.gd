@@ -95,6 +95,7 @@ var war_target: Node3D = null
 var war_decision_timer: float = 0.0
 var war_strafe_sign: float = 1.0
 var war_tactical_clock: float = 0.0
+var war_flight_preference: bool = false
 var war_cached_retreat: bool = false
 var war_cached_dodge: Vector3 = Vector3.ZERO
 var flight_enabled: bool = false
@@ -515,6 +516,7 @@ func update_war_fighter(dt: float) -> void:
 	war_decision_timer -= dt
 	if war_target == null or not is_instance_valid(war_target) or war_target.combat_dead or war_decision_timer <= 0.0:
 		war_decision_timer = agent_rng.randf_range(0.9,2.0)
+		war_flight_preference = agent_rng.randf() < 0.65
 		war_strafe_sign = -1.0 if agent_rng.randf() < 0.5 else 1.0
 		var best_score: float = INF
 		for other in opponents:
@@ -556,13 +558,13 @@ func update_war_fighter(dt: float) -> void:
 				if miss.length_squared() < 9.0:
 					war_cached_dodge += tangent*war_strafe_sign*3.5
 	desired += war_cached_dodge
-	var must_fly: bool = distance > 25.0 or target_body.global_position.y > 3.0
+	var must_fly: bool = distance > 22.0 or target_body.global_position.y > 3.0 or (war_flight_preference and distance > 10.0)
 	if must_fly: flight_enabled = true
 	elif distance < 15.0 and actor.global_position.y < 2.8: flight_enabled = false
 	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
 	var wish: Vector3 = desired.normalized()
 	if flight_enabled:
-		var destination_height: float = clampf(target_body.global_position.y+3.0,3.0,48.0)
+		var destination_height: float = clampf(target_body.global_position.y+(8.0 if war_flight_preference else 4.0),4.0,48.0)
 		wish.y = clampf((destination_height-actor.global_position.y)/6.0,-0.8,0.8)
 		wish = wish.normalized()
 		actor.velocity = actor.velocity.move_toward(wish*13.0,dt*32.0)
@@ -1838,7 +1840,7 @@ func select_hovered_target() -> void:
 	var pointer: Vector2 = get_viewport().get_mouse_position()
 	var origin: Vector3 = camera.project_ray_origin(pointer)
 	var direction: Vector3 = camera.project_ray_normal(pointer)
-	var ray: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(origin,origin+direction*200.0)
+	var ray: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(origin,origin+direction*500.0)
 	ray.exclude = [actor.get_rid()]
 	var result: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
 	var hovered: CharacterBody3D = null
@@ -1926,6 +1928,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	projectile.add_child(effect)
 	# Three times the size at the hand and during travel.
 	effect.scale = Vector3.ONE * 3.0
+	if animation_test_mode == "war": effect.amount = maxi(4,int(effect.amount / 3))
 	effect.emitting = true
 	effect.restart()
 	var script_path: String = "res://assets/external_vfx/" + "fireball_motion.gd"
