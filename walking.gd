@@ -1924,6 +1924,8 @@ func release_fireball(hand_world: Vector3) -> void:
 	var effect_path: String = "res://assets/external_vfx/" + cast_element + ".tscn"
 	var effect: GPUParticles3D = load(effect_path).instantiate()
 	projectile.add_child(effect)
+	# Three times the size at the hand and during travel.
+	effect.scale = Vector3.ONE * 3.0
 	effect.emitting = true
 	effect.restart()
 	var script_path: String = "res://assets/external_vfx/" + "fireball_motion.gd"
