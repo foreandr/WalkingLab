@@ -52,12 +52,12 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		var burst: GPUParticles3D = source.duplicate() as GPUParticles3D
 		impact.add_child(burst)
 		burst.scale = Vector3.ONE * 15.0
-		burst.amount = maxi(3,int(burst.amount / 4))
+		burst.amount = maxi(2,int(burst.amount / 8))
 		burst.one_shot = true
 		burst.emitting = true
 		burst.restart()
 	var cleanup := impact.create_tween()
-	cleanup.tween_interval(1.5)
+	cleanup.tween_interval(0.6)
 	cleanup.tween_callback(impact.queue_free)
 	# An explosion damages every distinct fighter in range just once.
 	const BLAST_RADIUS: float = 5.0
