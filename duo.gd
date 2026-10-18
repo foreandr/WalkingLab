@@ -87,7 +87,7 @@ func print_performance_report() -> void:
 	var frame_ms: float = Performance.get_monitor(Performance.TIME_PROCESS)*1000.0
 	var physics_ms: float = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0
 	var summary: String = "[PERF] fps=%d cpu_frame_ms=%.2f physics_frame_ms=%.2f" % [fps,frame_ms,physics_ms]
-	for category in ["war_ai_total","war_collision","war_animation_tree"]:
+	for category in ["war_ai_total","war_collision","war_animation_tree","projectile_ray"]:
 		var n: int = int(profile_samples.get(category,0))
 		var average: float = float(profile_total.get(category,0))/float(maxi(1,n))/1000.0
 		summary += " %s_avg_ms=%.3f samples=%d" % [category,average,n]
