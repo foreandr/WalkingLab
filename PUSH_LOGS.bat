@@ -19,5 +19,4 @@ if errorlevel 1 (
 )
 echo.
 echo Logs synchronized. WalkingLab will NOT restart.
-pause
 exit /b 0
