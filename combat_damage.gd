@@ -100,10 +100,10 @@ func region_at(world_point: Vector3) -> String:
 
 # Direct anatomical damage is used for multi-region AOE. The ordinary
 # receive_hit entry point still resolves a single impact to one region.
-func receive_region_hit(region: String, world_point: Vector3, amount: float, attacker: String = "") -> void:
+func receive_region_hit(region: String, world_point: Vector3, amount: float, attacker: String = "", show_number: bool = true) -> void:
 	if dead or not hp.has(region): return
 	hp[region] = maxf(0.0,float(hp[region])-amount)
-	show_damage_number(world_point,amount,region)
+	if show_number: show_damage_number(world_point,amount,region)
 	flash_hit_region(region)
 	var remaining: float = float(hp[region])
 	update_damage_colors()
@@ -124,8 +124,11 @@ func receive_aoe_regions(regions: Array[String], amount: float, attacker: String
 	# Resolve every intersected pool before applying fatality, so head/torso
 	# damage cannot suppress arm and leg hits from the same explosion.
 	aoe_batch_active = true
+	var first_number: bool = true
 	for region in regions:
-		if hp.has(region): receive_region_hit(region,bone_position(region),amount,attacker)
+		if hp.has(region):
+			receive_region_hit(region,bone_position(region),amount,attacker,first_number)
+			first_number = false
 	aoe_batch_active = false
 	for vital in ["head","torso"]:
 		if float(hp[vital]) <= 0.0:
