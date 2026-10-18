@@ -48,7 +48,7 @@ func _ready():
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(80.0,0.2,80.0)
+	floor_box.size = Vector3(96.0,0.2,96.0)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -63,7 +63,7 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	spawn_more_fighters()
+	for batch in range(3): spawn_more_fighters()
 	ai = mannequins[0]
 	ai_label = null
 
@@ -273,7 +273,7 @@ func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	body.add_child(ring)
 	return label
 func make_boundary():
-	# Closed 80 x 80 metre arena: opaque visible walls and a solid roof.
+	# Closed 96 x 96 metre arena: opaque visible walls and a solid roof.
 	var structure := StaticBody3D.new()
 	structure.name = "EnclosedArena"
 	add_child(structure)
@@ -286,11 +286,11 @@ func make_boundary():
 	roof_material.roughness = 0.95
 	roof_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var surfaces := [
-		{"name":"NorthWall","size":Vector3(80.0,55.0,1.5),"center":Vector3(0,27.5,-40)},
-		{"name":"SouthWall","size":Vector3(80.0,55.0,1.5),"center":Vector3(0,27.5,40)},
-		{"name":"EastWall","size":Vector3(1.5,55.0,80.0),"center":Vector3(40,27.5,0)},
-		{"name":"WestWall","size":Vector3(1.5,55.0,80.0),"center":Vector3(-40,27.5,0)},
-		{"name":"Ceiling","size":Vector3(80.0,1.5,80.0),"center":Vector3(0,55,0)}
+		{"name":"NorthWall","size":Vector3(96.0,55.0,1.5),"center":Vector3(0,27.5,-48)},
+		{"name":"SouthWall","size":Vector3(96.0,55.0,1.5),"center":Vector3(0,27.5,48)},
+		{"name":"EastWall","size":Vector3(1.5,55.0,96.0),"center":Vector3(48,27.5,0)},
+		{"name":"WestWall","size":Vector3(1.5,55.0,96.0),"center":Vector3(-48,27.5,0)},
+		{"name":"Ceiling","size":Vector3(96.0,1.5,96.0),"center":Vector3(0,55,0)}
 	]
 	for item in surfaces:
 		var collider := CollisionShape3D.new()
