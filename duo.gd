@@ -13,6 +13,9 @@ var battle_hits: Array[String] = []
 var damage_totals: Dictionary = {}
 var performance_label: Label
 var performance_clock: float = 0.0
+var profile_clock: float = 0.0
+var profile_samples: Dictionary = {}
+var profile_total: Dictionary = {}
 func _ready():
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
@@ -69,12 +72,36 @@ func create_performance_hud() -> void:
 	overlay.name = "PerformanceHUD"
 	add_child(overlay)
 	performance_label = Label.new()
-	performance_label.position = Vector2(14,10)
+	performance_label.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	performance_label.position = Vector2(-800,72)
 	performance_label.add_theme_font_size_override("font_size",16)
 	performance_label.add_theme_color_override("font_color",Color("d9ffab"))
 	overlay.add_child(performance_label)
 
+func record_performance_sample(category: String, microseconds: int) -> void:
+	profile_total[category] = int(profile_total.get(category,0))+microseconds
+	profile_samples[category] = int(profile_samples.get(category,0))+1
+
+func print_performance_report() -> void:
+	var fps: int = Engine.get_frames_per_second()
+	var frame_ms: float = Performance.get_monitor(Performance.TIME_PROCESS)*1000.0
+	var physics_ms: float = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0
+	var summary: String = "[PERF] fps=%d cpu_frame_ms=%.2f physics_frame_ms=%.2f" % [fps,frame_ms,physics_ms]
+	for category in ["war_ai_total","war_collision","war_animation_tree"]:
+		var n: int = int(profile_samples.get(category,0))
+		var average: float = float(profile_total.get(category,0))/float(maxi(1,n))/1000.0
+		summary += " %s_avg_ms=%.3f samples=%d" % [category,average,n]
+	var active_shots: int = get_tree().get_nodes_in_group("battle_fireballs").size()
+	summary += " projectiles=%d fighters=%d" % [active_shots,mannequins.size()]
+	print(summary)
+	profile_total.clear()
+	profile_samples.clear()
+
 func _process(dt: float) -> void:
+	profile_clock += dt
+	if profile_clock >= 5.0:
+		profile_clock = 0.0
+		print_performance_report()
 	performance_clock -= dt
 	if performance_clock > 0.0: return
 	performance_clock = 0.5
@@ -95,7 +122,8 @@ func create_battle_feed() -> void:
 	ui.name = "BattleHUD"
 	add_child(ui)
 	var panel := PanelContainer.new()
-	panel.position = Vector2(12,100)
+	panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	panel.position = Vector2(12,-330)
 	panel.custom_minimum_size = Vector2(310,280)
 	panel.modulate.a = 0.88
 	ui.add_child(panel)
