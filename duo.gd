@@ -88,6 +88,8 @@ func spawn_more_fighters() -> void:
 		fighter.actor.rotation.y = angle + PI
 		make_label(fighter.actor,"FIGHTER %02d" % (index+1),fighter.character_tint)
 		mannequins.append(fighter)
+		# The arena drives this fighter from one central physics callback.
+		fighter.set_physics_process(false)
 	announced_winner = false
 	print("[STRESS_SPAWN] added=10 fighters_total=",mannequins.size()," ground_feet_enabled=",pose_enabled)
 
@@ -312,8 +314,14 @@ func make_boundary():
 	lamp.shadow_enabled = false
 	add_child(lamp)
 
+func tick_war_fighters(dt: float) -> void:
+	for fighter in mannequins:
+		if is_instance_valid(fighter) and not fighter.combat_dead:
+			fighter.war_simulation_tick(dt)
+
 func _physics_process(_dt):
 	if player == null: return
+	tick_war_fighters(_dt)
 	player_label.position.y = player.crouch.capsule.height+0.3
 	if announced_winner: return
 	var survivors: Array = []
