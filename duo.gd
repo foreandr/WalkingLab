@@ -177,8 +177,8 @@ func _spawn_single_fighter() -> void:
 	var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 	if index < LINEUP_DISTANCES.size():
 		var measured_distance: float = float(LINEUP_DISTANCES[index])
-		var sideways: float = minf(4.0,measured_distance * 0.18) * (-1.0 if index % 2 == 0 else 1.0)
-		fighter.spawn_point = player.spawn_point + Vector3(sideways,0.0,-sqrt(measured_distance*measured_distance-sideways*sideways))
+		# Exact collinear lineup directly in front of the player.
+		fighter.spawn_point = player.spawn_point + Vector3(0.0,0.0,-measured_distance)
 		fighter.animation_lineup_mode = true
 	else:
 		fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
