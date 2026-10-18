@@ -558,7 +558,10 @@ func update_war_fighter(dt: float) -> void:
 				if miss.length_squared() < 9.0:
 					war_cached_dodge += tangent*war_strafe_sign*3.5
 	desired += war_cached_dodge
-	var must_fly: bool = distance > 22.0 or target_body.global_position.y > 3.0 or (war_flight_preference and distance > 10.0)
+	# Only Fighter01 may fly in the ten-fighter war; all others stay grounded.
+	var may_fly: bool = name == "Fighter01"
+	var must_fly: bool = may_fly and (distance > 22.0 or target_body.global_position.y > 3.0 or (war_flight_preference and distance > 10.0))
+	if not may_fly: flight_enabled = false
 	if must_fly: flight_enabled = true
 	elif distance < 15.0 and actor.global_position.y < 2.8: flight_enabled = false
 	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
