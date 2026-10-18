@@ -22,7 +22,7 @@ var spawn_cooldown: float = 0.0
 var spawn_last_cost_ms: float = 0.0
 var spawn_peak_cost_ms: float = 0.0
 var spawn_count_window: int = 0
-# Opt-in: --flight-benchmark. Begins after all 70 fighters have spawned,
+# Opt-in: --flight-benchmark. Begins after all 80 fighters have spawned,
 # then performs sixty seconds of genuine player flight physics.
 var flight_benchmark_requested: bool = false
 var flight_benchmark_running: bool = false
@@ -59,6 +59,10 @@ var profile_total: Dictionary = {}
 var profile_maximum: Dictionary = {}
 var profile_window_frames: int = 0
 var profile_frame_fps_sum: float = 0.0
+var profile_focus_frames: int = 0
+var profile_unfocused_frames: int = 0
+var profile_focus_fps_sum: float = 0.0
+var profile_unfocused_fps_sum: float = 0.0
 var profile_frame_cpu_sum: float = 0.0
 var profile_frame_physics_sum: float = 0.0
 var profile_wall_ms: Array[float] = []
@@ -108,7 +112,7 @@ func _ready():
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(96.0,0.2,96.0)
+	floor_box.size = Vector3(480.0,0.2,480.0)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -124,10 +128,10 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# Prepare one fighter before rendering; queue the remaining 69 rather
+	# Prepare one fighter before rendering; queue the remaining 79 rather
 	# than blocking the main thread constructing the entire arena at once.
 	spawn_more_fighters(1,true)
-	spawn_more_fighters(69)
+	spawn_more_fighters(79)
 	ai = mannequins[0]
 	ai_label = null
 
@@ -162,7 +166,7 @@ func _spawn_single_fighter() -> void:
 	fighter.war_pose_enabled = pose_enabled
 	# Distribute later batches across the arena, avoiding the player spawn.
 	var angle: float = float(index) * 2.39996323
-	var ring: float = 12.0 + float((index / 10) % 6) * 4.0
+	var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 	fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
 	fighter.character_tint = Color(FIGHTER_COLORS[index % FIGHTER_COLORS.size()])
 	add_child(fighter)
@@ -231,7 +235,8 @@ func print_performance_report() -> void:
 	summary += " [SPAWN_PROFILE] queue=%d spawned_window=%d last_ms=%.2f max_ms=%.2f" % [queued_fighter_spawns,spawn_count_window,spawn_last_cost_ms,spawn_peak_cost_ms]
 	spawn_count_window = 0
 	spawn_peak_cost_ms = 0.0
-	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d batch_aoe_shader=%s" % [str(stress_no_deaths),70,str(batch_aoe_shader)]
+	summary += " [WINDOW_FOCUS] focused_frames=%d unfocused_frames=%d focused_fps=%.1f unfocused_fps=%.1f" % [profile_focus_frames,profile_unfocused_frames,profile_focus_fps_sum/float(maxi(1,profile_focus_frames)),profile_unfocused_fps_sum/float(maxi(1,profile_unfocused_frames))]
+	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d batch_aoe_shader=%s" % [str(stress_no_deaths),80,str(batch_aoe_shader)]
 	summary += " [WAR_ACTIVITY] living_min=%d living_max=%d living_avg=%.1f projectile_peak=%d fighter_grid_cells=%d projectile_grid_cells=%d max_fighter_bucket=%d max_projectile_bucket=%d" % [
 		0 if profile_living_samples == 0 else profile_living_min,profile_living_max,
 		float(profile_living_sum)/float(maxi(1,profile_living_samples)),profile_projectile_peak,
@@ -265,6 +270,10 @@ func print_performance_report() -> void:
 	profile_maximum.clear()
 	profile_window_frames = 0
 	profile_frame_fps_sum = 0.0
+	profile_focus_frames = 0
+	profile_unfocused_frames = 0
+	profile_focus_fps_sum = 0.0
+	profile_unfocused_fps_sum = 0.0
 	profile_frame_cpu_sum = 0.0
 	profile_frame_physics_sum = 0.0
 	profile_wall_ms.clear()
@@ -285,7 +294,7 @@ func _process(dt: float) -> void:
 	if battle_feed_refresh_clock <= 0.0:
 		battle_feed_refresh_clock = 0.2
 		refresh_battle_feed()
-	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == 70 and is_instance_valid(player):
+	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == 80 and is_instance_valid(player):
 		flight_benchmark_running = true
 		flight_benchmark_unfocused_frames = 0
 		flight_benchmark_low_draw_frames = 0
@@ -358,6 +367,12 @@ func _process(dt: float) -> void:
 	profile_physics_ms.append(monitored_physics_ms)
 	profile_window_frames += 1
 	profile_frame_fps_sum += float(Engine.get_frames_per_second())
+	if DisplayServer.window_is_focused():
+		profile_focus_frames += 1
+		profile_focus_fps_sum += float(Engine.get_frames_per_second())
+	else:
+		profile_unfocused_frames += 1
+		profile_unfocused_fps_sum += float(Engine.get_frames_per_second())
 	profile_frame_cpu_sum += monitored_cpu_ms
 	profile_frame_physics_sum += monitored_physics_ms
 	profile_clock += dt
@@ -493,11 +508,11 @@ func make_boundary():
 	roof_material.roughness = 0.95
 	roof_material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var surfaces := [
-		{"name":"NorthWall","size":Vector3(96.0,55.0,1.5),"center":Vector3(0,27.5,-48)},
-		{"name":"SouthWall","size":Vector3(96.0,55.0,1.5),"center":Vector3(0,27.5,48)},
-		{"name":"EastWall","size":Vector3(1.5,55.0,96.0),"center":Vector3(48,27.5,0)},
-		{"name":"WestWall","size":Vector3(1.5,55.0,96.0),"center":Vector3(-48,27.5,0)},
-		{"name":"Ceiling","size":Vector3(96.0,1.5,96.0),"center":Vector3(0,55,0)}
+		{"name":"NorthWall","size":Vector3(480.0,85.0,1.5),"center":Vector3(0,42.5,-240)},
+		{"name":"SouthWall","size":Vector3(480.0,85.0,1.5),"center":Vector3(0,42.5,240)},
+		{"name":"EastWall","size":Vector3(1.5,85.0,480.0),"center":Vector3(240,42.5,0)},
+		{"name":"WestWall","size":Vector3(1.5,85.0,480.0),"center":Vector3(-240,42.5,0)},
+		{"name":"Ceiling","size":Vector3(480.0,1.5,480.0),"center":Vector3(0,85,0)}
 	]
 	for item in surfaces:
 		var collider := CollisionShape3D.new()
