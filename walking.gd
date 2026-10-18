@@ -1989,7 +1989,7 @@ func get_cursor_world_target() -> Vector3:
 	return ray_origin + ray_direction * 150.0
 
 func ai_target_position() -> Vector3:
-	var opponent: Node3D = war_target if animation_test_mode == "war" else get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
+	var opponent: Node3D = war_target if animation_test_mode == "war" or auto_war_combat else get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
 	if opponent != null:
 		var opponent_body: Node3D = opponent.get("actor") as Node3D
 		if opponent_body != null: return opponent_body.global_position + Vector3.UP * 1.2
