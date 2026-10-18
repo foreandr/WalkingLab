@@ -105,7 +105,10 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 	var blast_radius: float = 5.0 * blast_width
 	var affected_fighters: int = 0
 	var affected_regions: int = 0
-	for fighter in projectile.get_tree().get_nodes_in_group("combat_fighters"):
+	# Arena spatial hash avoids testing the entire 60-fighter roster on
+	# every impact. Fall back to the scene group outside arena mode.
+	var candidates: Array = scene.war_nearby_fighters(position,maxi(1,int(ceil((blast_radius + 3.0) / scene.WAR_GRID_CELL)))) if scene != null and scene.has_method("war_nearby_fighters") else projectile.get_tree().get_nodes_in_group("combat_fighters")
+	for fighter in candidates:
 		if not is_instance_valid(fighter): continue
 		if fighter.player_controlled and scene.get("battle_fireball_speed") != null: continue
 		var body: CharacterBody3D = fighter.actor as CharacterBody3D
@@ -124,4 +127,5 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		affected_fighters += 1
 		damage.receive_aoe_regions(hit_regions,32.0,attacker_name)
 		affected_regions += hit_regions.size()
-	print("[AOE_REGIONS] fighters=",affected_fighters," body_regions=",affected_regions," radius=",blast_radius)
+	if scene == null or not bool(scene.get("stress_no_deaths")):
+		print("[AOE_REGIONS] fighters=",affected_fighters," body_regions=",affected_regions," radius=",blast_radius)
