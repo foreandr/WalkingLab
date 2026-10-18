@@ -25,6 +25,7 @@ var spawn_count_window: int = 0
 
 const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
 var announced_winner: bool = false
+var winner_banner: Label3D = null
 var battle_feed: RichTextLabel
 var battle_hits: Array[String] = []
 var damage_totals: Dictionary = {}
@@ -104,7 +105,15 @@ func _ready():
 	ai = mannequins[0]
 	ai_label = null
 
+func clear_winner_announcement() -> void:
+	announced_winner = false
+	if is_instance_valid(winner_banner):
+		winner_banner.queue_free()
+	winner_banner = null
+
 func spawn_more_fighters(count: int = 10, immediate: bool = false) -> void:
+	if count <= 0: return
+	clear_winner_announcement()
 	if not immediate:
 		queued_fighter_spawns += count
 		print("[SPAWN_REQUEST] queued=",count," pending=",queued_fighter_spawns," existing=",mannequins.size())
@@ -136,7 +145,6 @@ func _spawn_single_fighter() -> void:
 	mannequins.append(fighter)
 	# The arena drives this fighter from one central physics callback.
 	fighter.set_physics_process(false)
-	announced_winner = false
 	spawn_last_cost_ms = float(Time.get_ticks_usec()-spawn_begin)/1000.0
 	spawn_peak_cost_ms = maxf(spawn_peak_cost_ms,spawn_last_cost_ms)
 	spawn_count_window += 1
@@ -477,7 +485,7 @@ func _physics_process(_dt):
 	if player == null: return
 	tick_war_fighters(_dt)
 	player_label.position.y = player.crouch.capsule.height+0.3
-	if announced_winner: return
+	if announced_winner or queued_fighter_spawns > 0 or mannequins.size() < 2: return
 	var survivors: Array = []
 	for fighter in mannequins:
 		if is_instance_valid(fighter) and not fighter.combat_dead: survivors.append(fighter)
@@ -486,6 +494,7 @@ func _physics_process(_dt):
 		print("[WAR WINNER] ",survivors[0].name)
 		var banner := Label3D.new()
 		banner.text = "WINNER"
+		winner_banner = banner
 		banner.font_size = 90
 		banner.pixel_size = 0.009
 		banner.billboard = BaseMaterial3D.BILLBOARD_ENABLED
