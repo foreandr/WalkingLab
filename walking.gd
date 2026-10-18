@@ -594,6 +594,7 @@ func update_war_fighter(dt: float) -> void:
 		war_tactical_clock = 0.125
 		var nearby_threats: int = 0
 		for other in opponents:
+			if other == self: continue
 			if other.actor.global_position.distance_squared_to(actor.global_position) < 169.0:
 				nearby_threats += 1
 		war_cached_retreat = nearby_threats >= 3
