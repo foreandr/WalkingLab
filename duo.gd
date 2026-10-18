@@ -8,12 +8,16 @@ var ai_wait = 0.0
 var watching_ai = false
 var battle_fireball_speed: float = 1.0
 var announced_winner: bool = false
+var battle_feed: RichTextLabel
+var battle_hits: Array[String] = []
+var damage_totals: Dictionary = {}
 func _ready():
 	for entry in [["move_forward",KEY_W],["move_back",KEY_S],["move_left",KEY_A],["move_right",KEY_D],["sprint",KEY_ALT],["walk",KEY_CTRL]]:
 		if not InputMap.has_action(entry[0]): InputMap.add_action(entry[0])
 		var key = InputEventKey.new()
 		key.keycode = entry[1]
 		InputMap.action_add_event(entry[0],key)
+	create_battle_feed()
 	# Restore the arena and its real physics floor independently of mannequins.
 	add_child(preload("res://arena_environment.gd").new())
 	var floor_body := StaticBody3D.new()
@@ -52,6 +56,39 @@ func _ready():
 		mannequins.append(fighter)
 	ai = mannequins[0]
 	ai_label = null
+
+func create_battle_feed() -> void:
+	var ui := CanvasLayer.new()
+	ui.name = "BattleHUD"
+	add_child(ui)
+	var panel := PanelContainer.new()
+	panel.position = Vector2(12,64)
+	panel.custom_minimum_size = Vector2(310,280)
+	ui.add_child(panel)
+	var column := VBoxContainer.new()
+	panel.add_child(column)
+	var heading := Label.new()
+	heading.text = "WAR / DAMAGE"
+	column.add_child(heading)
+	battle_feed = RichTextLabel.new()
+	battle_feed.custom_minimum_size = Vector2(290,240)
+	battle_feed.scroll_following = true
+	battle_feed.bbcode_enabled = false
+	column.add_child(battle_feed)
+	battle_feed.text = "Waiting for combat..."
+
+func record_battle_hit(attacker: String, victim: String, region: String, amount: float, _health: float) -> void:
+	var source: String = attacker if attacker != "" else "UNKNOWN"
+	damage_totals[source] = float(damage_totals.get(source,0.0))+amount
+	battle_hits.push_front("%s → %s  %s  -%d" % [source,victim,region.to_upper(),int(round(amount))])
+	if battle_hits.size() > 11: battle_hits.resize(11)
+	if battle_feed != null:
+		battle_feed.text = "TOTAL DAMAGE\n"
+		var leaders: Array = damage_totals.keys()
+		leaders.sort_custom(func(a,b): return float(damage_totals[a]) > float(damage_totals[b]))
+		for i in range(mini(3,leaders.size())):
+			battle_feed.text += "%s: %d\n" % [leaders[i],int(damage_totals[leaders[i]])]
+		battle_feed.text += "\nRECENT HITS\n" + "\n".join(battle_hits)
 
 func spawn_moving_cpus() -> void:
 	# Two walkers, two high-speed runners, two immediate flyers.
