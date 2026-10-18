@@ -1751,7 +1751,7 @@ func update_punch_contact(dt: float) -> void:
 				nearest_distance = distance_to_hit
 				nearest = region
 		if nearest != "":
-			damage.receive_hit(damage.bone_position(nearest),18.0)
+			damage.receive_hit(damage.bone_position(nearest),18.0,name)
 			break
 
 func get_cursor_world_target() -> Vector3:
@@ -1937,6 +1937,7 @@ func release_fireball(hand_world: Vector3) -> void:
 		mover.battle_base_speed = mover.travel_speed
 		mover.travel_speed *= float(get_tree().current_scene.get("battle_fireball_speed"))
 	mover.owner_rid = actor.get_rid()
+	mover.attacker_name = name
 	projectile.add_child(mover)
 	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
 
