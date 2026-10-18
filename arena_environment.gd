@@ -36,7 +36,7 @@ func make_arena():
 	e.ambient_light_color = Color("9aafc7")
 	e.ambient_light_energy = 0.32
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	e.fog_enabled = true
+	e.fog_enabled = false
 	e.fog_light_color = Color("9ba9b3")
 	e.fog_density = 0.004
 	env.environment = e
