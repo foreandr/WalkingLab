@@ -96,6 +96,7 @@ var war_decision_timer: float = 0.0
 var war_strafe_sign: float = 1.0
 var war_physics_accumulator: float = 0.0
 var war_lod_mode: String = "full"
+var war_profile_counter: int = 0
 var war_physics_updates: int = 0
 var war_physics_skips: int = 0
 var war_tactical_clock: float = 0.0
@@ -510,6 +511,12 @@ func begin_direction_change(target_backward: bool):
 	turn_start_forward = blend
 	turn_start_back = back_blend
 func update_war_fighter(dt: float) -> void:
+	# Sample only 1/16 fighter updates to keep profiling overhead modest.
+	war_profile_counter += 1
+	var sampled: bool = (war_profile_counter & 15) == 0
+	var profile_start: int = Time.get_ticks_usec() if sampled else 0
+	var profile_physics: int = 0
+	var profile_animation: int = 0
 	# Re-evaluate a local opponent as the battle changes; never select a spectator.
 	var opponents: Array = []
 	# Scene owns the fighter roster; avoid searching the entire node tree.
@@ -582,14 +589,18 @@ func update_war_fighter(dt: float) -> void:
 		actor.velocity.x = move_toward(actor.velocity.x,wish.x*4.0,dt*12.5)
 		actor.velocity.z = move_toward(actor.velocity.z,wish.z*4.0,dt*12.5)
 		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
+	var physics_start: int = Time.get_ticks_usec() if sampled else 0
 	actor.move_and_slide()
+	if sampled: profile_physics = Time.get_ticks_usec()-physics_start
 	if distance > 0.1: actor.rotation.y = atan2(-flat.x,-flat.z)
 	speed = Vector2(actor.velocity.x,actor.velocity.z).length()
 	blend = speed_band(SPEEDS,speed)
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/Direction/blend_amount",0.0)
 	tree.set("parameters/Cadence/scale",maxf(0.2,speed/3.0))
+	var animation_start: int = Time.get_ticks_usec() if sampled else 0
 	tree.advance(dt)
+	if sampled: profile_animation = Time.get_ticks_usec()-animation_start
 	if flight_enabled:
 		# The airborne rig must visually pitch with its velocity, not keep
 		# its standing orientation while flying.
@@ -610,6 +621,12 @@ func update_war_fighter(dt: float) -> void:
 			cast_fireball()
 	adjust_jab_arm()
 	update_cast_motion(dt)
+	if sampled:
+		var arena: Node = get_tree().current_scene
+		if arena != null and arena.has_method("record_performance_sample"):
+			arena.record_performance_sample("war_ai_total",Time.get_ticks_usec()-profile_start)
+			arena.record_performance_sample("war_collision",profile_physics)
+			arena.record_performance_sample("war_animation_tree",profile_animation)
 
 func update_hunter_mannequin(dt: float) -> void:
 	# Pursue the player with the same speed budget, flight pose, and fire cast.
