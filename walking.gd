@@ -966,7 +966,9 @@ func war_simulation_tick(dt: float) -> void:
 		if spectator != null and is_instance_valid(spectator):
 			full_physics = actor.global_position.distance_squared_to(spectator.actor.global_position) < 324.0
 	if war_target != null and is_instance_valid(war_target) and not war_target.combat_dead:
-		if actor.global_position.distance_squared_to(war_target.actor.global_position) < 196.0:
+		# Preserve full-rate close-quarters collision; remote duels beyond 7m
+		# are simulated at 15Hz, with accumulated dt preserving travel speed.
+		if actor.global_position.distance_squared_to(war_target.actor.global_position) < 49.0:
 			full_physics = true
 	# Distant fireball casts are advanced by their own projectile physics callbacks.
 	# A cast alone need not force the entire remote fighter into the 30 Hz tier.
