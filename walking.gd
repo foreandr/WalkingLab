@@ -114,7 +114,7 @@ const FLIGHT_LAND_HEIGHT: float = 0.42
 const FLIGHT_SPEED: float = 7.0
 var camera_sensitivity: float = 1.0
 var fireball_speed_scale: float = 1.0
-var war_pose_enabled: bool = true
+var war_pose_enabled: bool = false
 var options_panel: PanelContainer
 # Seconds per smooth 6 -> 8 -> 10 -> 12 m/s sprint stage.
 # Above 12 m/s, keep the final FastRun clip and gain 0.2 m/s per stage duration.
@@ -399,7 +399,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	add_setting_slider(column,"Fireball speed",0.25,100.0,1.0,0.25,"fireball")
 	var pose_toggle := CheckButton.new()
 	pose_toggle.text = "Ground foot correction - everyone (ON/OFF)"
-	pose_toggle.button_pressed = true
+	pose_toggle.button_pressed = false
 	column.add_child(pose_toggle)
 	pose_toggle.toggled.connect(func(enabled: bool):
 		war_pose_enabled = enabled
