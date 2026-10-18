@@ -91,9 +91,6 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 				hit_regions.append(region)
 		if hit_regions.is_empty(): continue
 		affected_fighters += 1
-		for region in hit_regions:
-			# Preserve independent hit records, even if the first hit kills.
-			if damage.dead: break
-			damage.receive_region_hit(region,damage.bone_position(region),32.0,attacker_name)
-			affected_regions += 1
+		damage.receive_aoe_regions(hit_regions,32.0,attacker_name)
+		affected_regions += hit_regions.size()
 	print("[AOE_REGIONS] fighters=",affected_fighters," body_regions=",affected_regions," radius=",blast_radius)
