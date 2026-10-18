@@ -22,7 +22,7 @@ var spawn_cooldown: float = 0.0
 var spawn_last_cost_ms: float = 0.0
 var spawn_peak_cost_ms: float = 0.0
 var spawn_count_window: int = 0
-# Opt-in: --flight-benchmark. Begins after all 80 fighters have spawned,
+# Opt-in: --flight-benchmark. Begins after all 90 fighters have spawned,
 # then performs sixty seconds of genuine player flight physics.
 var flight_benchmark_requested: bool = false
 var flight_benchmark_running: bool = false
@@ -128,10 +128,10 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# Prepare one fighter before rendering; queue the remaining 79 rather
+	# Prepare one fighter before rendering; queue the remaining 89 rather
 	# than blocking the main thread constructing the entire arena at once.
 	spawn_more_fighters(1,true)
-	spawn_more_fighters(79)
+	spawn_more_fighters(89)
 	ai = mannequins[0]
 	ai_label = null
 
@@ -236,7 +236,7 @@ func print_performance_report() -> void:
 	spawn_count_window = 0
 	spawn_peak_cost_ms = 0.0
 	summary += " [WINDOW_FOCUS] focused_frames=%d unfocused_frames=%d focused_fps=%.1f unfocused_fps=%.1f" % [profile_focus_frames,profile_unfocused_frames,profile_focus_fps_sum/float(maxi(1,profile_focus_frames)),profile_unfocused_fps_sum/float(maxi(1,profile_unfocused_frames))]
-	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d batch_aoe_shader=%s" % [str(stress_no_deaths),80,str(batch_aoe_shader)]
+	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d batch_aoe_shader=%s" % [str(stress_no_deaths),90,str(batch_aoe_shader)]
 	summary += " [WAR_ACTIVITY] living_min=%d living_max=%d living_avg=%.1f projectile_peak=%d fighter_grid_cells=%d projectile_grid_cells=%d max_fighter_bucket=%d max_projectile_bucket=%d" % [
 		0 if profile_living_samples == 0 else profile_living_min,profile_living_max,
 		float(profile_living_sum)/float(maxi(1,profile_living_samples)),profile_projectile_peak,
@@ -294,7 +294,7 @@ func _process(dt: float) -> void:
 	if battle_feed_refresh_clock <= 0.0:
 		battle_feed_refresh_clock = 0.2
 		refresh_battle_feed()
-	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == 80 and is_instance_valid(player):
+	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == 90 and is_instance_valid(player):
 		flight_benchmark_running = true
 		flight_benchmark_unfocused_frames = 0
 		flight_benchmark_low_draw_frames = 0
