@@ -1644,7 +1644,15 @@ func adjust_jab_arm() -> void:
 	# merely the wrist: a wrist-only target can still fold through the ribs.
 	var base_arm: Quaternion = skeleton.get_bone_pose_rotation(arm)
 	var base_forearm: Quaternion = skeleton.get_bone_pose_rotation(forearm)
-	for iteration in range(3):
+	var ik_iterations: int = 3
+	if animation_test_mode == "war":
+		var arena: Node = get_tree().current_scene
+		if arena != null:
+			var spectator: Node = arena.get("player")
+			if spectator != null and is_instance_valid(spectator):
+				if actor.global_position.distance_squared_to(spectator.actor.global_position) >= 324.0:
+					ik_iterations = 1
+	for iteration in range(ik_iterations):
 		rotate_arm_joint_toward(arm,hand,goal_local,influence)
 		rotate_arm_joint_toward(forearm,hand,goal_local,influence)
 		skeleton.force_update_all_bone_transforms()
