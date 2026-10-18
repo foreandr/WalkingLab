@@ -9,6 +9,11 @@ var blast_width: float = 1.0
 const LIFETIME: float = 25.0
 var lived: float = 0.0
 var profile_tick: int = 0
+var cached_ray: PhysicsRayQueryParameters3D
+var cached_sphere: SphereShape3D
+var cached_sphere_query: PhysicsShapeQueryParameters3D
+var cached_spectator_rid: RID
+var cached_excludes: Array[RID] = []
 
 func _physics_process(delta: float) -> void:
 	profile_tick += 1
@@ -22,16 +27,22 @@ func _physics_process(delta: float) -> void:
 		if scene != null: effective_speed = battle_base_speed * float(scene.get("battle_fireball_speed"))
 	var displacement: Vector3 = travel_direction * effective_speed * delta
 	var space: PhysicsDirectSpaceState3D = projectile.get_world_3d().direct_space_state
-	var ray := PhysicsRayQueryParameters3D.create(projectile.global_position, projectile.global_position + displacement)
-	if owner_rid.is_valid(): ray.exclude = [owner_rid]
-	# The spectator is not a combatant and cannot obstruct AI shots.
-	var scene: Node = projectile.get_tree().current_scene
-	if scene != null and scene.get("battle_fireball_speed") != null:
-		var spectator: Node = scene.get_node_or_null("PlayerMan")
-		if spectator != null:
-			var spectator_body: CharacterBody3D = spectator.get("actor") as CharacterBody3D
-			if spectator_body != null: ray.exclude.append(spectator_body.get_rid())
-	var hit: Dictionary = space.intersect_ray(ray)
+	# Reuse physics query resources for the lifetime of each projectile.
+	# Avoid allocating a new ray, exclusion array, and (for wide shots)
+	# sphere resource on every physics tick.
+	if cached_ray == null:
+		cached_ray = PhysicsRayQueryParameters3D.new()
+		if owner_rid.is_valid(): cached_excludes.append(owner_rid)
+		var scene: Node = projectile.get_tree().current_scene
+		if scene != null and scene.get("battle_fireball_speed") != null:
+			var spectator: Node = scene.get_node_or_null("PlayerMan")
+			if spectator != null:
+				var spectator_body: CharacterBody3D = spectator.get("actor") as CharacterBody3D
+				if spectator_body != null: cached_excludes.append(spectator_body.get_rid())
+		cached_ray.exclude = cached_excludes
+	cached_ray.from = projectile.global_position
+	cached_ray.to = projectile.global_position + displacement
+	var hit: Dictionary = space.intersect_ray(cached_ray)
 	if not hit.is_empty():
 		explode(projectile,hit["position"])
 		projectile.queue_free()
@@ -41,16 +52,17 @@ func _physics_process(delta: float) -> void:
 	# swept center ray above for narrow/high-speed shots.
 	if blast_width > 1.0:
 		var width_radius: float = 0.45 * blast_width
-		var ball := SphereShape3D.new()
-		ball.radius = width_radius
-		var sphere_query := PhysicsShapeQueryParameters3D.new()
-		sphere_query.shape = ball
-		sphere_query.exclude = ray.exclude
+		if cached_sphere == null:
+			cached_sphere = SphereShape3D.new()
+			cached_sphere_query = PhysicsShapeQueryParameters3D.new()
+			cached_sphere_query.shape = cached_sphere
+			cached_sphere_query.exclude = cached_excludes
+		cached_sphere.radius = width_radius
 		var segments: int = mini(6,maxi(1,int(ceil(displacement.length() / maxf(width_radius,0.5)))))
 		for segment in range(segments):
 			var probe: Vector3 = projectile.global_position + displacement * (float(segment + 1) / float(segments))
-			sphere_query.transform = Transform3D(Basis.IDENTITY,probe)
-			var overlaps: Array[Dictionary] = space.intersect_shape(sphere_query,1)
+			cached_sphere_query.transform = Transform3D(Basis.IDENTITY,probe)
+			var overlaps: Array[Dictionary] = space.intersect_shape(cached_sphere_query,1)
 			if not overlaps.is_empty():
 				explode(projectile,probe)
 				projectile.queue_free()
