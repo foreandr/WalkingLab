@@ -551,13 +551,10 @@ func update_war_fighter(dt: float) -> void:
 	var profile_physics: int = 0
 	var profile_animation: int = 0
 	var profile_phase: int = profile_start
-	# Re-evaluate a local opponent as the battle changes; never select a spectator.
-	var opponents: Array = []
-	# Scene owns the fighter roster; avoid searching the entire node tree.
-	for other in get_tree().current_scene.mannequins:
-		if other == self or other.combat_dead: continue
-		opponents.append(other)
-	if opponents.is_empty():
+	# The arena assembles one living roster per physics tick, avoiding
+	# dozens of repeated full-roster scans and array allocations.
+	var opponents: Array = get_tree().current_scene.active_war_fighters
+	if opponents.size() <= 1:
 		actor.velocity = Vector3.ZERO
 		tree.advance(dt)
 		return
@@ -571,6 +568,7 @@ func update_war_fighter(dt: float) -> void:
 		war_strafe_sign = -1.0 if agent_rng.randf() < 0.5 else 1.0
 		var best_score: float = INF
 		for other in opponents:
+			if other == self: continue
 			var gap: float = actor.global_position.distance_to(other.actor.global_position)
 			var score: float = gap + agent_rng.randf_range(-8.0,8.0)
 			if score < best_score:
