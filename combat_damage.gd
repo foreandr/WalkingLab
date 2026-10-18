@@ -107,6 +107,10 @@ func region_at(world_point: Vector3) -> String:
 
 # Direct anatomical damage is used for multi-region AOE. The ordinary
 # receive_hit entry point still resolves a single impact to one region.
+func scene_debug_damage() -> bool:
+	var arena: Node = get_tree().current_scene
+	return arena == null or not bool(arena.get("stress_no_deaths"))
+
 func receive_region_hit(region: String, world_point: Vector3, amount: float, attacker: String = "", show_number: bool = true) -> void:
 	if dead or not hp.has(region): return
 	# Stress-test mode retains injuries, reactions and damage accounting,
@@ -121,7 +125,9 @@ func receive_region_hit(region: String, world_point: Vector3, amount: float, att
 	flash_hit_region(region)
 	var remaining: float = float(hp[region])
 	update_damage_colors()
-	print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
+	# Avoid thousands of console writes during immortal stress tests.
+	# The arena aggregates hit counts and damage per reporting window.
+	if scene_debug_damage(): print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
 	var scene: Node = get_tree().current_scene
 	if scene != null and scene.has_method("record_battle_hit"):
 		scene.record_battle_hit(attacker,owner_actor.get_parent().name,region,amount,remaining)
