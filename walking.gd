@@ -402,6 +402,10 @@ func _ready():
 		controls.text = ""
 	update_camera()
 	if autonomous_only: print("[FIGHTER_INIT_TOTAL] fighter=",name," duration_ms=",snappedf(float(Time.get_ticks_usec()-init_started_usec)/1000.0,0.01))
+	# War fighters are advanced by the arena's physics scheduler. Their
+	# Node3D idle _process only checks screenshot/testing hooks; disable
+	# sixty redundant callbacks in normal combat without touching physics.
+	if autonomous_only and not test: set_process(false)
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func install_options_menu(canvas: CanvasLayer) -> void:
 	var cog := Button.new()
