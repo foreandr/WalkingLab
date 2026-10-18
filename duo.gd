@@ -67,7 +67,6 @@ func _ready():
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
 	for batch in range(3): spawn_more_fighters()
-	spawn_more_fighters(21) # Promote 48 -> 51 after measured 30 FPS combat stability.
 	ai = mannequins[0]
 	ai_label = null
 
