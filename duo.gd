@@ -99,6 +99,8 @@ func set_fireball_width(multiplier: float) -> void:
 	# Adjust live projectiles too, not only ones spawned after moving the slider.
 	for projectile in get_tree().get_nodes_in_group("battle_fireballs"):
 		if not is_instance_valid(projectile): continue
+		var mover: Node = projectile.get_node_or_null("Motion")
+		if mover != null: mover.blast_width = multiplier
 		for child in projectile.get_children():
 			if child is GPUParticles3D:
 				configure_fireball_particles(child,multiplier)
