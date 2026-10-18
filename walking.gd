@@ -1014,8 +1014,19 @@ func update_animation_lineup(dt: float) -> void:
 	if offset.length_squared() > 0.0001:
 		actor.rotation.y = atan2(-offset.x,-offset.z)
 	actor.velocity = Vector3.ZERO
-	# Same timing and animation across all test subjects; full physics and
-	# particle motion continue independently for real incoming fireballs.
+	speed = 0.0
+	signed_speed = 0.0
+	blend = 0.0
+	back_blend = 0.0
+	direction_weight = 0.0
+	# A zero-velocity mannequin must use the standing idle blend, not
+	# the locomotion tree's minimum-speed walk cycle.
+	tree.set("parameters/StandingMove/blend_amount",0.0)
+	tree.set("parameters/Gaits/blend_position",0.0)
+	tree.set("parameters/BackGaits/blend_position",0.0)
+	tree.set("parameters/Direction/blend_amount",0.0)
+	tree.set("parameters/Cadence/scale",0.0)
+	# All rigs still advance their idle/cast animations in lockstep.
 	tree.advance(dt)
 	lineup_cast_clock += dt
 	if lineup_cast_clock >= 2.5:
