@@ -350,12 +350,16 @@ func _process(dt: float) -> void:
 	if profile_last_render_usec != 0:
 		profile_wall_ms.append(float(render_now-profile_last_render_usec)/1000.0)
 	profile_last_render_usec = render_now
-	profile_cpu_ms.append(float(Performance.get_monitor(Performance.TIME_PROCESS))*1000.0)
-	profile_physics_ms.append(float(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS))*1000.0)
+	# Read each engine monitor once per render frame. These are native
+	# monitor queries, and duplicate calls add overhead under 70-fighter load.
+	var monitored_cpu_ms: float = Performance.get_monitor(Performance.TIME_PROCESS)*1000.0
+	var monitored_physics_ms: float = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0
+	profile_cpu_ms.append(monitored_cpu_ms)
+	profile_physics_ms.append(monitored_physics_ms)
 	profile_window_frames += 1
 	profile_frame_fps_sum += float(Engine.get_frames_per_second())
-	profile_frame_cpu_sum += Performance.get_monitor(Performance.TIME_PROCESS)*1000.0
-	profile_frame_physics_sum += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0
+	profile_frame_cpu_sum += monitored_cpu_ms
+	profile_frame_physics_sum += monitored_physics_ms
 	profile_clock += dt
 	if profile_clock >= 5.0:
 		profile_clock = 0.0
