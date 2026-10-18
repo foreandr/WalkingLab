@@ -12,7 +12,12 @@ Write-Host ("Game running; recording to " + $logFile)
 ("WalkingLab run " + (Get-Date -Format "o")) | Out-File -FilePath $logFile -Encoding utf8
 ("Godot executable: " + $GodotPath) | Out-File -FilePath $logFile -Append -Encoding utf8
 try {
-    if ($GameArgs.Count -gt 0) {
+    # RUN.bat quotes the raw argument string so PowerShell cannot mistake
+# --flight-benchmark for a PowerShell named parameter.
+if ($GameArgs.Count -eq 1 -and $GameArgs[0].Contains(" ")) {
+    $GameArgs = @($GameArgs[0] -split '\\s+' | Where-Object { $_ -ne "" })
+}
+if ($GameArgs.Count -gt 0) {
         ("Godot user args: " + ($GameArgs -join " ")) | Out-File -FilePath $logFile -Append -Encoding utf8
         & $GodotPath --path (Get-Location).Path -- @GameArgs *>> $logFile
     } else {
