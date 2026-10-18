@@ -327,6 +327,7 @@ func _ready():
 	canvas.add_child(backing)
 	hud = Label.new()
 	hud.position = Vector2(14,48)
+	hud.visible = not player_controlled
 	hud.add_theme_font_size_override("font_size",16)
 	canvas.add_child(hud)
 	if player_controlled:
@@ -1199,7 +1200,7 @@ func _physics_process(dt):
 		else:
 			hud.text = "%s  |  %.1f m/s" % [name,absf(signed_speed)]
 func update_camera():
-	var subject = camera_target if camera_target!=null else actor
+	var subject = camera_target if is_instance_valid(camera_target) else actor
 	var subject_controller = subject.get_parent().crouch if camera_target!=null else crouch
 	var focus_target = subject_controller.capsule.height*0.58 if subject_controller.capsule!=null else 1.05
 	camera_focus_height = lerp(camera_focus_height,focus_target,0.06)
@@ -2065,7 +2066,7 @@ func _unhandled_input(event):
 					controlled_arm = "left" if controlled_arm == "right" else "right"
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
+		if event is InputEventMouseMotion and (event.button_mask & (MOUSE_BUTTON_MASK_MIDDLE | MOUSE_BUTTON_MASK_RIGHT)) != 0:
 			orbit = wrapf(orbit-event.relative.x*0.004*camera_sensitivity,-PI,PI)
 			elevation = clampf(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
 		if event is InputEventMouseButton and event.pressed:
