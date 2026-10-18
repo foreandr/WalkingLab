@@ -120,11 +120,16 @@ func receive_region_hit(region: String, world_point: Vector3, amount: float, att
 	if arena != null:
 		stress_immortal = bool(arena.get("stress_no_deaths"))
 	var floor_hp: float = 1.0 if stress_immortal else 0.0
-	hp[region] = maxf(floor_hp,float(hp[region])-amount)
+	var previous_hp: float = float(hp[region])
+	hp[region] = maxf(floor_hp,previous_hp-amount)
 	if show_number: show_damage_number(world_point,amount,region)
 	flash_hit_region(region)
 	var remaining: float = float(hp[region])
-	if not aoe_batch_active or arena == null or not bool(arena.get("batch_aoe_shader")): update_damage_colors()
+	# In immortal battles damaged regions soon reach 1 HP. Re-uploading
+	# identical shader uniforms for every further impact is wasted work.
+	# Hits, reactions, numbers, death rules and damage totals still execute.
+	if remaining != previous_hp and (not aoe_batch_active or arena == null or not bool(arena.get("batch_aoe_shader"))):
+		update_damage_colors()
 	# Avoid thousands of console writes during immortal stress tests.
 	# The arena aggregates hit counts and damage per reporting window.
 	if not stress_immortal: print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
