@@ -7,8 +7,12 @@ var owner_rid: RID
 var attacker_name: String = ""
 const LIFETIME: float = 25.0
 var lived: float = 0.0
+var profile_tick: int = 0
 
 func _physics_process(delta: float) -> void:
+	profile_tick += 1
+	var sampled: bool = (profile_tick & 31) == 0
+	var profile_start: int = Time.get_ticks_usec() if sampled else 0
 	var projectile: Node3D = get_parent() as Node3D
 	if projectile == null: return
 	var effective_speed: float = travel_speed
@@ -31,6 +35,10 @@ func _physics_process(delta: float) -> void:
 		explode(projectile,hit["position"])
 		projectile.queue_free()
 		return
+	if sampled:
+		var scene_for_profile: Node = projectile.get_tree().current_scene
+		if scene_for_profile != null and scene_for_profile.has_method("record_performance_sample"):
+			scene_for_profile.record_performance_sample("projectile_ray",Time.get_ticks_usec()-profile_start)
 	projectile.global_position += displacement
 	lived += delta
 	if lived >= LIFETIME:
