@@ -94,6 +94,10 @@ var ai_action_clock: float = 0.0
 var war_target: Node3D = null
 var war_decision_timer: float = 0.0
 var war_strafe_sign: float = 1.0
+var war_physics_accumulator: float = 0.0
+var war_lod_mode: String = "full"
+var war_physics_updates: int = 0
+var war_physics_skips: int = 0
 var war_tactical_clock: float = 0.0
 var war_flight_preference: bool = false
 var war_cached_retreat: bool = false
@@ -870,7 +874,35 @@ func _physics_process(dt):
 		update_sky_target(dt)
 		return
 	if animation_test_mode == "war":
-		update_war_fighter(dt)
+		# Physics LOD: retain the CharacterBody collision capsule at all
+		# times (shots still raycast against it), but simulate distant,
+		# disengaged actors at 30 Hz instead of 60 Hz.
+		var full_physics: bool = false
+		var arena: Node = get_tree().current_scene
+		if arena != null:
+			var spectator: Node = arena.get("player")
+			if spectator != null and is_instance_valid(spectator):
+				full_physics = actor.global_position.distance_squared_to(spectator.actor.global_position) < 324.0
+		if war_target != null and is_instance_valid(war_target) and not war_target.combat_dead:
+			if actor.global_position.distance_squared_to(war_target.actor.global_position) < 196.0:
+				full_physics = true
+		if cast_elapsed >= 0.0: full_physics = true
+		if full_physics:
+			war_lod_mode = "full"
+			var accumulated: float = dt + war_physics_accumulator
+			war_physics_accumulator = 0.0
+			war_physics_updates += 1
+			update_war_fighter(accumulated)
+		else:
+			war_lod_mode = "reduced"
+			war_physics_accumulator += dt
+			if war_physics_accumulator < 1.0/30.0:
+				war_physics_skips += 1
+				return
+			var accumulated: float = war_physics_accumulator
+			war_physics_accumulator = 0.0
+			war_physics_updates += 1
+			update_war_fighter(accumulated)
 		return
 	if animation_test_mode == "hunter":
 		update_hunter_mannequin(dt)
