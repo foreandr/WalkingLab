@@ -8,6 +8,7 @@ var ai_wait = 0.0
 var watching_ai = false
 var battle_fireball_speed: float = 1.0
 var battle_fireball_size: float = 1.0
+var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 var fighter_spawn_index: int = 0
 const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
 var announced_winner: bool = false
@@ -27,6 +28,9 @@ var profile_frame_physics_sum: float = 0.0
 func _ready():
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
+	# Render at 30 FPS while retaining the default 60 Hz gameplay physics tick.
+	Engine.max_fps = 30
+	print("[PERF_CONFIG] fps_cap=30 physics_hz=",Engine.physics_ticks_per_second," ground_foot_correction_default=false")
 	# Lower internal 3D resolution without reducing UI readability.
 	get_viewport().scaling_3d_scale = 0.7
 	for entry in [["move_forward",KEY_W],["move_back",KEY_S],["move_left",KEY_A],["move_right",KEY_D],["sprint",KEY_ALT],["walk",KEY_CTRL]]:
@@ -144,7 +148,7 @@ func print_performance_report() -> void:
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
 		float(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED))/1048576.0
 	]
-	summary += " active_projectiles=%d fighters=%d fireball_size=%.2f" % [get_tree().get_nodes_in_group("battle_fireballs").size(),mannequins.size(),battle_fireball_size]
+	summary += " active_projectiles=%d fighters=%d fireball_size=%.2f fps_cap=%d" % [get_tree().get_nodes_in_group("battle_fireballs").size(),mannequins.size(),battle_fireball_size,Engine.max_fps]
 	print(summary)
 	profile_total.clear()
 	profile_samples.clear()
