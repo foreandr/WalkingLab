@@ -567,7 +567,10 @@ func update_war_fighter(dt: float) -> void:
 		war_flight_preference = agent_rng.randf() < 0.65
 		war_strafe_sign = -1.0 if agent_rng.randf() < 0.5 else 1.0
 		var best_score: float = INF
-		for other in opponents:
+		# Search local spatial cells first; only scan all fighters when isolated.
+		var candidates: Array = get_tree().current_scene.war_nearby_fighters(actor.global_position,2)
+		if candidates.size() <= 1: candidates = opponents
+		for other in candidates:
 			if other == self: continue
 			var gap: float = actor.global_position.distance_to(other.actor.global_position)
 			var score: float = gap + agent_rng.randf_range(-8.0,8.0)
@@ -593,7 +596,7 @@ func update_war_fighter(dt: float) -> void:
 	if war_tactical_clock <= 0.0:
 		war_tactical_clock = 0.125
 		var nearby_threats: int = 0
-		for other in opponents:
+		for other in get_tree().current_scene.war_nearby_fighters(actor.global_position,2):
 			if other == self: continue
 			if other.actor.global_position.distance_squared_to(actor.global_position) < 169.0:
 				nearby_threats += 1
