@@ -11,6 +11,8 @@ var announced_winner: bool = false
 var battle_feed: RichTextLabel
 var battle_hits: Array[String] = []
 var damage_totals: Dictionary = {}
+var performance_label: Label
+var performance_clock: float = 0.0
 func _ready():
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
@@ -22,6 +24,7 @@ func _ready():
 		key.keycode = entry[1]
 		InputMap.action_add_event(entry[0],key)
 	create_battle_feed()
+	create_performance_hud()
 	# Restore the arena and its real physics floor independently of mannequins.
 	add_child(preload("res://arena_environment.gd").new())
 	var floor_body := StaticBody3D.new()
@@ -60,6 +63,28 @@ func _ready():
 		mannequins.append(fighter)
 	ai = mannequins[0]
 	ai_label = null
+
+func create_performance_hud() -> void:
+	var overlay := CanvasLayer.new()
+	overlay.name = "PerformanceHUD"
+	add_child(overlay)
+	performance_label = Label.new()
+	performance_label.position = Vector2(14,14)
+	performance_label.add_theme_font_size_override("font_size",20)
+	performance_label.add_theme_color_override("font_color",Color("d9ffab"))
+	overlay.add_child(performance_label)
+
+func _process(dt: float) -> void:
+	performance_clock -= dt
+	if performance_clock > 0.0: return
+	performance_clock = 0.5
+	if performance_label == null: return
+	var fps: int = Engine.get_frames_per_second()
+	var draw_calls: int = Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)
+	var objects: int = Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
+	var frame_ms: float = Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	var physics_ms: float = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
+	performance_label.text = "FPS: %d | CPU frame: %.1f ms | physics: %.1f ms | draws: %d | objects: %d" % [fps,frame_ms,physics_ms,draw_calls,objects]
 
 func create_battle_feed() -> void:
 	var ui := CanvasLayer.new()
