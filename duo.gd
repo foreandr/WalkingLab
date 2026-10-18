@@ -16,6 +16,11 @@ var performance_clock: float = 0.0
 var profile_clock: float = 0.0
 var profile_samples: Dictionary = {}
 var profile_total: Dictionary = {}
+var profile_maximum: Dictionary = {}
+var profile_window_frames: int = 0
+var profile_frame_fps_sum: float = 0.0
+var profile_frame_cpu_sum: float = 0.0
+var profile_frame_physics_sum: float = 0.0
 func _ready():
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
@@ -81,23 +86,41 @@ func create_performance_hud() -> void:
 func record_performance_sample(category: String, microseconds: int) -> void:
 	profile_total[category] = int(profile_total.get(category,0))+microseconds
 	profile_samples[category] = int(profile_samples.get(category,0))+1
+	profile_maximum[category] = maxi(int(profile_maximum.get(category,0)),microseconds)
 
 func print_performance_report() -> void:
-	var fps: int = Engine.get_frames_per_second()
-	var frame_ms: float = Performance.get_monitor(Performance.TIME_PROCESS)*1000.0
-	var physics_ms: float = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0
-	var summary: String = "[PERF] fps=%d cpu_frame_ms=%.2f physics_frame_ms=%.2f" % [fps,frame_ms,physics_ms]
-	for category in ["war_ai_total","war_collision","war_animation_tree","projectile_ray"]:
+	var fps: float = profile_frame_fps_sum/float(maxi(1,profile_window_frames))
+	var frame_ms: float = profile_frame_cpu_sum/float(maxi(1,profile_window_frames))
+	var physics_ms: float = profile_frame_physics_sum/float(maxi(1,profile_window_frames))
+	var summary: String = "[PERF_DETAIL] fps_avg=%.1f cpu_frame_avg_ms=%.2f physics_frame_avg_ms=%.2f frames=%d" % [fps,frame_ms,physics_ms,profile_window_frames]
+	var categories: Array = profile_total.keys()
+	categories.sort()
+	for category in categories:
 		var n: int = int(profile_samples.get(category,0))
-		var average: float = float(profile_total.get(category,0))/float(maxi(1,n))/1000.0
-		summary += " %s_avg_ms=%.3f samples=%d" % [category,average,n]
-	var active_shots: int = get_tree().get_nodes_in_group("battle_fireballs").size()
-	summary += " projectiles=%d fighters=%d" % [active_shots,mannequins.size()]
+		var average: float = float(profile_total[category])/float(maxi(1,n))/1000.0
+		var peak: float = float(profile_maximum.get(category,0))/1000.0
+		# avg is per invocation; total spans all sampled invocations, not a frame budget.
+		summary += " %s={avg_ms:%.3f,max_ms:%.3f,samples:%d}" % [category,average,peak,n]
+	summary += " draw_calls=%d objects=%d video_mem_mb=%.1f" % [
+		int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
+		float(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED))/1048576.0
+	]
+	summary += " active_projectiles=%d fighters=%d" % [get_tree().get_nodes_in_group("battle_fireballs").size(),mannequins.size()]
 	print(summary)
 	profile_total.clear()
 	profile_samples.clear()
+	profile_maximum.clear()
+	profile_window_frames = 0
+	profile_frame_fps_sum = 0.0
+	profile_frame_cpu_sum = 0.0
+	profile_frame_physics_sum = 0.0
 
 func _process(dt: float) -> void:
+	profile_window_frames += 1
+	profile_frame_fps_sum += float(Engine.get_frames_per_second())
+	profile_frame_cpu_sum += Performance.get_monitor(Performance.TIME_PROCESS)*1000.0
+	profile_frame_physics_sum += Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)*1000.0
 	profile_clock += dt
 	if profile_clock >= 5.0:
 		profile_clock = 0.0
