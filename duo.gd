@@ -24,6 +24,9 @@ var spawn_peak_cost_ms: float = 0.0
 var spawn_count_window: int = 0
 
 const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
+# Temporary sustained-load benchmark: every combatant remains alive.
+# Damage, impact reactions, AI, flight, collision and projectiles stay enabled.
+var stress_no_deaths: bool = true
 var announced_winner: bool = false
 var winner_banner: Label3D = null
 var battle_feed: RichTextLabel
@@ -52,6 +55,7 @@ var profile_spatial_fighter_cells: int = 0
 var profile_spatial_projectile_cells: int = 0
 var profile_spatial_max_fighter_bucket: int = 0
 var profile_spatial_max_projectile_bucket: int = 0
+var profile_grid_stat_clock: int = 0
 
 func profile_percentile(values: Array[float], fraction: float) -> float:
 	if values.is_empty(): return 0.0
@@ -66,7 +70,7 @@ func _ready():
 	# as well, rather than simulating twice for every visible frame.
 	Engine.physics_ticks_per_second = 30
 	Engine.max_fps = 30
-	print("[PERF_CONFIG] fps_cap=30 physics_hz=",Engine.physics_ticks_per_second," ground_foot_correction_default=false")
+	print("[PERF_CONFIG] fps_cap=30 physics_hz=",Engine.physics_ticks_per_second," ground_foot_correction_default=false stress_no_deaths=",stress_no_deaths)
 	# Lower internal 3D resolution without reducing UI readability.
 	get_viewport().scaling_3d_scale = 0.7
 	for entry in [["move_forward",KEY_W],["move_back",KEY_S],["move_left",KEY_A],["move_right",KEY_D],["sprint",KEY_ALT],["walk",KEY_CTRL]]:
@@ -205,6 +209,7 @@ func print_performance_report() -> void:
 	summary += " [SPAWN_PROFILE] queue=%d spawned_window=%d last_ms=%.2f max_ms=%.2f" % [queued_fighter_spawns,spawn_count_window,spawn_last_cost_ms,spawn_peak_cost_ms]
 	spawn_count_window = 0
 	spawn_peak_cost_ms = 0.0
+	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d" % [str(stress_no_deaths),60]
 	summary += " [WAR_ACTIVITY] living_min=%d living_max=%d living_avg=%.1f projectile_peak=%d fighter_grid_cells=%d projectile_grid_cells=%d max_fighter_bucket=%d max_projectile_bucket=%d" % [
 		0 if profile_living_samples == 0 else profile_living_min,profile_living_max,
 		float(profile_living_sum)/float(maxi(1,profile_living_samples)),profile_projectile_peak,
@@ -464,12 +469,16 @@ func tick_war_fighters(dt: float) -> void:
 	profile_projectile_peak = maxi(profile_projectile_peak,active_war_projectiles.size())
 	profile_spatial_fighter_cells = war_spatial_cells.size()
 	profile_spatial_projectile_cells = war_projectile_cells.size()
-	profile_spatial_max_fighter_bucket = 0
-	profile_spatial_max_projectile_bucket = 0
-	for bucket in war_spatial_cells.values():
-		profile_spatial_max_fighter_bucket = maxi(profile_spatial_max_fighter_bucket,bucket.size())
-	for bucket in war_projectile_cells.values():
-		profile_spatial_max_projectile_bucket = maxi(profile_spatial_max_projectile_bucket,bucket.size())
+	# Bucket-size statistics need sampling, not two dictionary copies each tick.
+	profile_grid_stat_clock += 1
+	if profile_grid_stat_clock >= 30:
+		profile_grid_stat_clock = 0
+		profile_spatial_max_fighter_bucket = 0
+		profile_spatial_max_projectile_bucket = 0
+		for bucket in war_spatial_cells.values():
+			profile_spatial_max_fighter_bucket = maxi(profile_spatial_max_fighter_bucket,bucket.size())
+		for bucket in war_projectile_cells.values():
+			profile_spatial_max_projectile_bucket = maxi(profile_spatial_max_projectile_bucket,bucket.size())
 	var sim_start: int = Time.get_ticks_usec()
 	for fighter in mannequins:
 		if not is_instance_valid(fighter): continue
@@ -485,7 +494,7 @@ func _physics_process(_dt):
 	if player == null: return
 	tick_war_fighters(_dt)
 	player_label.position.y = player.crouch.capsule.height+0.3
-	if announced_winner or queued_fighter_spawns > 0 or mannequins.size() < 2: return
+	if stress_no_deaths or announced_winner or queued_fighter_spawns > 0 or mannequins.size() < 2: return
 	var survivors: Array = []
 	for fighter in mannequins:
 		if is_instance_valid(fighter) and not fighter.combat_dead: survivors.append(fighter)
