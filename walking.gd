@@ -50,6 +50,9 @@ var manual_input = Vector2.ZERO
 # Only the opt-in flight benchmark drives these controls.
 var benchmark_flight_active: bool = false
 var benchmark_flight_axis: Vector2 = Vector2.ZERO
+var benchmark_flight_direction: Vector3 = Vector3.ZERO
+var auto_war_combat: bool = false
+var auto_war_cast_clock: float = 0.0
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
 var flight_acceleration_time: float = 0.0
@@ -1021,6 +1024,27 @@ func war_simulation_tick(dt: float) -> void:
 		update_war_fighter(accumulated)
 
 func _physics_process(dt):
+	if player_controlled and auto_war_combat and not combat_dead:
+		auto_war_cast_clock -= dt
+		if auto_war_cast_clock <= 0.0:
+			auto_war_cast_clock = 2.5
+			var arena: Node = get_tree().current_scene
+			var closest: Node3D = null
+			var distance_best: float = 1600.0
+			if arena != null:
+				for opponent in arena.active_war_fighters:
+					if not is_instance_valid(opponent) or opponent.combat_dead: continue
+					var distance_sq: float = actor.global_position.distance_squared_to(opponent.actor.global_position)
+					if distance_sq < distance_best:
+						distance_best = distance_sq
+						closest = opponent
+			if closest != null and cast_elapsed < 0.0:
+				war_target = closest
+				# Reuse the AI aim/cast mechanic without enabling AI locomotion:
+				# the player still owns movement, camera, flight and manual input.
+				ai_abilities = true
+				cast_spell("fire")
+				ai_abilities = false
 	if paused: return
 	if combat_dead:
 		update_combat_fall(dt)
@@ -1230,7 +1254,7 @@ func _physics_process(dt):
 				# W moves in the camera's three-dimensional aim direction.
 				var forward_flight := Vector3(-sin(orbit)*cos(elevation),sin(elevation),-cos(orbit)*cos(elevation))
 				var right_flight := Vector3(cos(orbit),0.0,-sin(orbit))
-				var flight_direction: Vector3 = forward_flight * manual_input.y + right_flight * manual_input.x
+				var flight_direction: Vector3 = benchmark_flight_direction if benchmark_flight_active else forward_flight * manual_input.y + right_flight * manual_input.x
 				if flight_direction.length_squared() > 1.0: flight_direction = flight_direction.normalized()
 				if player_controlled:
 					if flight_direction.length_squared() > 0.001:
@@ -2096,7 +2120,7 @@ func update_cast_motion(dt: float) -> void:
 	cast_elapsed += dt
 	if not cast_released and cast_elapsed >= CAST_RELEASE:
 		cast_released = true
-		if player_controlled: cast_aim_point = selected_target_aim_point()
+		if player_controlled and not auto_war_combat: cast_aim_point = selected_target_aim_point()
 		release_fireball(hand_now)
 	if cast_elapsed >= CAST_DURATION:
 		cast_elapsed = -1.0
