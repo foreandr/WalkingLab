@@ -124,7 +124,7 @@ func receive_region_hit(region: String, world_point: Vector3, amount: float, att
 	if show_number: show_damage_number(world_point,amount,region)
 	flash_hit_region(region)
 	var remaining: float = float(hp[region])
-	if not aoe_batch_active: update_damage_colors()
+	if not aoe_batch_active or arena == null or not bool(arena.get("batch_aoe_shader")): update_damage_colors()
 	# Avoid thousands of console writes during immortal stress tests.
 	# The arena aggregates hit counts and damage per reporting window.
 	if not stress_immortal: print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
@@ -150,8 +150,10 @@ func receive_aoe_regions(regions: Array[String], amount: float, attacker: String
 			receive_region_hit(region,bone_position(region),amount,attacker,first_number)
 			first_number = false
 	aoe_batch_active = false
-	# Six simultaneous body-region hits require only one shader upload.
-	update_damage_colors()
+	# Cycle 4 compatibility by default. Opt-in batch mode only for paired A/B.
+	var scene_for_batch: Node = get_tree().current_scene
+	var batch_shader: bool = bool(scene_for_batch.get("batch_aoe_shader")) if scene_for_batch != null else false
+	if batch_shader: update_damage_colors()
 	var arena: Node = get_tree().current_scene
 	if arena != null and bool(arena.get("stress_no_deaths")): return
 	for vital in ["head","torso"]:
