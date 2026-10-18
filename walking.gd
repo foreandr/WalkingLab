@@ -97,6 +97,9 @@ var war_strafe_sign: float = 1.0
 var war_physics_accumulator: float = 0.0
 var war_lod_mode: String = "full"
 var war_profile_counter: int = 0
+var war_visual_accumulator: float = 0.0
+var war_visual_updates: int = 0
+var war_visual_skips: int = 0
 var war_physics_updates: int = 0
 var war_physics_skips: int = 0
 var war_tactical_clock: float = 0.0
@@ -645,11 +648,25 @@ func update_war_fighter(dt: float) -> void:
 	if sampled:
 		get_tree().current_scene.record_performance_sample("war_blend_setup",Time.get_ticks_usec()-profile_phase)
 		profile_phase = Time.get_ticks_usec()
+	# Schedule animation independently from movement and collision updates.
+	# Casting and nearby fighters retain 60 Hz bone/IK motion. Fighters far
+	# from the player use 30 Hz in combat, or 15 Hz when not engaged.
+	var spectator: Node = get_tree().current_scene.get("player")
+	var near_player: bool = spectator != null and is_instance_valid(spectator) and actor.global_position.distance_squared_to(spectator.actor.global_position) < 324.0
+	var in_combat: bool = cast_elapsed >= 0.0 or (war_target != null and is_instance_valid(war_target) and actor.global_position.distance_squared_to(war_target.actor.global_position) < 400.0)
+	var visual_rate: float = 60.0 if near_player or cast_elapsed >= 0.0 or flight_enabled else (30.0 if in_combat else 15.0)
+	war_visual_accumulator += dt
+	var advance_visual: bool = war_visual_accumulator + 0.00001 >= 1.0 / visual_rate
 	var animation_start: int = Time.get_ticks_usec() if sampled else 0
-	tree.advance(dt)
+	if advance_visual:
+		tree.advance(war_visual_accumulator)
+		war_visual_accumulator = 0.0
+		war_visual_updates += 1
+	else:
+		war_visual_skips += 1
 	if sampled: profile_animation = Time.get_ticks_usec()-animation_start
 	if sampled: profile_phase = Time.get_ticks_usec()
-	if flight_enabled:
+	if advance_visual and flight_enabled:
 		# Flight poses remain active independently of the expensive ground-foot correction.
 		# The airborne rig must visually pitch with its velocity, not keep
 		# its standing orientation while flying.
@@ -658,7 +675,7 @@ func update_war_fighter(dt: float) -> void:
 		visual.rotation.x = move_toward(visual.rotation.x,target_pitch,dt*5.0)
 		visual.position.y = 0.95*absf(sin(visual.rotation.x))
 		apply_flight_pose(dt)
-	else:
+	elif advance_visual:
 		visual.rotation.x = move_toward(visual.rotation.x,0.0,dt*8.0)
 		if war_pose_enabled:
 			visual.position.y = 0.0
@@ -675,7 +692,7 @@ func update_war_fighter(dt: float) -> void:
 	# War fighters use this cast IK path rather than the player movement path.
 	# Without an initialized weight their cast arm stays motionless.
 	jab_aim_strength = 1.0
-	adjust_jab_arm()
+	if advance_visual or cast_elapsed >= 0.0: adjust_jab_arm()
 	update_cast_motion(dt)
 	if sampled:
 		get_tree().current_scene.record_performance_sample("war_cast_and_ik",Time.get_ticks_usec()-profile_phase)
@@ -2047,7 +2064,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	projectile.global_position = hand_world + travel * 0.20
 	# Use external particles for both spell types; never hand-draw VFX.
 	var effect_path: String = "res://assets/external_vfx/" + cast_element + ".tscn"
-	var effect: GPUParticles3D = load(effect_path).instantiate()
+	var effect: GPUParticles3D = arena.fireball_scene.instantiate() if cast_element == "fire" and arena != null and arena.get("fireball_scene") != null else load(effect_path).instantiate()
 	projectile.add_child(effect)
 	# Three times the size at the hand and during travel.
 	var arena: Node = get_tree().current_scene
@@ -2055,7 +2072,8 @@ func release_fireball(hand_world: Vector3) -> void:
 		arena.configure_fireball_particles(effect,float(arena.get("battle_fireball_size")))
 	else:
 		effect.scale = Vector3.ONE * 3.0
-	if animation_test_mode == "war": effect.amount = maxi(4,int(effect.amount / 3))
+	effect.amount = mini(effect.amount,6)
+	effect.fixed_fps = 30
 	effect.emitting = true
 	effect.restart()
 	var script_path: String = "res://assets/external_vfx/" + "fireball_motion.gd"
