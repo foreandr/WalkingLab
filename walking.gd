@@ -47,6 +47,9 @@ var route_center = Vector3.ZERO
 var route_radius = 40.0
 var character_tint = Color("d5d9dd")
 var manual_input = Vector2.ZERO
+# Only the opt-in flight benchmark drives these controls.
+var benchmark_flight_active: bool = false
+var benchmark_flight_axis: Vector2 = Vector2.ZERO
 var manual_launch_lock = false
 var manual_sprint_clock = 0.0
 var flight_acceleration_time: float = 0.0
@@ -1077,7 +1080,7 @@ func _physics_process(dt):
 	var old_back_blend = back_blend
 	var was_turning = turning
 	if player_controlled:
-		manual_input = Input.get_vector("move_left","move_right","move_back","move_forward")
+		manual_input = benchmark_flight_axis if benchmark_flight_active else Input.get_vector("move_left","move_right","move_back","move_forward")
 		if manual_input.length()>0.01:
 			var camera_forward = Vector3(-sin(orbit),0,-cos(orbit))
 			var camera_right = Vector3(cos(orbit),0,-sin(orbit))
