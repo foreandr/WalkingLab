@@ -16,6 +16,13 @@ var battle_fireball_speed: float = 1.0
 var battle_fireball_size: float = 1.0
 var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 var fighter_spawn_index: int = 0
+# Queue runtime spawn requests: avoid constructing ten complete rigs in one frame.
+var queued_fighter_spawns: int = 0
+var spawn_cooldown: float = 0.0
+var spawn_last_cost_ms: float = 0.0
+var spawn_peak_cost_ms: float = 0.0
+var spawn_count_window: int = 0
+
 const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
 var announced_winner: bool = false
 var battle_feed: RichTextLabel
@@ -90,36 +97,49 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	for batch in range(3): spawn_more_fighters()
+	# Initial population is built during loading, before the first playable frame.
+	for batch in range(3): spawn_more_fighters(10,true)
 	ai = mannequins[0]
 	ai_label = null
 
-func spawn_more_fighters(count: int = 10) -> void:
-	# Manual button/0 still adds ten; startup may add a measured batch of three.
-	var pose_enabled: bool = player.war_pose_enabled if is_instance_valid(player) else false
+func spawn_more_fighters(count: int = 10, immediate: bool = false) -> void:
+	if not immediate:
+		queued_fighter_spawns += count
+		print("[SPAWN_REQUEST] queued=",count," pending=",queued_fighter_spawns," existing=",mannequins.size())
+		return
 	for i in range(count):
-		var index: int = fighter_spawn_index
-		fighter_spawn_index += 1
-		var fighter = preload("res://walking.gd").new()
-		fighter.name = "Fighter%02d" % (index + 1)
-		fighter.autonomous_only = true
-		fighter.actor_only = true
-		fighter.ai_abilities = true
-		fighter.animation_test_mode = "war"
-		fighter.war_pose_enabled = pose_enabled
-		# Distribute later batches across the arena, avoiding the player spawn.
-		var angle: float = float(index) * 2.39996323
-		var ring: float = 12.0 + float((index / 10) % 6) * 4.0
-		fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
-		fighter.character_tint = Color(FIGHTER_COLORS[index % FIGHTER_COLORS.size()])
-		add_child(fighter)
-		fighter.actor.rotation.y = angle + PI
-		make_label(fighter.actor,"FIGHTER %02d" % (index+1),fighter.character_tint)
-		mannequins.append(fighter)
-		# The arena drives this fighter from one central physics callback.
-		fighter.set_physics_process(false)
+		_spawn_single_fighter()
+
+func _spawn_single_fighter() -> void:
+	var spawn_begin: int = Time.get_ticks_usec()
+	var pose_enabled: bool = player.war_pose_enabled if is_instance_valid(player) else false
+	
+	var index: int = fighter_spawn_index
+	fighter_spawn_index += 1
+	var fighter = preload("res://walking.gd").new()
+	fighter.name = "Fighter%02d" % (index + 1)
+	fighter.autonomous_only = true
+	fighter.actor_only = true
+	fighter.ai_abilities = true
+	fighter.animation_test_mode = "war"
+	fighter.war_pose_enabled = pose_enabled
+	# Distribute later batches across the arena, avoiding the player spawn.
+	var angle: float = float(index) * 2.39996323
+	var ring: float = 12.0 + float((index / 10) % 6) * 4.0
+	fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
+	fighter.character_tint = Color(FIGHTER_COLORS[index % FIGHTER_COLORS.size()])
+	add_child(fighter)
+	fighter.actor.rotation.y = angle + PI
+	make_label(fighter.actor,"FIGHTER %02d" % (index+1),fighter.character_tint)
+	mannequins.append(fighter)
+	# The arena drives this fighter from one central physics callback.
+	fighter.set_physics_process(false)
 	announced_winner = false
-	print("[STRESS_SPAWN] added=",count," fighters_total=",mannequins.size()," ground_feet_enabled=",pose_enabled)
+	spawn_last_cost_ms = float(Time.get_ticks_usec()-spawn_begin)/1000.0
+	spawn_peak_cost_ms = maxf(spawn_peak_cost_ms,spawn_last_cost_ms)
+	spawn_count_window += 1
+	record_performance_sample("fighter_spawn_one",Time.get_ticks_usec()-spawn_begin)
+	print("[SPAWN_DONE] fighters_total=",mannequins.size()," pending=",queued_fighter_spawns," spawn_ms=",snappedf(spawn_last_cost_ms,0.01))
 
 func set_fireball_width(multiplier: float) -> void:
 	battle_fireball_size = multiplier
@@ -172,6 +192,9 @@ func print_performance_report() -> void:
 		profile_percentile(profile_wall_ms,0.99),profile_percentile(profile_wall_ms,1.0),
 		profile_percentile(profile_cpu_ms,0.95),profile_percentile(profile_physics_ms,0.95)
 	]
+	summary += " [SPAWN_PROFILE] queue=%d spawned_window=%d last_ms=%.2f max_ms=%.2f" % [queued_fighter_spawns,spawn_count_window,spawn_last_cost_ms,spawn_peak_cost_ms]
+	spawn_count_window = 0
+	spawn_peak_cost_ms = 0.0
 	summary += " [WAR_ACTIVITY] living_min=%d living_max=%d living_avg=%.1f projectile_peak=%d fighter_grid_cells=%d projectile_grid_cells=%d max_fighter_bucket=%d max_projectile_bucket=%d" % [
 		0 if profile_living_samples == 0 else profile_living_min,profile_living_max,
 		float(profile_living_sum)/float(maxi(1,profile_living_samples)),profile_projectile_peak,
@@ -214,6 +237,16 @@ func print_performance_report() -> void:
 	profile_spatial_max_projectile_bucket = 0
 
 func _process(dt: float) -> void:
+	# Incrementally build the requested fighters instead of blocking one frame
+	# on ten imported rigs, animation graphs and collision bodies.
+	if queued_fighter_spawns > 0:
+		spawn_cooldown -= dt
+		if spawn_cooldown <= 0.0:
+			queued_fighter_spawns -= 1
+			_spawn_single_fighter()
+			# Expensive rigs get a recovery gap. Never build more than one
+			# complete fighter in a displayed frame.
+			spawn_cooldown = 0.10 if spawn_last_cost_ms > 20.0 else 0.0
 	var render_now: int = Time.get_ticks_usec()
 	if profile_last_render_usec != 0:
 		profile_wall_ms.append(float(render_now-profile_last_render_usec)/1000.0)
