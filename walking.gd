@@ -968,7 +968,8 @@ func war_simulation_tick(dt: float) -> void:
 	if war_target != null and is_instance_valid(war_target) and not war_target.combat_dead:
 		if actor.global_position.distance_squared_to(war_target.actor.global_position) < 196.0:
 			full_physics = true
-	if cast_elapsed >= 0.0: full_physics = true
+	# Distant fireball casts are advanced by their own projectile physics callbacks.
+	# A cast alone need not force the entire remote fighter into the 30 Hz tier.
 	if full_physics:
 		war_lod_mode = "full"
 		var accumulated: float = dt + war_physics_accumulator
@@ -978,7 +979,9 @@ func war_simulation_tick(dt: float) -> void:
 	else:
 		war_lod_mode = "reduced"
 		war_physics_accumulator += dt
-		if war_physics_accumulator < 1.0/30.0:
+		# Remote actors move at 15 Hz; dt is accumulated so movement speed
+		# and decision timers remain in real time, while nearby combat stays 30 Hz.
+		if war_physics_accumulator + 0.00001 < 1.0/15.0:
 			war_physics_skips += 1
 			return
 		var accumulated: float = war_physics_accumulator
