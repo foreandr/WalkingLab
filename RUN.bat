@@ -98,5 +98,5 @@ echo [2/2] Launching game with timestamped logging...
 powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\close_old_instances.ps1"
 rem Start logger detached and return to PowerShell immediately.
 rem Closing the game window triggers log upload; no batch job remains to confirm.
-start "" /min powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "scripts\run_logged.ps1" -GodotPath "%GODOT%"
+start "" /min powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "scripts\run_logged.ps1" -GodotPath "%GODOT%" -GameArgs %*
 exit /b 0
