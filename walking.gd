@@ -108,6 +108,11 @@ var war_decision_timer: float = 0.0
 var war_strafe_sign: float = 1.0
 var war_physics_accumulator: float = 0.0
 var war_lod_mode: String = "full"
+# Synchronized distance-comparison mannequins retain their positions and
+# fire the same spell toward the player, without pursuit/target switching.
+var animation_lineup_mode: bool = false
+var lineup_cast_clock: float = 0.0
+
 var war_profile_counter: int = 0
 var war_visual_accumulator: float = 0.0
 var war_visual_updates: int = 0
@@ -999,7 +1004,35 @@ func update_sky_target(dt: float) -> void:
 	apply_movement_clip(dt)
 
 # Called once per arena physics tick by the central scheduler.
+func update_animation_lineup(dt: float) -> void:
+	var arena: Node = get_tree().current_scene
+	if arena == null: return
+	var target: Node = arena.get("player")
+	if not is_instance_valid(target): return
+	var target_actor: CharacterBody3D = target.actor
+	var offset: Vector3 = target_actor.global_position-actor.global_position
+	if offset.length_squared() > 0.0001:
+		actor.rotation.y = atan2(-offset.x,-offset.z)
+	actor.velocity = Vector3.ZERO
+	# Same timing and animation across all test subjects; full physics and
+	# particle motion continue independently for real incoming fireballs.
+	tree.advance(dt)
+	lineup_cast_clock += dt
+	if lineup_cast_clock >= 2.5:
+		lineup_cast_clock = fmod(lineup_cast_clock,2.5)
+		if cast_elapsed < 0.0:
+			controlled_arm = "right"
+			cast_fireball()
+			if cast_elapsed >= 0.0:
+				cast_aim_point = target_actor.global_position + Vector3.UP*1.1
+	jab_aim_strength = 1.0
+	adjust_jab_arm()
+	update_cast_motion(dt)
+
 func war_simulation_tick(dt: float) -> void:
+	if animation_lineup_mode:
+		update_animation_lineup(dt)
+		return
 	var full_physics: bool = false
 	var arena: Node = get_tree().current_scene
 	if arena != null:
