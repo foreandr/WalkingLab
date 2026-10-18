@@ -98,10 +98,10 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# Only the first fighter is required before the arena can become playable.
-	# Queue the remaining initial combatants; never block startup building 30 rigs.
+	# Prepare one fighter before rendering; queue the remaining 49 rather
+	# than blocking the main thread constructing the entire arena at once.
 	spawn_more_fighters(1,true)
-	spawn_more_fighters(29)
+	spawn_more_fighters(49)
 	ai = mannequins[0]
 	ai_label = null
 
