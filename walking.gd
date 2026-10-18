@@ -397,6 +397,15 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
 
 	add_setting_slider(column,"Fireball speed",0.25,100.0,1.0,0.25,"fireball")
+	add_setting_slider(column,"Fireball width",0.25,20.0,1.0,0.25,"fireball_size")
+	var spawn_button := Button.new()
+	spawn_button.text = "Spawn +10 fighters (0)"
+	column.add_child(spawn_button)
+	spawn_button.pressed.connect(func():
+		var arena: Node = get_tree().current_scene
+		if arena != null and arena.has_method("spawn_more_fighters"):
+			arena.spawn_more_fighters()
+	)
 	var pose_toggle := CheckButton.new()
 	pose_toggle.text = "Ground foot correction - everyone (ON/OFF)"
 	pose_toggle.button_pressed = false
@@ -444,6 +453,10 @@ func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: 
 			"camera": camera_sensitivity = value
 			"fov": camera.fov = value
 
+			"fireball_size":
+				var arena: Node = get_tree().current_scene
+				if arena != null: arena.set("battle_fireball_size",value)
+				print("[STRESS_FIREBALL_SIZE] multiplier=",value)
 			"fireball":
 				fireball_speed_scale = value
 				if get_tree().current_scene.get("battle_fireball_speed") != null:
@@ -2037,7 +2050,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	var effect: GPUParticles3D = load(effect_path).instantiate()
 	projectile.add_child(effect)
 	# Three times the size at the hand and during travel.
-	effect.scale = Vector3.ONE * 3.0
+	effect.scale = Vector3.ONE * 3.0 * float(get_tree().current_scene.get("battle_fireball_size")) if get_tree().current_scene.get("battle_fireball_size") != null else Vector3.ONE * 3.0
 	if animation_test_mode == "war": effect.amount = maxi(4,int(effect.amount / 3))
 	effect.emitting = true
 	effect.restart()
