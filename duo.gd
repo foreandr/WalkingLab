@@ -25,7 +25,7 @@ func _ready():
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(192.0,0.2,192.0)
+	floor_box.size = Vector3(80.0,0.2,80.0)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -33,7 +33,7 @@ func _ready():
 	player.name = "PlayerMan"
 	player.player_controlled = true
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,70)
+	player.spawn_point = Vector3(0,0,30)
 	player.character_tint = Color("101114")
 	add_child(player)
 	player.camera.current = true
@@ -48,7 +48,7 @@ func _ready():
 		fighter.actor_only = true
 		fighter.ai_abilities = true
 		fighter.animation_test_mode = "war"
-		fighter.spawn_point = Vector3(sin(i*TAU/10.0)*23.0,0,cos(i*TAU/10.0)*23.0)
+		fighter.spawn_point = Vector3(sin(i*TAU/10.0)*16.0,0,cos(i*TAU/10.0)*23.0)
 		fighter.character_tint = Color(palette[i])
 		add_child(fighter)
 		fighter.actor.rotation.y = i*TAU/10.0+PI
@@ -141,18 +141,50 @@ func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	body.add_child(ring)
 	return label
 func make_boundary():
-	var boundary = StaticBody3D.new()
-	boundary.name = "ArenaBoundary"
-	add_child(boundary)
-	for i in range(64):
-		var angle = i*TAU/64.0
-		var collision = CollisionShape3D.new()
-		var shape = BoxShape3D.new()
-		shape.size = Vector3(TAU*75.0/64.0+0.5,300.0,1.5)
-		collision.shape = shape
-		collision.position = Vector3(sin(angle)*75.0,150.0,cos(angle)*75.0)
-		collision.rotation.y = angle
-		boundary.add_child(collision)
+	# Closed 80 x 80 metre arena: opaque visible walls and a solid roof.
+	var structure := StaticBody3D.new()
+	structure.name = "EnclosedArena"
+	add_child(structure)
+	var wall_material := StandardMaterial3D.new()
+	wall_material.albedo_color = Color("51606d")
+	wall_material.roughness = 0.9
+	wall_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var roof_material := StandardMaterial3D.new()
+	roof_material.albedo_color = Color("34414e")
+	roof_material.roughness = 0.95
+	roof_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var surfaces := [
+		{"name":"NorthWall","size":Vector3(80.0,55.0,1.5),"center":Vector3(0,27.5,-40)},
+		{"name":"SouthWall","size":Vector3(80.0,55.0,1.5),"center":Vector3(0,27.5,40)},
+		{"name":"EastWall","size":Vector3(1.5,55.0,80.0),"center":Vector3(40,27.5,0)},
+		{"name":"WestWall","size":Vector3(1.5,55.0,80.0),"center":Vector3(-40,27.5,0)},
+		{"name":"Ceiling","size":Vector3(80.0,1.5,80.0),"center":Vector3(0,55,0)}
+	]
+	for item in surfaces:
+		var collider := CollisionShape3D.new()
+		var solid := BoxShape3D.new()
+		solid.size = item["size"]
+		collider.shape = solid
+		collider.position = item["center"]
+		structure.add_child(collider)
+		var visible_wall := MeshInstance3D.new()
+		visible_wall.name = item["name"]
+		var block := BoxMesh.new()
+		block.size = item["size"]
+		visible_wall.mesh = block
+		visible_wall.material_override = roof_material if item["name"] == "Ceiling" else wall_material
+		visible_wall.position = item["center"]
+		structure.add_child(visible_wall)
+	# Internal lights keep the enclosed battlefield visible.
+	for x in [-24.0,24.0]:
+		for z in [-24.0,24.0]:
+			var lamp := OmniLight3D.new()
+			lamp.position = Vector3(x,48,z)
+			lamp.light_energy = 1.8
+			lamp.omni_range = 75
+			lamp.shadow_enabled = false
+			add_child(lamp)
+
 func _physics_process(_dt):
 	if player == null: return
 	player_label.position.y = player.crouch.capsule.height+0.3
