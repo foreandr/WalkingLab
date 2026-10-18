@@ -97,8 +97,10 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# Initial population is built during loading, before the first playable frame.
-	for batch in range(3): spawn_more_fighters(10,true)
+	# Only the first fighter is required before the arena can become playable.
+	# Queue the remaining initial combatants; never block startup building 30 rigs.
+	spawn_more_fighters(1,true)
+	spawn_more_fighters(29)
 	ai = mannequins[0]
 	ai_label = null
 
