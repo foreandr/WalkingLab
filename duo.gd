@@ -40,6 +40,10 @@ var announced_winner: bool = false
 var winner_banner: Label3D = null
 var battle_feed: RichTextLabel
 var battle_hits: Array[String] = []
+var battle_feed_dirty: bool = false
+var battle_feed_refresh_clock: float = 0.0
+var player_auto_attacks_window: int = 0
+var player_auto_target_changes_window: int = 0
 var aoe_events_window: int = 0
 var aoe_fighters_window: int = 0
 var aoe_regions_window: int = 0
@@ -246,6 +250,9 @@ func print_performance_report() -> void:
 	]
 	summary += " active_projectiles=%d fighters=%d fireball_size=%.2f fps_cap=%d" % [get_tree().get_nodes_in_group("battle_fireballs").size(),mannequins.size(),battle_fireball_size,Engine.max_fps]
 	print(summary)
+	summary += " [PLAYER_AUTO_COMBAT] attacks=%d target_changes=%d" % [player_auto_attacks_window,player_auto_target_changes_window]
+	player_auto_attacks_window = 0
+	player_auto_target_changes_window = 0
 	summary += " [AOE_TOTALS] events=%d fighters_hit=%d regions_hit=%d" % [aoe_events_window,aoe_fighters_window,aoe_regions_window]
 	aoe_events_window = 0
 	aoe_fighters_window = 0
@@ -271,6 +278,10 @@ func print_performance_report() -> void:
 	profile_spatial_max_projectile_bucket = 0
 
 func _process(dt: float) -> void:
+	battle_feed_refresh_clock -= dt
+	if battle_feed_refresh_clock <= 0.0:
+		battle_feed_refresh_clock = 0.2
+		refresh_battle_feed()
 	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == 60 and is_instance_valid(player):
 		flight_benchmark_running = true
 		flight_benchmark_unfocused_frames = 0
@@ -388,18 +399,28 @@ func record_aoe_event(fighters_hit: int, regions_hit: int) -> void:
 	aoe_fighters_window += fighters_hit
 	aoe_regions_window += regions_hit
 
+func record_player_auto_attack(target_name: String) -> void:
+	player_auto_attacks_window += 1
+
+func record_player_auto_target_change(target_name: String) -> void:
+	player_auto_target_changes_window += 1
+
+func refresh_battle_feed() -> void:
+	if not battle_feed_dirty or battle_feed == null: return
+	battle_feed_dirty = false
+	battle_feed.text = "TOTAL DAMAGE\n"
+	var leaders: Array = damage_totals.keys()
+	leaders.sort_custom(func(a,b): return float(damage_totals[a]) > float(damage_totals[b]))
+	for i in range(mini(3,leaders.size())):
+		battle_feed.text += "%s: %d\n" % [leaders[i],int(damage_totals[leaders[i]])]
+	battle_feed.text += "\nRECENT HITS\n" + "\n".join(battle_hits)
+
 func record_battle_hit(attacker: String, victim: String, region: String, amount: float, _health: float) -> void:
 	var source: String = attacker if attacker != "" else "UNKNOWN"
 	damage_totals[source] = float(damage_totals.get(source,0.0))+amount
 	battle_hits.push_front("%s → %s  %s  -%d" % [source,victim,region.to_upper(),int(round(amount))])
 	if battle_hits.size() > 11: battle_hits.resize(11)
-	if battle_feed != null:
-		battle_feed.text = "TOTAL DAMAGE\n"
-		var leaders: Array = damage_totals.keys()
-		leaders.sort_custom(func(a,b): return float(damage_totals[a]) > float(damage_totals[b]))
-		for i in range(mini(3,leaders.size())):
-			battle_feed.text += "%s: %d\n" % [leaders[i],int(damage_totals[leaders[i]])]
-		battle_feed.text += "\nRECENT HITS\n" + "\n".join(battle_hits)
+	battle_feed_dirty = true
 
 func spawn_moving_cpus() -> void:
 	# Two walkers, two high-speed runners, two immediate flyers.
