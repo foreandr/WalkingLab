@@ -398,7 +398,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 
 	add_setting_slider(column,"Fireball speed",0.25,100.0,1.0,0.25,"fireball")
 	var pose_toggle := CheckButton.new()
-	pose_toggle.text = "AI pose and foot correction (ON/OFF)"
+	pose_toggle.text = "AI ground foot correction (ON/OFF)"
 	pose_toggle.button_pressed = true
 	column.add_child(pose_toggle)
 	pose_toggle.toggled.connect(func(enabled: bool):
@@ -409,10 +409,10 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 				for fighter in roster:
 					if is_instance_valid(fighter):
 						fighter.war_pose_enabled = enabled
-						if not enabled:
+						if not enabled and not fighter.flight_enabled:
 							fighter.visual.rotation.x = 0.0
 							fighter.visual.position.y = 0.0
-		print("[PERF_POSE_TOGGLE] ai_pose_and_feet_enabled=",enabled)
+		print("[PERF_POSE_TOGGLE] ai_ground_feet_enabled=",enabled," flight_pose_enabled=true")
 	)
 	var controls_heading := Button.new()
 	controls_heading.text = "Controls  ▾"
@@ -633,7 +633,8 @@ func update_war_fighter(dt: float) -> void:
 	tree.advance(dt)
 	if sampled: profile_animation = Time.get_ticks_usec()-animation_start
 	if sampled: profile_phase = Time.get_ticks_usec()
-	if war_pose_enabled and flight_enabled:
+	if flight_enabled:
+		# Flight poses remain active independently of the expensive ground-foot correction.
 		# The airborne rig must visually pitch with its velocity, not keep
 		# its standing orientation while flying.
 		var planar_speed: float = Vector2(actor.velocity.x,actor.velocity.z).length()
@@ -641,10 +642,11 @@ func update_war_fighter(dt: float) -> void:
 		visual.rotation.x = move_toward(visual.rotation.x,target_pitch,dt*5.0)
 		visual.position.y = 0.95*absf(sin(visual.rotation.x))
 		apply_flight_pose(dt)
-	elif war_pose_enabled:
+	else:
 		visual.rotation.x = move_toward(visual.rotation.x,0.0,dt*8.0)
-		visual.position.y = 0.0
-		if actor.is_on_floor(): feet.resolve(true)
+		if war_pose_enabled:
+			visual.position.y = 0.0
+			if actor.is_on_floor(): feet.resolve(true)
 	if sampled:
 		get_tree().current_scene.record_performance_sample("war_pose_and_feet",Time.get_ticks_usec()-profile_phase)
 		profile_phase = Time.get_ticks_usec()
