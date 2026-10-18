@@ -1,6 +1,5 @@
 param(
     [Parameter(Mandatory=$true)][string]$GodotPath,
-    [string[]]$GameArgs = @(),
     [string[]]$GameArgs = @()
 )
 $ErrorActionPreference = "Stop"
