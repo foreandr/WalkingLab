@@ -581,6 +581,12 @@ func update_war_fighter(dt: float) -> void:
 	tree.set("parameters/Cadence/scale",maxf(0.2,speed/3.0))
 	tree.advance(dt)
 	if flight_enabled:
+		# The airborne rig must visually pitch with its velocity, not keep
+		# its standing orientation while flying.
+		var planar_speed: float = Vector2(actor.velocity.x,actor.velocity.z).length()
+		var target_pitch: float = clampf(atan2(planar_speed,maxf(-6.0,actor.velocity.y)),0.10,2.8)
+		visual.rotation.x = move_toward(visual.rotation.x,target_pitch,dt*5.0)
+		visual.position.y = 0.95*absf(sin(visual.rotation.x))
 		apply_flight_pose(dt)
 	else:
 		visual.rotation.x = move_toward(visual.rotation.x,0.0,dt*8.0)
