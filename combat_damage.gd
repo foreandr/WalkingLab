@@ -124,10 +124,10 @@ func receive_region_hit(region: String, world_point: Vector3, amount: float, att
 	if show_number: show_damage_number(world_point,amount,region)
 	flash_hit_region(region)
 	var remaining: float = float(hp[region])
-	update_damage_colors()
+	if not aoe_batch_active: update_damage_colors()
 	# Avoid thousands of console writes during immortal stress tests.
 	# The arena aggregates hit counts and damage per reporting window.
-	if scene_debug_damage(): print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
+	if not stress_immortal: print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
 	var scene: Node = get_tree().current_scene
 	if scene != null and scene.has_method("record_battle_hit"):
 		scene.record_battle_hit(attacker,owner_actor.get_parent().name,region,amount,remaining)
@@ -150,6 +150,8 @@ func receive_aoe_regions(regions: Array[String], amount: float, attacker: String
 			receive_region_hit(region,bone_position(region),amount,attacker,first_number)
 			first_number = false
 	aoe_batch_active = false
+	# Six simultaneous body-region hits require only one shader upload.
+	update_damage_colors()
 	var arena: Node = get_tree().current_scene
 	if arena != null and bool(arena.get("stress_no_deaths")): return
 	for vital in ["head","torso"]:
