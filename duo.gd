@@ -12,6 +12,10 @@ var battle_feed: RichTextLabel
 var battle_hits: Array[String] = []
 var damage_totals: Dictionary = {}
 func _ready():
+	# One shared clock for movement, physics, animation, AI and spell timing.
+	Engine.time_scale = 0.5
+	# Lower internal 3D resolution without reducing UI readability.
+	get_viewport().scaling_3d_scale = 0.7
 	for entry in [["move_forward",KEY_W],["move_back",KEY_S],["move_left",KEY_A],["move_right",KEY_D],["sprint",KEY_ALT],["walk",KEY_CTRL]]:
 		if not InputMap.has_action(entry[0]): InputMap.add_action(entry[0])
 		var key = InputEventKey.new()
