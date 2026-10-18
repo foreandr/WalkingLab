@@ -15,6 +15,9 @@ var watching_ai = false
 var battle_fireball_speed: float = 1.0
 var battle_fireball_size: float = 1.0
 var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
+const MAX_ACTIVE_FIGHTERS: int = 80
+# Default development mode is player versus one autonomous fighter.
+# Larger battles remain available through manual spawning and benchmarks.
 var fighter_spawn_index: int = 0
 # Queue runtime spawn requests: avoid constructing ten complete rigs in one frame.
 var queued_fighter_spawns: int = 0
@@ -128,10 +131,9 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# Prepare one fighter before rendering; queue the remaining 99 rather
-	# than blocking the main thread constructing the entire arena at once.
+	# One opponent for animation development; do not launch the war by default.
 	spawn_more_fighters(1,true)
-	spawn_more_fighters(99)
+	print("[ARENA_MODE] animation_1v1=true max_active_fighters=",MAX_ACTIVE_FIGHTERS)
 	ai = mannequins[0]
 	ai_label = null
 
@@ -142,6 +144,11 @@ func clear_winner_announcement() -> void:
 	winner_banner = null
 
 func spawn_more_fighters(count: int = 10, immediate: bool = false) -> void:
+	# Cap the number of living/queued combatants, not historical total spawns.
+	var living_count: int = 0
+	for fighter in mannequins:
+		if is_instance_valid(fighter) and not fighter.combat_dead: living_count += 1
+	count = mini(count,MAX_ACTIVE_FIGHTERS-living_count-queued_fighter_spawns)
 	if count <= 0: return
 	clear_winner_announcement()
 	if not immediate:
@@ -236,7 +243,7 @@ func print_performance_report() -> void:
 	spawn_count_window = 0
 	spawn_peak_cost_ms = 0.0
 	summary += " [WINDOW_FOCUS] focused_frames=%d unfocused_frames=%d focused_fps=%.1f unfocused_fps=%.1f" % [profile_focus_frames,profile_unfocused_frames,profile_focus_fps_sum/float(maxi(1,profile_focus_frames)),profile_unfocused_fps_sum/float(maxi(1,profile_unfocused_frames))]
-	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d batch_aoe_shader=%s" % [str(stress_no_deaths),100,str(batch_aoe_shader)]
+	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d batch_aoe_shader=%s" % [str(stress_no_deaths),MAX_ACTIVE_FIGHTERS,str(batch_aoe_shader)]
 	summary += " [WAR_ACTIVITY] living_min=%d living_max=%d living_avg=%.1f projectile_peak=%d fighter_grid_cells=%d projectile_grid_cells=%d max_fighter_bucket=%d max_projectile_bucket=%d" % [
 		0 if profile_living_samples == 0 else profile_living_min,profile_living_max,
 		float(profile_living_sum)/float(maxi(1,profile_living_samples)),profile_projectile_peak,
@@ -294,7 +301,7 @@ func _process(dt: float) -> void:
 	if battle_feed_refresh_clock <= 0.0:
 		battle_feed_refresh_clock = 0.2
 		refresh_battle_feed()
-	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == 100 and is_instance_valid(player):
+	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == MAX_ACTIVE_FIGHTERS and is_instance_valid(player):
 		flight_benchmark_running = true
 		flight_benchmark_unfocused_frames = 0
 		flight_benchmark_low_draw_frames = 0
