@@ -45,7 +45,7 @@ func make_arena():
 	sun.rotation_degrees = Vector3(-42,-32,0)
 	sun.light_color = Color("ffdfb6")
 	sun.light_energy = 0.85
-	sun.shadow_enabled = true
+	sun.shadow_enabled = false # Battle performance: avoid dynamic skeletal shadows
 	sun.directional_shadow_max_distance = 22
 	add_child(sun)
 	var fill = DirectionalLight3D.new()
