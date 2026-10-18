@@ -84,7 +84,11 @@ func _process(dt: float) -> void:
 	var objects: int = Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)
 	var frame_ms: float = Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
 	var physics_ms: float = Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0
-	performance_label.text = "FPS: %d | CPU frame: %.1f ms | physics: %.1f ms | draws: %d | objects: %d" % [fps,frame_ms,physics_ms,draw_calls,objects]
+	var reduced: int = 0
+	for fighter in mannequins:
+		if is_instance_valid(fighter) and not fighter.combat_dead and fighter.war_lod_mode == "reduced":
+			reduced += 1
+	performance_label.text = "FPS: %d | CPU: %.1f ms | physics: %.1f ms | draws: %d | objects: %d | reduced physics: %d/%d" % [fps,frame_ms,physics_ms,draw_calls,objects,reduced,mannequins.size()]
 
 func create_battle_feed() -> void:
 	var ui := CanvasLayer.new()
