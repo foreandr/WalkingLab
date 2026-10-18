@@ -7,6 +7,7 @@ var skeleton: Skeleton3D
 var markers: Dictionary = {}
 var dead: bool = false
 var visual_update_clock: float = 0.0
+var damage_visual_profile_counter: int = 0
 var aoe_batch_active: bool = false
 
 var shader_material: ShaderMaterial
@@ -74,12 +75,19 @@ func _process(dt: float) -> void:
 	visual_update_clock -= dt
 	if visual_update_clock > 0.0: return
 	visual_update_clock = 1.0/(8.0 if owner_actor.get_parent().get("animation_test_mode") == "war" else 15.0)
+	damage_visual_profile_counter += 1
+	var sample_visual: bool = (damage_visual_profile_counter & 31) == 0
+	var visual_start_usec: int = Time.get_ticks_usec() if sample_visual else 0
 	skeleton.force_update_all_bone_transforms()
 	for region in REGIONS:
 		var location: Vector3 = bone_position(region)
 		shader_material.set_shader_parameter(region+"_world",location)
 		if (markers[region] as MeshInstance3D).visible:
 			(markers[region] as MeshInstance3D).global_position = location
+	if sample_visual:
+		var arena: Node = get_tree().current_scene
+		if arena != null and arena.has_method("record_performance_sample"):
+			arena.record_performance_sample("damage_visual_refresh",Time.get_ticks_usec()-visual_start_usec)
 
 func update_damage_colors() -> void:
 	shader_material.set_shader_parameter("region_hp",Vector3(float(hp["head"]),float(hp["torso"]),float(hp["left_arm"])))
