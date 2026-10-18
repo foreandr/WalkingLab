@@ -6,6 +6,7 @@ var owner_actor: CharacterBody3D
 var skeleton: Skeleton3D
 var markers: Dictionary = {}
 var dead: bool = false
+var visual_update_clock: float = 0.0
 
 var shader_material: ShaderMaterial
 var bone_map: Dictionary = {}
@@ -56,11 +57,18 @@ func bone_position(region: String) -> Vector3:
 	if index < 0: return owner_actor.global_position + Vector3.UP
 	return skeleton.global_transform * skeleton.get_bone_global_pose(index).origin
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
 	if skeleton == null or not is_instance_valid(skeleton): return
+	# Damage regions are visual feedback, not collision physics.
+	# Updating at 15 Hz saves bone transforms and shader updates during wars.
+	visual_update_clock -= dt
+	if visual_update_clock > 0.0: return
+	visual_update_clock = 1.0/15.0
+	skeleton.force_update_all_bone_transforms()
 	for region in REGIONS:
-		shader_material.set_shader_parameter(region+"_world",bone_position(region))
-		(markers[region] as MeshInstance3D).global_position = bone_position(region)
+		var location: Vector3 = bone_position(region)
+		shader_material.set_shader_parameter(region+"_world",location)
+		(markers[region] as MeshInstance3D).global_position = location
 
 func update_damage_colors() -> void:
 	shader_material.set_shader_parameter("region_hp",Vector3(float(hp["head"]),float(hp["torso"]),float(hp["left_arm"])))
