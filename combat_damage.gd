@@ -97,9 +97,10 @@ func region_at(world_point: Vector3) -> String:
 	if local.x < 0.0: return "left_leg"
 	return "right_leg"
 
-func receive_hit(world_point: Vector3, amount: float, attacker: String = "") -> void:
-	if dead: return
-	var region: String = region_at(world_point)
+# Direct anatomical damage is used for multi-region AOE. The ordinary
+# receive_hit entry point still resolves a single impact to one region.
+func receive_region_hit(region: String, world_point: Vector3, amount: float, attacker: String = "") -> void:
+	if dead or not hp.has(region): return
 	hp[region] = maxf(0.0,float(hp[region])-amount)
 	show_damage_number(world_point,amount,region)
 	flash_hit_region(region)
@@ -107,7 +108,7 @@ func receive_hit(world_point: Vector3, amount: float, attacker: String = "") -> 
 	update_damage_colors()
 	print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
 	var scene: Node = get_tree().current_scene
-	if scene.has_method("record_battle_hit"):
+	if scene != null and scene.has_method("record_battle_hit"):
 		scene.record_battle_hit(attacker,owner_actor.get_parent().name,region,amount,remaining)
 	if not dead and owner_actor.get_parent().has_method("combat_react"):
 		owner_actor.get_parent().combat_react(region,amount,remaining)
@@ -116,6 +117,10 @@ func receive_hit(world_point: Vector3, amount: float, attacker: String = "") -> 
 		if owner_actor.get_parent().has_method("combat_die"):
 			owner_actor.get_parent().combat_die(region)
 		print("[DEFEATED] ",owner_actor.get_parent().name," ",region)
+
+func receive_hit(world_point: Vector3, amount: float, attacker: String = "") -> void:
+	if dead: return
+	receive_region_hit(region_at(world_point),world_point,amount,attacker)
 
 func flash_hit_region(region: String) -> void:
 	var marker: MeshInstance3D = markers[region]
