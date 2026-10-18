@@ -325,8 +325,8 @@ func _ready():
 	backing.color = Color(0.04,0.06,0.07,0.83)
 	canvas.add_child(backing)
 	hud = Label.new()
-	hud.position = Vector2(36,26)
-	hud.add_theme_font_size_override("font_size",18)
+	hud.position = Vector2(14,48)
+	hud.add_theme_font_size_override("font_size",16)
 	canvas.add_child(hud)
 	if player_controlled:
 		# Fixed screen-center reticle. All elements ignore mouse input.
@@ -378,11 +378,13 @@ func _ready():
 func install_options_menu(canvas: CanvasLayer) -> void:
 	var cog := Button.new()
 	cog.text = "⚙  Settings"
-	cog.position = Vector2(1080,16)
+	cog.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	cog.position = Vector2(-190,16)
 	cog.size = Vector2(174,40)
 	canvas.add_child(cog)
 	options_panel = PanelContainer.new()
-	options_panel.position = Vector2(943,66)
+	options_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	options_panel.position = Vector2(-330,66)
 	options_panel.custom_minimum_size = Vector2(310,230)
 	options_panel.visible = false
 	canvas.add_child(options_panel)
@@ -1163,7 +1165,7 @@ func _physics_process(dt):
 	if player_controlled: update_speed_streaks(step)
 	if player_controlled:
 		var player_state = crouch.state.to_upper() if crouch.active() else ("IDLE" if speed<0.05 else ("BACKWARD" if backward else ("SPRINTING" if speed>8.0 else "RUNNING")))
-		hud.text = "YOU | %s | %.1f m/s | SPRINT %.1fs | TARGET %.1f m/s\nControls: Settings > Controls" % ["FLYING" if flight_enabled else player_state,actor.velocity.length() if flight_enabled else Vector2(actor.velocity.x,actor.velocity.z).length(),manual_sprint_clock,manual_target_speed()]
+		hud.text = "YOU | %s | %.1f m/s | SPRINT %.1fs | TARGET %.1f m/s" % ["FLYING" if flight_enabled else player_state,actor.velocity.length() if flight_enabled else Vector2(actor.velocity.x,actor.velocity.z).length(),manual_sprint_clock,manual_target_speed()]
 	elif crouch_driving:
 		hud.text = crouch.status()
 	elif was_turning or turning:
