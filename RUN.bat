@@ -102,5 +102,5 @@ if "%~1"=="" (
     start "" /min powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "scripts\run_logged.ps1" -GodotPath "%GODOT%"
 ) else (
     start "" /min powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Minimized -File "scripts\run_logged.ps1" -GodotPath "%GODOT%" -GameArgs "%*"
-) -GameArgs %*
+)
 exit /b 0
