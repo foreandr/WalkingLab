@@ -205,14 +205,14 @@ func make_boundary():
 		visible_wall.position = item["center"]
 		structure.add_child(visible_wall)
 	# Internal lights keep the enclosed battlefield visible.
-	for x in [-24.0,24.0]:
-		for z in [-24.0,24.0]:
-			var lamp := OmniLight3D.new()
-			lamp.position = Vector3(x,48,z)
-			lamp.light_energy = 1.8
-			lamp.omni_range = 75
-			lamp.shadow_enabled = false
-			add_child(lamp)
+	# One broad unshadowed interior lamp replaces four overlapping
+	# per-object lighting passes; ambient light supplies the fill.
+	var lamp := OmniLight3D.new()
+	lamp.position = Vector3(0,48,0)
+	lamp.light_energy = 2.2
+	lamp.omni_range = 85.0
+	lamp.shadow_enabled = false
+	add_child(lamp)
 
 func _physics_process(_dt):
 	if player == null: return
