@@ -102,6 +102,7 @@ func _ready():
 	player = preload("res://walking.gd").new()
 	player.name = "PlayerMan"
 	player.player_controlled = true
+	player.auto_war_combat = true
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,30)
 	player.character_tint = Color("101114")
@@ -278,6 +279,7 @@ func _process(dt: float) -> void:
 		if elapsed >= 60.0:
 			player.benchmark_flight_active = false
 			player.benchmark_flight_axis = Vector2.ZERO
+			player.benchmark_flight_direction = Vector3.ZERO
 			print("[FLIGHT_BENCHMARK_END] elapsed_s=%.2f position=%s displacement_m=%.2f fighters=%d living=%d" % [
 				elapsed,str(player.actor.global_position),player.actor.global_position.distance_to(flight_benchmark_origin),mannequins.size(),active_war_fighters.size()
 			])
@@ -293,9 +295,13 @@ func _process(dt: float) -> void:
 			var to_destination: Vector3 = destination - player.actor.global_position
 			var flat_distance: float = Vector2(to_destination.x,to_destination.z).length()
 			var desired_direction: Vector3 = to_destination.normalized() if to_destination.length_squared() > 0.001 else Vector3.FORWARD
-			player.orbit = atan2(-desired_direction.x,-desired_direction.z)
-			player.elevation = clampf(atan2(desired_direction.y,maxf(flat_distance,0.01)),-0.65,0.65)
-			player.benchmark_flight_axis = Vector2(0.0,clampf(flat_distance / 5.0,0.0,0.65))
+			# Movement uses the genuine physics controller, but view stays
+			# inward over the center combat area, not pointed at a wall.
+			player.orbit = atan2(player.actor.global_position.x,player.actor.global_position.z)
+			player.elevation = -0.16
+			var speed_scale: float = clampf(to_destination.length() / 6.0,0.0,0.55)
+			player.benchmark_flight_direction = desired_direction * speed_scale
+			player.benchmark_flight_axis = Vector2(0.0,speed_scale)
 			# Keep speed bounded on a tight course: no exponential sprint boost.
 			player.flight_acceleration_time = 0.0
 			var whole_second: int = int(elapsed)
