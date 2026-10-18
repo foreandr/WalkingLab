@@ -18,6 +18,7 @@ var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 const MAX_ACTIVE_FIGHTERS: int = 80
 # Default development mode is player versus one autonomous fighter.
 # Larger battles remain available through manual spawning and benchmarks.
+const LINEUP_DISTANCES: Array[int] = [1,2,4,8,16,32,64,128]
 var fighter_spawn_index: int = 0
 # Queue runtime spawn requests: avoid constructing ten complete rigs in one frame.
 var queued_fighter_spawns: int = 0
@@ -124,7 +125,7 @@ func _ready():
 	player.player_controlled = true
 	player.auto_war_combat = true
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,30)
+	player.spawn_point = Vector3(0,0,155)
 	player.character_tint = Color("101114")
 	add_child(player)
 	player.camera.current = true
@@ -132,8 +133,8 @@ func _ready():
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
 	# One opponent for animation development; do not launch the war by default.
-	spawn_more_fighters(1,true)
-	print("[ARENA_MODE] animation_1v1=true max_active_fighters=",MAX_ACTIVE_FIGHTERS)
+	spawn_more_fighters(LINEUP_DISTANCES.size(),true)
+	print("[ARENA_MODE] synchronized_fireball_distance_lineup=true distances_m=",LINEUP_DISTANCES," max_active_fighters=",MAX_ACTIVE_FIGHTERS)
 	ai = mannequins[0]
 	ai_label = null
 
@@ -174,11 +175,17 @@ func _spawn_single_fighter() -> void:
 	# Distribute later batches across the arena, avoiding the player spawn.
 	var angle: float = float(index) * 2.39996323
 	var ring: float = 45.0 + float((index / 10) % 8) * 19.0
-	fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
+	if index < LINEUP_DISTANCES.size():
+		var measured_distance: float = float(LINEUP_DISTANCES[index])
+		var sideways: float = minf(4.0,measured_distance * 0.18) * (-1.0 if index % 2 == 0 else 1.0)
+		fighter.spawn_point = player.spawn_point + Vector3(sideways,0.0,-sqrt(measured_distance*measured_distance-sideways*sideways))
+		fighter.animation_lineup_mode = true
+	else:
+		fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
 	fighter.character_tint = Color(FIGHTER_COLORS[index % FIGHTER_COLORS.size()])
 	add_child(fighter)
-	fighter.actor.rotation.y = angle + PI
-	make_label(fighter.actor,"FIGHTER %02d" % (index+1),fighter.character_tint)
+	fighter.actor.rotation.y = atan2(player.actor.global_position.x-fighter.actor.global_position.x,player.actor.global_position.z-fighter.actor.global_position.z) + PI
+	make_label(fighter.actor,("%d m" % LINEUP_DISTANCES[index]) if index < LINEUP_DISTANCES.size() else ("FIGHTER %02d" % (index+1)),fighter.character_tint)
 	mannequins.append(fighter)
 	# The arena drives this fighter from one central physics callback.
 	fighter.set_physics_process(false)
