@@ -641,9 +641,6 @@ func update_war_fighter(dt: float) -> void:
 	if distance > 0.1: actor.rotation.y = atan2(-flat.x,-flat.z)
 	speed = Vector2(actor.velocity.x,actor.velocity.z).length()
 	blend = speed_band(SPEEDS,speed)
-	tree.set("parameters/Gaits/blend_position",blend)
-	tree.set("parameters/Direction/blend_amount",0.0)
-	tree.set("parameters/Cadence/scale",maxf(0.2,speed/3.0))
 	if sampled:
 		get_tree().current_scene.record_performance_sample("war_blend_setup",Time.get_ticks_usec()-profile_phase)
 		profile_phase = Time.get_ticks_usec()
@@ -658,6 +655,11 @@ func update_war_fighter(dt: float) -> void:
 	var advance_visual: bool = war_visual_accumulator + 0.00001 >= 1.0 / visual_rate
 	var animation_start: int = Time.get_ticks_usec() if sampled else 0
 	if advance_visual:
+		# AnimationTree parameters are only consumed by tree.advance().
+		# Avoid three property writes on physics ticks with skipped visuals.
+		tree.set("parameters/Gaits/blend_position",blend)
+		tree.set("parameters/Direction/blend_amount",0.0)
+		tree.set("parameters/Cadence/scale",maxf(0.2,speed/3.0))
 		tree.advance(war_visual_accumulator)
 		war_visual_accumulator = 0.0
 		war_visual_updates += 1
