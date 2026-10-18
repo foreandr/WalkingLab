@@ -570,10 +570,10 @@ func update_war_fighter(dt: float) -> void:
 		var destination_height: float = clampf(target_body.global_position.y+(8.0 if war_flight_preference else 4.0),4.0,48.0)
 		wish.y = clampf((destination_height-actor.global_position.y)/6.0,-0.8,0.8)
 		wish = wish.normalized()
-		actor.velocity = actor.velocity.move_toward(wish*13.0,dt*32.0)
+		actor.velocity = actor.velocity.move_toward(wish*6.5,dt*16.0)
 	else:
-		actor.velocity.x = move_toward(actor.velocity.x,wish.x*8.0,dt*25.0)
-		actor.velocity.z = move_toward(actor.velocity.z,wish.z*8.0,dt*25.0)
+		actor.velocity.x = move_toward(actor.velocity.x,wish.x*4.0,dt*12.5)
+		actor.velocity.z = move_toward(actor.velocity.z,wish.z*4.0,dt*12.5)
 		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
 	actor.move_and_slide()
 	if distance > 0.1: actor.rotation.y = atan2(-flat.x,-flat.z)
@@ -1090,6 +1090,11 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	var flight_impact_speed: float = -actor.velocity.y if player_controlled and flight_enabled and actor.velocity.y < 0.0 else 0.0
+	# Lower travel speed only; physics gravity and jump impulses remain normal.
+	if player_controlled:
+		actor.velocity.x *= 0.5
+		actor.velocity.z *= 0.5
+		if flight_enabled and actor.velocity.y > 0.0: actor.velocity.y *= 0.5
 	actor.move_and_slide()
 	if player_controlled and not flight_enabled and actor.is_on_floor():
 		vertical_jump_speed = 0.0
