@@ -94,6 +94,9 @@ var ai_action_clock: float = 0.0
 var war_target: Node3D = null
 var war_decision_timer: float = 0.0
 var war_strafe_sign: float = 1.0
+var war_tactical_clock: float = 0.0
+var war_cached_retreat: bool = false
+var war_cached_dodge: Vector3 = Vector3.ZERO
 var flight_enabled: bool = false
 var flight_windup_remaining: float = 0.0
 const FLIGHT_WINDUP_SECONDS: float = 0.35
@@ -388,7 +391,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	add_setting_slider(column,"Camera sensitivity",0.3,2.5,1.0,0.1,"camera")
 	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
 
-	add_setting_slider(column,"Fireball speed",0.25,5.0,1.0,0.05,"fireball")
+	add_setting_slider(column,"Fireball speed",0.25,100.0,1.0,0.25,"fireball")
 	var controls_heading := Button.new()
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
@@ -527,26 +530,32 @@ func update_war_fighter(dt: float) -> void:
 	var distance: float = flat.length()
 	var forward: Vector3 = flat.normalized() if distance > 0.01 else Vector3.FORWARD
 	var tangent: Vector3 = Vector3(-forward.z,0,forward.x)
-	var nearby_threats: int = 0
-	for other in opponents:
-		if other.actor.global_position.distance_to(actor.global_position) < 13.0:
-			nearby_threats += 1
-	var retreating: bool = nearby_threats >= 3
+	var retreating: bool = war_cached_retreat
 	var desired: Vector3 = tangent*war_strafe_sign*0.6
 	if distance > 19.0 and not retreating: desired += forward*1.3
 	elif distance < 10.0 or retreating: desired -= forward*1.5
-	# Dodge incoming shots by stepping across their trajectories.
-	for fire in get_tree().get_nodes_in_group("battle_fireballs"):
-		if not is_instance_valid(fire): continue
-		var mover: Node = fire.get_node_or_null("Motion")
-		if mover == null: continue
-		var approach: Vector3 = actor.global_position - fire.global_position
-		var travel: Vector3 = mover.travel_direction
-		var in_front: float = approach.dot(travel)
-		if in_front > 0.0 and in_front < 13.0:
-			var miss: Vector3 = approach-travel*in_front
-			if miss.length() < 3.0:
-				desired += tangent*war_strafe_sign*3.5
+	# Recompute expensive threat sensing only 8 times a second.
+	war_tactical_clock -= dt
+	if war_tactical_clock <= 0.0:
+		war_tactical_clock = 0.125
+		var nearby_threats: int = 0
+		for other in opponents:
+			if other.actor.global_position.distance_squared_to(actor.global_position) < 169.0:
+				nearby_threats += 1
+		war_cached_retreat = nearby_threats >= 3
+		war_cached_dodge = Vector3.ZERO
+		for fire in get_tree().get_nodes_in_group("battle_fireballs"):
+			if not is_instance_valid(fire): continue
+			var mover: Node = fire.get_node_or_null("Motion")
+			if mover == null: continue
+			var approach: Vector3 = actor.global_position - fire.global_position
+			var travel: Vector3 = mover.travel_direction
+			var in_front: float = approach.dot(travel)
+			if in_front > 0.0 and in_front < 13.0:
+				var miss: Vector3 = approach-travel*in_front
+				if miss.length_squared() < 9.0:
+					war_cached_dodge += tangent*war_strafe_sign*3.5
+	desired += war_cached_dodge
 	var must_fly: bool = distance > 25.0 or target_body.global_position.y > 3.0
 	if must_fly: flight_enabled = true
 	elif distance < 15.0 and actor.global_position.y < 2.8: flight_enabled = false
@@ -576,7 +585,7 @@ func update_war_fighter(dt: float) -> void:
 		visual.position.y = 0.0
 		if actor.is_on_floor(): feet.resolve(true)
 	ai_action_clock += dt
-	if ai_action_clock >= agent_rng.randf_range(1.4,2.2) and distance < 55.0:
+	if ai_action_clock >= 0.95 and distance < 70.0:
 		ai_action_clock = 0.0
 		if cast_elapsed < 0.0:
 			controlled_arm = "left" if controlled_arm == "right" else "right"
