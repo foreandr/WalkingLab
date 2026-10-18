@@ -983,9 +983,9 @@ func war_simulation_tick(dt: float) -> void:
 	else:
 		war_lod_mode = "reduced"
 		war_physics_accumulator += dt
-		# Remote actors move at 15 Hz; dt is accumulated so movement speed
-		# and decision timers remain in real time, while nearby combat stays 30 Hz.
-		if war_physics_accumulator + 0.00001 < 1.0/15.0:
+		# Remote actors move at 10 Hz; elapsed time accumulates to preserve
+		# world speed and timers. Near-player and melee collision remain at 30 Hz.
+		if war_physics_accumulator + 0.00001 < 1.0/10.0:
 			war_physics_skips += 1
 			return
 		var accumulated: float = war_physics_accumulator
