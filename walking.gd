@@ -2064,10 +2064,10 @@ func release_fireball(hand_world: Vector3) -> void:
 	projectile.global_position = hand_world + travel * 0.20
 	# Use external particles for both spell types; never hand-draw VFX.
 	var effect_path: String = "res://assets/external_vfx/" + cast_element + ".tscn"
+	var arena: Node = get_tree().current_scene
 	var effect: GPUParticles3D = arena.fireball_scene.instantiate() if cast_element == "fire" and arena != null and arena.get("fireball_scene") != null else load(effect_path).instantiate()
 	projectile.add_child(effect)
 	# Three times the size at the hand and during travel.
-	var arena: Node = get_tree().current_scene
 	if arena != null and arena.has_method("configure_fireball_particles"):
 		arena.configure_fireball_particles(effect,float(arena.get("battle_fireball_size")))
 	else:
