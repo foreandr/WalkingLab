@@ -196,6 +196,8 @@ var turn_start_back = 0.0
 var backward_distance = 0.0
 var minimum_facing_alignment = 1.0
 func _ready():
+	var init_started_usec: int = Time.get_ticks_usec()
+	var init_checkpoint_usec: int = init_started_usec
 	test = "--autotest" in OS.get_cmdline_user_args()
 	if "--new-walk" in OS.get_cmdline_user_args():
 		walk_target = 1.0
@@ -234,8 +236,10 @@ func _ready():
 	collision.shape = capsule
 	collision.position.y = 0.9
 	actor.add_child(collision)
+	var model_begin_usec: int = Time.get_ticks_usec()
 	visual = preload("res://assets/user_mixamo.glb").instantiate()
 	actor.add_child(visual)
+	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=model_attach ms=",snappedf(float(Time.get_ticks_usec()-model_begin_usec)/1000.0,0.01))
 	visual.rotation.y = PI
 	skeleton = visual.find_children("*","Skeleton3D",true,false)[0]
 	# PhysicalBoneSimulator disabled until rest transforms and joint axes
@@ -247,7 +251,9 @@ func _ready():
 	damage_system.setup(actor,skeleton)
 	var player: AnimationPlayer = visual.find_children("*","AnimationPlayer",true,false)[0]
 	if player.has_animation("Sprint"): player.get_animation_library("").remove_animation("Sprint")
+	var backwards_begin_usec: int = Time.get_ticks_usec()
 	install_backwards(player)
+	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=backwards ms=",snappedf(float(Time.get_ticks_usec()-backwards_begin_usec)/1000.0,0.01))
 	if player_controlled: print("MIXAMO_CLIPS ",player.get_animation_list())
 	var white = StandardMaterial3D.new()
 	white.albedo_color = character_tint
@@ -300,9 +306,13 @@ func _ready():
 	graph.connect_node("Direction",1,"BackGaits")
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
 	graph.connect_node("Cadence",0,"Direction")
+	var crouch_begin_usec: int = Time.get_ticks_usec()
 	crouch.setup(self,player,graph)
+	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=crouch ms=",snappedf(float(Time.get_ticks_usec()-crouch_begin_usec)/1000.0,0.01))
 	
+	var idle_begin_usec: int = Time.get_ticks_usec()
 	if player_controlled or stationary_only or ai_abilities: choose_random_idle()
+	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=idle ms=",snappedf(float(Time.get_ticks_usec()-idle_begin_usec)/1000.0,0.01))
 	if player_controlled: print("CROUCH_CLIPS ",player.get_animation_list())
 	tree = AnimationTree.new()
 	visual.add_child(tree)
@@ -321,8 +331,12 @@ func _ready():
 			if bone_label == "righthand": jab_right_hand = bone_i
 
 		if player_controlled: print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
+	var flight_begin_usec: int = Time.get_ticks_usec()
 	if player_controlled or ai_abilities or ai_mode == "fly" or animation_test_mode != "" or stationary_only: load_flight_clips()
+	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=flight_clips ms=",snappedf(float(Time.get_ticks_usec()-flight_begin_usec)/1000.0,0.01))
+	var feet_begin_usec: int = Time.get_ticks_usec()
 	feet.setup(visual,skeleton)
+	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=feet ms=",snappedf(float(Time.get_ticks_usec()-feet_begin_usec)/1000.0,0.01))
 	camera = Camera3D.new()
 	camera.fov = 52 if player_controlled else 46
 	add_child(camera)
@@ -381,6 +395,7 @@ func _ready():
 		distance = 5.0 # Start slightly closer to BLACK; mouse wheel can still adjust zoom.
 		controls.text = ""
 	update_camera()
+	if autonomous_only: print("[FIGHTER_INIT_TOTAL] fighter=",name," duration_ms=",snappedf(float(Time.get_ticks_usec()-init_started_usec)/1000.0,0.01))
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
 func install_options_menu(canvas: CanvasLayer) -> void:
 	var cog := Button.new()
