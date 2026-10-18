@@ -1,6 +1,7 @@
 extends Node3D
 var ai
 var mannequins: Array = []
+var active_war_fighters: Array = []
 var player
 var ai_label: Label3D
 var player_label: Label3D
@@ -315,6 +316,11 @@ func make_boundary():
 	add_child(lamp)
 
 func tick_war_fighters(dt: float) -> void:
+	# One authoritative living roster shared by every fighter this tick.
+	active_war_fighters.clear()
+	for fighter in mannequins:
+		if is_instance_valid(fighter) and not fighter.combat_dead:
+			active_war_fighters.append(fighter)
 	for fighter in mannequins:
 		if not is_instance_valid(fighter): continue
 		if fighter.combat_dead:
