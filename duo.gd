@@ -7,6 +7,9 @@ var player_label: Label3D
 var ai_wait = 0.0
 var watching_ai = false
 var battle_fireball_speed: float = 1.0
+var battle_fireball_size: float = 1.0
+var fighter_spawn_index: int = 0
+const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
 var announced_winner: bool = false
 var battle_feed: RichTextLabel
 var battle_hits: Array[String] = []
@@ -55,22 +58,34 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	var palette: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
+	spawn_more_fighters()
+	ai = mannequins[0]
+	ai_label = null
+
+func spawn_more_fighters() -> void:
+	# Each press adds ten independent fighters with unique names and state.
+	var pose_enabled: bool = player.war_pose_enabled if is_instance_valid(player) else false
 	for i in range(10):
+		var index: int = fighter_spawn_index
+		fighter_spawn_index += 1
 		var fighter = preload("res://walking.gd").new()
-		fighter.name = "Fighter%02d" % (i+1)
+		fighter.name = "Fighter%02d" % (index + 1)
 		fighter.autonomous_only = true
 		fighter.actor_only = true
 		fighter.ai_abilities = true
 		fighter.animation_test_mode = "war"
-		fighter.spawn_point = Vector3(sin(i*TAU/10.0)*16.0,0,cos(i*TAU/10.0)*23.0)
-		fighter.character_tint = Color(palette[i])
+		fighter.war_pose_enabled = pose_enabled
+		# Distribute later batches across the arena, avoiding the player spawn.
+		var angle: float = float(index) * 2.39996323
+		var ring: float = 12.0 + float((index / 10) % 6) * 4.0
+		fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
+		fighter.character_tint = Color(FIGHTER_COLORS[index % FIGHTER_COLORS.size()])
 		add_child(fighter)
-		fighter.actor.rotation.y = i*TAU/10.0+PI
-		make_label(fighter.actor,"FIGHTER %02d" % (i+1),fighter.character_tint)
+		fighter.actor.rotation.y = angle + PI
+		make_label(fighter.actor,"FIGHTER %02d" % (index+1),fighter.character_tint)
 		mannequins.append(fighter)
-	ai = mannequins[0]
-	ai_label = null
+	announced_winner = false
+	print("[STRESS_SPAWN] added=10 fighters_total=",mannequins.size()," ground_feet_enabled=",pose_enabled)
 
 func create_performance_hud() -> void:
 	var overlay := CanvasLayer.new()
@@ -106,7 +121,7 @@ func print_performance_report() -> void:
 		int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)),
 		float(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED))/1048576.0
 	]
-	summary += " active_projectiles=%d fighters=%d" % [get_tree().get_nodes_in_group("battle_fireballs").size(),mannequins.size()]
+	summary += " active_projectiles=%d fighters=%d fireball_size=%.2f" % [get_tree().get_nodes_in_group("battle_fireballs").size(),mannequins.size(),battle_fireball_size]
 	print(summary)
 	profile_total.clear()
 	profile_samples.clear()
@@ -138,7 +153,7 @@ func _process(dt: float) -> void:
 	for fighter in mannequins:
 		if is_instance_valid(fighter) and not fighter.combat_dead and fighter.war_lod_mode == "reduced":
 			reduced += 1
-	performance_label.text = "FPS: %d | CPU: %.1f ms | physics: %.1f ms | draws: %d | objects: %d | reduced physics: %d/%d" % [fps,frame_ms,physics_ms,draw_calls,objects,reduced,mannequins.size()]
+	performance_label.text = "FPS: %d | fighters: %d | CPU: %.1f ms | physics: %.1f ms | draws: %d | objects: %d | reduced physics: %d/%d" % [fps,mannequins.size(),frame_ms,physics_ms,draw_calls,objects,reduced,mannequins.size()]
 
 func create_battle_feed() -> void:
 	var ui := CanvasLayer.new()
@@ -292,6 +307,8 @@ func _physics_process(_dt):
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
 
+		if event.keycode==KEY_0:
+			spawn_more_fighters()
 		if event.keycode==KEY_TAB:
 			watching_ai = not watching_ai
 			player.camera_target = ai.actor if watching_ai else null
