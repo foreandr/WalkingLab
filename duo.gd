@@ -87,6 +87,29 @@ func spawn_more_fighters() -> void:
 	announced_winner = false
 	print("[STRESS_SPAWN] added=10 fighters_total=",mannequins.size()," ground_feet_enabled=",pose_enabled)
 
+func set_fireball_width(multiplier: float) -> void:
+	battle_fireball_size = multiplier
+	# Adjust live projectiles too, not only ones spawned after moving the slider.
+	for projectile in get_tree().get_nodes_in_group("battle_fireballs"):
+		if not is_instance_valid(projectile): continue
+		for child in projectile.get_children():
+			if child is GPUParticles3D:
+				configure_fireball_particles(child,multiplier)
+	print("[STRESS_FIREBALL_SIZE] multiplier=",multiplier," live_projectiles=",get_tree().get_nodes_in_group("battle_fireballs").size())
+
+func configure_fireball_particles(effect: GPUParticles3D, multiplier: float) -> void:
+	# This imported VFX uses billboarded QuadMesh particles. Resizing the
+	# billboard geometry is reliable even when scaling the emitter is not.
+	var mesh: Mesh = effect.draw_pass_1
+	if mesh is QuadMesh:
+		if not effect.has_meta("fireball_base_quad_size"):
+			effect.set_meta("fireball_base_quad_size",(mesh as QuadMesh).size)
+			effect.draw_pass_1 = mesh.duplicate()
+		mesh = effect.draw_pass_1
+		(mesh as QuadMesh).size = effect.get_meta("fireball_base_quad_size") * multiplier
+	# Preserve the original spatial scale and explosion proportions.
+	effect.scale = Vector3.ONE * 3.0
+
 func create_performance_hud() -> void:
 	var overlay := CanvasLayer.new()
 	overlay.name = "PerformanceHUD"
