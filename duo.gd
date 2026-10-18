@@ -38,6 +38,10 @@ var announced_winner: bool = false
 var winner_banner: Label3D = null
 var battle_feed: RichTextLabel
 var battle_hits: Array[String] = []
+var aoe_events_window: int = 0
+var aoe_fighters_window: int = 0
+var aoe_regions_window: int = 0
+
 var damage_totals: Dictionary = {}
 var performance_label: Label
 var performance_clock: float = 0.0
@@ -240,6 +244,10 @@ func print_performance_report() -> void:
 	]
 	summary += " active_projectiles=%d fighters=%d fireball_size=%.2f fps_cap=%d" % [get_tree().get_nodes_in_group("battle_fireballs").size(),mannequins.size(),battle_fireball_size,Engine.max_fps]
 	print(summary)
+	summary += " [AOE_TOTALS] events=%d fighters_hit=%d regions_hit=%d" % [aoe_events_window,aoe_fighters_window,aoe_regions_window]
+	aoe_events_window = 0
+	aoe_fighters_window = 0
+	aoe_regions_window = 0
 	profile_total.clear()
 	profile_samples.clear()
 	profile_maximum.clear()
@@ -368,6 +376,11 @@ func create_battle_feed() -> void:
 	battle_feed.bbcode_enabled = false
 	column.add_child(battle_feed)
 	battle_feed.text = "Waiting for combat..."
+
+func record_aoe_event(fighters_hit: int, regions_hit: int) -> void:
+	aoe_events_window += 1
+	aoe_fighters_window += fighters_hit
+	aoe_regions_window += regions_hit
 
 func record_battle_hit(attacker: String, victim: String, region: String, amount: float, _health: float) -> void:
 	var source: String = attacker if attacker != "" else "UNKNOWN"
