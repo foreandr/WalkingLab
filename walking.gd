@@ -602,7 +602,7 @@ func update_war_fighter(dt: float) -> void:
 				nearby_threats += 1
 		war_cached_retreat = nearby_threats >= 3
 		war_cached_dodge = Vector3.ZERO
-		for fire in get_tree().current_scene.active_war_projectiles:
+		for fire in get_tree().current_scene.war_nearby_projectiles(actor.global_position,2):
 			if not is_instance_valid(fire): continue
 			var mover: Node = fire.get_node_or_null("Motion")
 			if mover == null: continue
