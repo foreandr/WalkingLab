@@ -59,7 +59,7 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 	if source != null:
 		var burst: GPUParticles3D = source.duplicate() as GPUParticles3D
 		impact.add_child(burst)
-		burst.scale = Vector3.ONE * 15.0
+		burst.scale = source.scale * 5.0
 		burst.amount = maxi(2,int(burst.amount / 8))
 		burst.one_shot = true
 		burst.emitting = true
@@ -68,7 +68,9 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 	cleanup.tween_interval(0.6)
 	cleanup.tween_callback(impact.queue_free)
 	# An explosion damages every distinct fighter in range just once.
-	const BLAST_RADIUS: float = 5.0
+	var blast_radius: float = 5.0
+	if scene != null and scene.get("battle_fireball_size") != null:
+		blast_radius *= float(scene.get("battle_fireball_size"))
 	for fighter in projectile.get_tree().get_nodes_in_group("combat_fighters"):
 		if fighter == null or not is_instance_valid(fighter): continue
 		if fighter.player_controlled and scene.get("battle_fireball_speed") != null: continue
@@ -84,5 +86,5 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 			if dist < minimum:
 				minimum = dist
 				closest = bone_point
-		if minimum <= BLAST_RADIUS * BLAST_RADIUS:
+		if minimum <= blast_radius * blast_radius:
 			damage.receive_hit(closest,32.0,attacker_name)
