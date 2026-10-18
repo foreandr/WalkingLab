@@ -400,7 +400,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
 
 	add_setting_slider(column,"Fireball speed",0.25,100.0,1.0,0.25,"fireball")
-	add_setting_slider(column,"Fireball width",0.25,20.0,1.0,0.25,"fireball_size")
+	add_setting_slider(column,"Fireball width",0.25,100.0,1.0,0.25,"fireball_size")
 	var spawn_button := Button.new()
 	spawn_button.text = "Spawn +10 fighters (0)"
 	column.add_child(spawn_button)
@@ -958,6 +958,35 @@ func update_sky_target(dt: float) -> void:
 		apply_flight_pose(dt)
 	apply_movement_clip(dt)
 
+# Called once per arena physics tick by the central scheduler.
+func war_simulation_tick(dt: float) -> void:
+	var full_physics: bool = false
+	var arena: Node = get_tree().current_scene
+	if arena != null:
+		var spectator: Node = arena.get("player")
+		if spectator != null and is_instance_valid(spectator):
+			full_physics = actor.global_position.distance_squared_to(spectator.actor.global_position) < 324.0
+	if war_target != null and is_instance_valid(war_target) and not war_target.combat_dead:
+		if actor.global_position.distance_squared_to(war_target.actor.global_position) < 196.0:
+			full_physics = true
+	if cast_elapsed >= 0.0: full_physics = true
+	if full_physics:
+		war_lod_mode = "full"
+		var accumulated: float = dt + war_physics_accumulator
+		war_physics_accumulator = 0.0
+		war_physics_updates += 1
+		update_war_fighter(accumulated)
+	else:
+		war_lod_mode = "reduced"
+		war_physics_accumulator += dt
+		if war_physics_accumulator < 1.0/30.0:
+			war_physics_skips += 1
+			return
+		var accumulated: float = war_physics_accumulator
+		war_physics_accumulator = 0.0
+		war_physics_updates += 1
+		update_war_fighter(accumulated)
+
 func _physics_process(dt):
 	if paused: return
 	if combat_dead:
@@ -967,35 +996,9 @@ func _physics_process(dt):
 		update_sky_target(dt)
 		return
 	if animation_test_mode == "war":
-		# Physics LOD: retain the CharacterBody collision capsule at all
-		# times (shots still raycast against it), but simulate distant,
-		# disengaged actors at 30 Hz instead of 60 Hz.
-		var full_physics: bool = false
-		var arena: Node = get_tree().current_scene
-		if arena != null:
-			var spectator: Node = arena.get("player")
-			if spectator != null and is_instance_valid(spectator):
-				full_physics = actor.global_position.distance_squared_to(spectator.actor.global_position) < 324.0
-		if war_target != null and is_instance_valid(war_target) and not war_target.combat_dead:
-			if actor.global_position.distance_squared_to(war_target.actor.global_position) < 196.0:
-				full_physics = true
-		if cast_elapsed >= 0.0: full_physics = true
-		if full_physics:
-			war_lod_mode = "full"
-			var accumulated: float = dt + war_physics_accumulator
-			war_physics_accumulator = 0.0
-			war_physics_updates += 1
-			update_war_fighter(accumulated)
-		else:
-			war_lod_mode = "reduced"
-			war_physics_accumulator += dt
-			if war_physics_accumulator < 1.0/30.0:
-				war_physics_skips += 1
-				return
-			var accumulated: float = war_physics_accumulator
-			war_physics_accumulator = 0.0
-			war_physics_updates += 1
-			update_war_fighter(accumulated)
+		# Arena owns updates of all war fighters. A fallback remains for isolated tests.
+		if get_tree().current_scene.has_method("tick_war_fighters"): return
+		war_simulation_tick(dt)
 		return
 	if animation_test_mode == "hunter":
 		update_hunter_mannequin(dt)
@@ -2086,6 +2089,7 @@ func release_fireball(hand_world: Vector3) -> void:
 		mover.travel_speed *= float(get_tree().current_scene.get("battle_fireball_speed"))
 	mover.owner_rid = actor.get_rid()
 	mover.attacker_name = name
+	mover.blast_width = float(arena.get("battle_fireball_size")) if arena != null else 1.0
 	projectile.add_child(mover)
 	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
 
