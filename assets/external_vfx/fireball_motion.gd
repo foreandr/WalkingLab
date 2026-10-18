@@ -60,7 +60,8 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		var burst: GPUParticles3D = source.duplicate() as GPUParticles3D
 		impact.add_child(burst)
 		burst.scale = source.scale * 5.0
-		burst.amount = maxi(2,int(burst.amount / 8))
+		burst.amount = mini(4,maxi(2,int(burst.amount / 2)))
+		burst.fixed_fps = 30
 		burst.one_shot = true
 		burst.emitting = true
 		burst.restart()
