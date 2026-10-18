@@ -122,8 +122,11 @@ func _ready():
 	floor_body.add_child(floor_shape)
 	player = preload("res://walking.gd").new()
 	player.name = "PlayerMan"
-	player.player_controlled = true
-	player.auto_war_combat = true
+	# Solo animation inspection: the former player is now a roaming CPU.
+	# Its existing camera remains the active spectator camera.
+	player.player_controlled = false
+	player.auto_war_combat = false
+	player.ai_mode = "walk"
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,155)
 	player.character_tint = Color("101114")
@@ -132,10 +135,9 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# One opponent for animation development; do not launch the war by default.
-	spawn_more_fighters(LINEUP_DISTANCES.size(),true)
-	print("[ARENA_MODE] synchronized_fireball_distance_lineup=true distances_m=",LINEUP_DISTANCES," max_active_fighters=",MAX_ACTIVE_FIGHTERS)
-	ai = mannequins[0]
+	# No opponents, queued combatants or spell targets in solo CPU mode.
+	print("[ARENA_MODE] solo_cpu=true active_fighters=1 ai_mode=",player.ai_mode)
+	ai = null
 	ai_label = null
 
 func clear_winner_announcement() -> void:
