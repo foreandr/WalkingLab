@@ -1861,6 +1861,18 @@ func load_flight_clips() -> void:
 				if player_controlled: debug_player("ANIMATION_LOADED",filename+" tracks="+str(curves.size())+" seconds="+str(selected.length))
 		root.free()
 
+	load_locomotion_clips()
+	shared_flying_clip = flying_clip
+	shared_backward_flying_clip = backward_flying_clip
+	shared_movement_clips = movement_clips.duplicate()
+	shared_flight_clips_ready = true
+	print("[ANIMATION_CACHE_BUILD] duration_ms=%.2f imported_clips=%d" % [float(Time.get_ticks_usec()-import_start_usec)/1000.0,movement_clips.size()+int(not flying_clip.is_empty())+int(not backward_flying_clip.is_empty())])
+	if flying_clip.is_empty():
+		push_warning("FLIGHT_ANIMATION_MISSING: res://assets/custom_idle/Flying (1).fbx not imported or no matching bones. Flight hover will use fallback pose.")
+	else:
+		if player_controlled: print("FLIGHT_ANIMATION_LOADED ",name," tracks=",flying_clip["curves"].size())
+
+func load_locomotion_clips() -> void:
 	# User-supplied directional locomotion assets. These retarget to the
 	# existing Y Bot, rather than replacing its proven sprint animation tree.
 	for filename in ["left strafe walking.fbx","right strafe walking.fbx","left strafe.fbx","right strafe.fbx","Left Strafe run.fbx","Right Strafe run.fbx","left turn.fbx","right turn.fbx","left turn 90.fbx","right turn 90.fbx","idle.fbx","jump.fbx","running.fbx","walking.fbx"]:
@@ -1910,15 +1922,6 @@ func load_flight_clips() -> void:
 				movement_clips["locomotion/"+filename.to_lower()] = {"length":maxf(selected.length,0.001),"curves":curves}
 				print("[LOCOMOTION_REGISTERED] ",filename," bones=",curves.size()," length=",selected.length)
 		root.free()
-	shared_flying_clip = flying_clip
-	shared_backward_flying_clip = backward_flying_clip
-	shared_movement_clips = movement_clips.duplicate()
-	shared_flight_clips_ready = true
-	print("[ANIMATION_CACHE_BUILD] duration_ms=%.2f imported_clips=%d" % [float(Time.get_ticks_usec()-import_start_usec)/1000.0,movement_clips.size()+int(not flying_clip.is_empty())+int(not backward_flying_clip.is_empty())])
-	if flying_clip.is_empty():
-		push_warning("FLIGHT_ANIMATION_MISSING: res://assets/custom_idle/Flying (1).fbx not imported or no matching bones. Flight hover will use fallback pose.")
-	else:
-		if player_controlled: print("FLIGHT_ANIMATION_LOADED ",name," tracks=",flying_clip["curves"].size())
 
 func sample_flight_curve(keys: Array, time: float) -> Quaternion:
 	if keys.size() == 1 or time <= float(keys[0]["time"]): return keys[0]["rot"]
