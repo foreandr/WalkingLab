@@ -1,5 +1,6 @@
 param(
     [Parameter(Mandatory=$true)][string]$GodotPath,
+    [string[]]$GameArgs = @(),
     [string[]]$GameArgs = @()
 )
 $ErrorActionPreference = "Stop"
@@ -15,7 +16,7 @@ try {
         ("Godot user args: " + ($GameArgs -join " ")) | Out-File -FilePath $logFile -Append -Encoding utf8
         & $GodotPath --path (Get-Location).Path -- @GameArgs *>> $logFile
     } else {
-        & $GodotPath --path (Get-Location).Path *>> $logFile
+        & $GodotPath --path (Get-Location).Path -- @GameArgs *>> $logFile
     }
     $status = $LASTEXITCODE
 } catch {
