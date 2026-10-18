@@ -67,13 +67,14 @@ func _ready():
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
 	for batch in range(3): spawn_more_fighters()
+	spawn_more_fighters(3) # Promote 30 -> 33 after stable active-combat log.
 	ai = mannequins[0]
 	ai_label = null
 
-func spawn_more_fighters() -> void:
-	# Each press adds ten independent fighters with unique names and state.
+func spawn_more_fighters(count: int = 10) -> void:
+	# Manual button/0 still adds ten; startup may add a measured batch of three.
 	var pose_enabled: bool = player.war_pose_enabled if is_instance_valid(player) else false
-	for i in range(10):
+	for i in range(count):
 		var index: int = fighter_spawn_index
 		fighter_spawn_index += 1
 		var fighter = preload("res://walking.gd").new()
@@ -95,7 +96,7 @@ func spawn_more_fighters() -> void:
 		# The arena drives this fighter from one central physics callback.
 		fighter.set_physics_process(false)
 	announced_winner = false
-	print("[STRESS_SPAWN] added=10 fighters_total=",mannequins.size()," ground_feet_enabled=",pose_enabled)
+	print("[STRESS_SPAWN] added=",count," fighters_total=",mannequins.size()," ground_feet_enabled=",pose_enabled)
 
 func set_fireball_width(multiplier: float) -> void:
 	battle_fireball_size = multiplier
