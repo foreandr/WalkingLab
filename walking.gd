@@ -398,10 +398,13 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 
 	add_setting_slider(column,"Fireball speed",0.25,100.0,1.0,0.25,"fireball")
 	var pose_toggle := CheckButton.new()
-	pose_toggle.text = "AI ground foot correction (ON/OFF)"
+	pose_toggle.text = "Ground foot correction - everyone (ON/OFF)"
 	pose_toggle.button_pressed = true
 	column.add_child(pose_toggle)
 	pose_toggle.toggled.connect(func(enabled: bool):
+		war_pose_enabled = enabled
+		if not enabled and not flight_enabled:
+			visual.position.y = 0.0
 		var arena: Node = get_tree().current_scene
 		if arena != null:
 			var roster = arena.get("mannequins")
@@ -412,7 +415,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 						if not enabled and not fighter.flight_enabled:
 							fighter.visual.rotation.x = 0.0
 							fighter.visual.position.y = 0.0
-		print("[PERF_POSE_TOGGLE] ai_ground_feet_enabled=",enabled," flight_pose_enabled=true")
+		print("[PERF_POSE_TOGGLE] ground_feet_enabled=",enabled," player_and_ai=true flight_pose_enabled=true")
 	)
 	var controls_heading := Button.new()
 	controls_heading.text = "Controls  ▾"
@@ -656,6 +659,9 @@ func update_war_fighter(dt: float) -> void:
 		if cast_elapsed < 0.0:
 			controlled_arm = "left" if controlled_arm == "right" else "right"
 			cast_fireball()
+	# War fighters use this cast IK path rather than the player movement path.
+	# Without an initialized weight their cast arm stays motionless.
+	jab_aim_strength = 1.0
 	adjust_jab_arm()
 	update_cast_motion(dt)
 	if sampled:
@@ -1112,7 +1118,7 @@ func _physics_process(dt):
 		update_cast_motion(step)
 	feet.use_full_support = (crouch_driving or crouch.active()) and not ((player_controlled or ai_abilities or ai_mode == "fly") and (flight_enabled or not actor.is_on_floor()))
 	if not flight_enabled and actor.is_on_floor():
-		feet.resolve(true)
+		if war_pose_enabled: feet.resolve(true)
 	else:
 		visual.position.y = 0.0
 	crouch.update_capsule(step)
