@@ -28,6 +28,8 @@ var flight_benchmark_requested: bool = false
 var flight_benchmark_running: bool = false
 var flight_benchmark_start_usec: int = 0
 var flight_benchmark_last_log_second: int = -1
+var flight_benchmark_unfocused_frames: int = 0
+var flight_benchmark_low_draw_frames: int = 0
 var flight_benchmark_origin: Vector3 = Vector3.ZERO
 
 const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
@@ -271,6 +273,8 @@ func print_performance_report() -> void:
 func _process(dt: float) -> void:
 	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == 60 and is_instance_valid(player):
 		flight_benchmark_running = true
+		flight_benchmark_unfocused_frames = 0
+		flight_benchmark_low_draw_frames = 0
 		flight_benchmark_start_usec = Time.get_ticks_usec()
 		# Start in the center of the action, clear of ground and arena walls.
 		player.actor.global_position = Vector3(0.0,8.0,13.0)
@@ -283,13 +287,15 @@ func _process(dt: float) -> void:
 		player.actor.global_position.y = maxf(player.actor.global_position.y,4.0)
 		print("[FLIGHT_BENCHMARK_START] duration_s=60 fighters=",mannequins.size()," position=",player.actor.global_position)
 	if flight_benchmark_running:
+		if not DisplayServer.window_is_focused(): flight_benchmark_unfocused_frames += 1
+		if int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)) < 200: flight_benchmark_low_draw_frames += 1
 		var elapsed: float = float(Time.get_ticks_usec()-flight_benchmark_start_usec)/1000000.0
 		if elapsed >= 60.0:
 			player.benchmark_flight_active = false
 			player.benchmark_flight_axis = Vector2.ZERO
 			player.benchmark_flight_direction = Vector3.ZERO
-			print("[FLIGHT_BENCHMARK_END] elapsed_s=%.2f position=%s displacement_m=%.2f fighters=%d living=%d" % [
-				elapsed,str(player.actor.global_position),player.actor.global_position.distance_to(flight_benchmark_origin),mannequins.size(),active_war_fighters.size()
+			print("[FLIGHT_BENCHMARK_END] elapsed_s=%.2f position=%s displacement_m=%.2f fighters=%d living=%d unfocused_frames=%d low_draw_frames=%d valid_foreground=%s" % [
+				elapsed,str(player.actor.global_position),player.actor.global_position.distance_to(flight_benchmark_origin),mannequins.size(),active_war_fighters.size(),flight_benchmark_unfocused_frames,flight_benchmark_low_draw_frames,str(flight_benchmark_unfocused_frames == 0)
 			])
 			flight_benchmark_running = false
 			flight_benchmark_requested = false
