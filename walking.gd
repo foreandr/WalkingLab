@@ -320,11 +320,6 @@ func _ready():
 	var canvas = CanvasLayer.new()
 	add_child(canvas)
 	canvas.visible = not autonomous_only
-	var backing = ColorRect.new()
-	backing.position = Vector2(20,18)
-	backing.size = Vector2(760,115)
-	backing.color = Color(0.04,0.06,0.07,0.83)
-	canvas.add_child(backing)
 	hud = Label.new()
 	hud.position = Vector2(14,48)
 	hud.visible = not player_controlled
@@ -2066,7 +2061,7 @@ func _unhandled_input(event):
 					controlled_arm = "left" if controlled_arm == "right" else "right"
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-		if event is InputEventMouseMotion and (event.button_mask & (MOUSE_BUTTON_MASK_MIDDLE | MOUSE_BUTTON_MASK_RIGHT)) != 0:
+		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
 			orbit = wrapf(orbit-event.relative.x*0.004*camera_sensitivity,-PI,PI)
 			elevation = clampf(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
 		if event is InputEventMouseButton and event.pressed:
