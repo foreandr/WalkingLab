@@ -5,6 +5,7 @@ var travel_speed: float = 3.0
 var battle_base_speed: float = 0.0
 var owner_rid: RID
 var attacker_name: String = ""
+var blast_width: float = 1.0
 const LIFETIME: float = 25.0
 var lived: float = 0.0
 var profile_tick: int = 0
@@ -68,24 +69,31 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 	var cleanup := impact.create_tween()
 	cleanup.tween_interval(0.6)
 	cleanup.tween_callback(impact.queue_free)
-	# An explosion damages every distinct fighter in range just once.
-	var blast_radius: float = 5.0
-	if scene != null and scene.get("battle_fireball_size") != null:
-		blast_radius *= float(scene.get("battle_fireball_size"))
+	# The blast intersects each anatomical region independently. A large
+	# fireball can hit multiple body pools on one fighter in one explosion.
+	var blast_radius: float = 5.0 * blast_width
+	var affected_fighters: int = 0
+	var affected_regions: int = 0
 	for fighter in projectile.get_tree().get_nodes_in_group("combat_fighters"):
-		if fighter == null or not is_instance_valid(fighter): continue
+		if not is_instance_valid(fighter): continue
 		if fighter.player_controlled and scene.get("battle_fireball_speed") != null: continue
 		var body: CharacterBody3D = fighter.actor as CharacterBody3D
 		if body == null or body.get_rid() == owner_rid: continue
 		var damage: Node = fighter.get_node_or_null("DamageSystem")
 		if damage == null or damage.dead: continue
-		var closest: Vector3 = body.global_position+Vector3.UP
-		var minimum: float = closest.distance_squared_to(position)
+		# Broad-phase avoids most bone queries in wide battles.
+		if body.global_position.distance_squared_to(position) > pow(blast_radius + 3.0,2.0): continue
+		var hit_regions: Array[String] = []
 		for region in damage.REGIONS:
 			var bone_point: Vector3 = damage.bone_position(region)
-			var dist: float = bone_point.distance_squared_to(position)
-			if dist < minimum:
-				minimum = dist
-				closest = bone_point
-		if minimum <= blast_radius * blast_radius:
-			damage.receive_hit(closest,32.0,attacker_name)
+			var region_radius: float = 0.48 if region == "torso" else (0.32 if region == "head" else 0.34)
+			if bone_point.distance_squared_to(position) <= pow(blast_radius + region_radius,2.0):
+				hit_regions.append(region)
+		if hit_regions.is_empty(): continue
+		affected_fighters += 1
+		for region in hit_regions:
+			# Preserve independent hit records, even if the first hit kills.
+			if damage.dead: break
+			damage.receive_region_hit(region,damage.bone_position(region),32.0,attacker_name)
+			affected_regions += 1
+	print("[AOE_REGIONS] fighters=",affected_fighters," body_regions=",affected_regions," radius=",blast_radius)
