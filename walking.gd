@@ -114,6 +114,7 @@ const FLIGHT_LAND_HEIGHT: float = 0.42
 const FLIGHT_SPEED: float = 7.0
 var camera_sensitivity: float = 1.0
 var fireball_speed_scale: float = 1.0
+var war_pose_enabled: bool = true
 var options_panel: PanelContainer
 # Seconds per smooth 6 -> 8 -> 10 -> 12 m/s sprint stage.
 # Above 12 m/s, keep the final FastRun clip and gain 0.2 m/s per stage duration.
@@ -396,6 +397,23 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
 
 	add_setting_slider(column,"Fireball speed",0.25,100.0,1.0,0.25,"fireball")
+	var pose_toggle := CheckButton.new()
+	pose_toggle.text = "AI pose and foot correction (ON/OFF)"
+	pose_toggle.button_pressed = true
+	column.add_child(pose_toggle)
+	pose_toggle.toggled.connect(func(enabled: bool):
+		var arena: Node = get_tree().current_scene
+		if arena != null:
+			var roster = arena.get("mannequins")
+			if roster is Array:
+				for fighter in roster:
+					if is_instance_valid(fighter):
+						fighter.war_pose_enabled = enabled
+						if not enabled:
+							fighter.visual.rotation.x = 0.0
+							fighter.visual.position.y = 0.0
+		print("[PERF_POSE_TOGGLE] ai_pose_and_feet_enabled=",enabled)
+	)
 	var controls_heading := Button.new()
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
@@ -615,7 +633,7 @@ func update_war_fighter(dt: float) -> void:
 	tree.advance(dt)
 	if sampled: profile_animation = Time.get_ticks_usec()-animation_start
 	if sampled: profile_phase = Time.get_ticks_usec()
-	if flight_enabled:
+	if war_pose_enabled and flight_enabled:
 		# The airborne rig must visually pitch with its velocity, not keep
 		# its standing orientation while flying.
 		var planar_speed: float = Vector2(actor.velocity.x,actor.velocity.z).length()
@@ -623,7 +641,7 @@ func update_war_fighter(dt: float) -> void:
 		visual.rotation.x = move_toward(visual.rotation.x,target_pitch,dt*5.0)
 		visual.position.y = 0.95*absf(sin(visual.rotation.x))
 		apply_flight_pose(dt)
-	else:
+	elif war_pose_enabled:
 		visual.rotation.x = move_toward(visual.rotation.x,0.0,dt*8.0)
 		visual.position.y = 0.0
 		if actor.is_on_floor(): feet.resolve(true)
