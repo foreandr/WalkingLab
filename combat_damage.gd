@@ -94,7 +94,7 @@ func region_at(world_point: Vector3) -> String:
 	if local.x < 0.0: return "left_leg"
 	return "right_leg"
 
-func receive_hit(world_point: Vector3, amount: float) -> void:
+func receive_hit(world_point: Vector3, amount: float, attacker: String = "") -> void:
 	if dead: return
 	var region: String = region_at(world_point)
 	hp[region] = maxf(0.0,float(hp[region])-amount)
@@ -103,6 +103,9 @@ func receive_hit(world_point: Vector3, amount: float) -> void:
 	var remaining: float = float(hp[region])
 	update_damage_colors()
 	print("[DAMAGE] ",owner_actor.get_parent().name," ",region," -",amount," HP=",remaining)
+	var scene: Node = get_tree().current_scene
+	if scene.has_method("record_battle_hit"):
+		scene.record_battle_hit(attacker,owner_actor.get_parent().name,region,amount,remaining)
 	if not dead and owner_actor.get_parent().has_method("combat_react"):
 		owner_actor.get_parent().combat_react(region,amount,remaining)
 	if remaining <= 0.0 and region in ["head","torso"]:
