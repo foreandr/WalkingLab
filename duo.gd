@@ -31,6 +31,26 @@ var profile_window_frames: int = 0
 var profile_frame_fps_sum: float = 0.0
 var profile_frame_cpu_sum: float = 0.0
 var profile_frame_physics_sum: float = 0.0
+var profile_wall_ms: Array[float] = []
+var profile_cpu_ms: Array[float] = []
+var profile_physics_ms: Array[float] = []
+var profile_last_render_usec: int = 0
+var profile_living_min: int = 999999
+var profile_living_max: int = 0
+var profile_living_sum: int = 0
+var profile_living_samples: int = 0
+var profile_projectile_peak: int = 0
+var profile_spatial_fighter_cells: int = 0
+var profile_spatial_projectile_cells: int = 0
+var profile_spatial_max_fighter_bucket: int = 0
+var profile_spatial_max_projectile_bucket: int = 0
+
+func profile_percentile(values: Array[float], fraction: float) -> float:
+	if values.is_empty(): return 0.0
+	var ordered: Array[float] = values.duplicate()
+	ordered.sort()
+	return ordered[clampi(ceili(float(ordered.size()) * fraction) - 1,0,ordered.size()-1)]
+
 func _ready():
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
@@ -147,6 +167,17 @@ func print_performance_report() -> void:
 	var frame_ms: float = profile_frame_cpu_sum/float(maxi(1,profile_window_frames))
 	var physics_ms: float = profile_frame_physics_sum/float(maxi(1,profile_window_frames))
 	var summary: String = "[PERF_DETAIL] fps_avg=%.1f cpu_frame_avg_ms=%.2f physics_frame_avg_ms=%.2f frames=%d" % [fps,frame_ms,physics_ms,profile_window_frames]
+	summary += " [PERF_WINDOW] wall_ms_p50=%.2f wall_ms_p95=%.2f wall_ms_p99=%.2f wall_ms_max=%.2f cpu_ms_p95=%.2f physics_ms_p95=%.2f" % [
+		profile_percentile(profile_wall_ms,0.50),profile_percentile(profile_wall_ms,0.95),
+		profile_percentile(profile_wall_ms,0.99),profile_percentile(profile_wall_ms,1.0),
+		profile_percentile(profile_cpu_ms,0.95),profile_percentile(profile_physics_ms,0.95)
+	]
+	summary += " [WAR_ACTIVITY] living_min=%d living_max=%d living_avg=%.1f projectile_peak=%d fighter_grid_cells=%d projectile_grid_cells=%d max_fighter_bucket=%d max_projectile_bucket=%d" % [
+		0 if profile_living_samples == 0 else profile_living_min,profile_living_max,
+		float(profile_living_sum)/float(maxi(1,profile_living_samples)),profile_projectile_peak,
+		profile_spatial_fighter_cells,profile_spatial_projectile_cells,
+		profile_spatial_max_fighter_bucket,profile_spatial_max_projectile_bucket
+	]
 	var categories: Array = profile_total.keys()
 	categories.sort()
 	for category in categories:
@@ -169,8 +200,26 @@ func print_performance_report() -> void:
 	profile_frame_fps_sum = 0.0
 	profile_frame_cpu_sum = 0.0
 	profile_frame_physics_sum = 0.0
+	profile_wall_ms.clear()
+	profile_cpu_ms.clear()
+	profile_physics_ms.clear()
+	profile_living_min = 999999
+	profile_living_max = 0
+	profile_living_sum = 0
+	profile_living_samples = 0
+	profile_projectile_peak = 0
+	profile_spatial_fighter_cells = 0
+	profile_spatial_projectile_cells = 0
+	profile_spatial_max_fighter_bucket = 0
+	profile_spatial_max_projectile_bucket = 0
 
 func _process(dt: float) -> void:
+	var render_now: int = Time.get_ticks_usec()
+	if profile_last_render_usec != 0:
+		profile_wall_ms.append(float(render_now-profile_last_render_usec)/1000.0)
+	profile_last_render_usec = render_now
+	profile_cpu_ms.append(float(Performance.get_monitor(Performance.TIME_PROCESS))*1000.0)
+	profile_physics_ms.append(float(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS))*1000.0)
 	profile_window_frames += 1
 	profile_frame_fps_sum += float(Engine.get_frames_per_second())
 	profile_frame_cpu_sum += Performance.get_monitor(Performance.TIME_PROCESS)*1000.0
@@ -345,6 +394,7 @@ func war_nearby_projectiles(position: Vector3, radius_cells: int = 2) -> Array:
 func tick_war_fighters(dt: float) -> void:
 	var tick_start: int = Time.get_ticks_usec()
 	# One authoritative living roster shared by every fighter this tick.
+	var build_start: int = Time.get_ticks_usec()
 	active_war_fighters.clear()
 	war_spatial_cells.clear()
 	war_projectile_cells.clear()
@@ -362,12 +412,29 @@ func tick_war_fighters(dt: float) -> void:
 			var cell := Vector2i(floori(at.x/WAR_GRID_CELL),floori(at.z/WAR_GRID_CELL))
 			if not war_spatial_cells.has(cell): war_spatial_cells[cell] = []
 			war_spatial_cells[cell].append(fighter)
+	record_performance_sample("war_spatial_build",Time.get_ticks_usec()-build_start)
+	var living: int = active_war_fighters.size()
+	profile_living_min = mini(profile_living_min,living)
+	profile_living_max = maxi(profile_living_max,living)
+	profile_living_sum += living
+	profile_living_samples += 1
+	profile_projectile_peak = maxi(profile_projectile_peak,active_war_projectiles.size())
+	profile_spatial_fighter_cells = war_spatial_cells.size()
+	profile_spatial_projectile_cells = war_projectile_cells.size()
+	profile_spatial_max_fighter_bucket = 0
+	profile_spatial_max_projectile_bucket = 0
+	for bucket in war_spatial_cells.values():
+		profile_spatial_max_fighter_bucket = maxi(profile_spatial_max_fighter_bucket,bucket.size())
+	for bucket in war_projectile_cells.values():
+		profile_spatial_max_projectile_bucket = maxi(profile_spatial_max_projectile_bucket,bucket.size())
+	var sim_start: int = Time.get_ticks_usec()
 	for fighter in mannequins:
 		if not is_instance_valid(fighter): continue
 		if fighter.combat_dead:
 			if not fighter.combat_pose_frozen: fighter.update_combat_fall(dt)
 		else:
 			fighter.war_simulation_tick(dt)
+	record_performance_sample("war_simulation_all",Time.get_ticks_usec()-sim_start)
 	# Time the complete roster update, not just sampled per-fighter calls.
 	record_performance_sample("war_scheduler_total",Time.get_ticks_usec()-tick_start)
 
