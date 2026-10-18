@@ -109,7 +109,14 @@ func region_at(world_point: Vector3) -> String:
 # receive_hit entry point still resolves a single impact to one region.
 func receive_region_hit(region: String, world_point: Vector3, amount: float, attacker: String = "", show_number: bool = true) -> void:
 	if dead or not hp.has(region): return
-	hp[region] = maxf(0.0,float(hp[region])-amount)
+	# Stress-test mode retains injuries, reactions and damage accounting,
+	# but vital organs never reach zero and no fighter can be defeated.
+	var stress_immortal: bool = false
+	var arena: Node = get_tree().current_scene
+	if arena != null:
+		stress_immortal = bool(arena.get("stress_no_deaths"))
+	var floor_hp: float = 1.0 if stress_immortal else 0.0
+	hp[region] = maxf(floor_hp,float(hp[region])-amount)
 	if show_number: show_damage_number(world_point,amount,region)
 	flash_hit_region(region)
 	var remaining: float = float(hp[region])
@@ -120,7 +127,7 @@ func receive_region_hit(region: String, world_point: Vector3, amount: float, att
 		scene.record_battle_hit(attacker,owner_actor.get_parent().name,region,amount,remaining)
 	if not dead and owner_actor.get_parent().has_method("combat_react"):
 		owner_actor.get_parent().combat_react(region,amount,remaining)
-	if remaining <= 0.0 and region in ["head","torso"] and not aoe_batch_active:
+	if not stress_immortal and remaining <= 0.0 and region in ["head","torso"] and not aoe_batch_active:
 		dead = true
 		if owner_actor.get_parent().has_method("combat_die"):
 			owner_actor.get_parent().combat_die(region)
@@ -137,6 +144,8 @@ func receive_aoe_regions(regions: Array[String], amount: float, attacker: String
 			receive_region_hit(region,bone_position(region),amount,attacker,first_number)
 			first_number = false
 	aoe_batch_active = false
+	var arena: Node = get_tree().current_scene
+	if arena != null and bool(arena.get("stress_no_deaths")): return
 	for vital in ["head","torso"]:
 		if float(hp[vital]) <= 0.0:
 			dead = true
