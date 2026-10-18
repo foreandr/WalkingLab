@@ -7,6 +7,7 @@ var skeleton: Skeleton3D
 var markers: Dictionary = {}
 var dead: bool = false
 var visual_update_clock: float = 0.0
+var aoe_batch_active: bool = false
 
 var shader_material: ShaderMaterial
 var bone_map: Dictionary = {}
@@ -112,11 +113,27 @@ func receive_region_hit(region: String, world_point: Vector3, amount: float, att
 		scene.record_battle_hit(attacker,owner_actor.get_parent().name,region,amount,remaining)
 	if not dead and owner_actor.get_parent().has_method("combat_react"):
 		owner_actor.get_parent().combat_react(region,amount,remaining)
-	if remaining <= 0.0 and region in ["head","torso"]:
+	if remaining <= 0.0 and region in ["head","torso"] and not aoe_batch_active:
 		dead = true
 		if owner_actor.get_parent().has_method("combat_die"):
 			owner_actor.get_parent().combat_die(region)
 		print("[DEFEATED] ",owner_actor.get_parent().name," ",region)
+
+func receive_aoe_regions(regions: Array[String], amount: float, attacker: String = "") -> void:
+	if dead or regions.is_empty(): return
+	# Resolve every intersected pool before applying fatality, so head/torso
+	# damage cannot suppress arm and leg hits from the same explosion.
+	aoe_batch_active = true
+	for region in regions:
+		if hp.has(region): receive_region_hit(region,bone_position(region),amount,attacker)
+	aoe_batch_active = false
+	for vital in ["head","torso"]:
+		if float(hp[vital]) <= 0.0:
+			dead = true
+			if owner_actor.get_parent().has_method("combat_die"):
+				owner_actor.get_parent().combat_die(vital)
+			print("[DEFEATED] ",owner_actor.get_parent().name," ",vital)
+			break
 
 func receive_hit(world_point: Vector3, amount: float, attacker: String = "") -> void:
 	if dead: return
