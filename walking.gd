@@ -419,6 +419,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	options_panel.position = Vector2(-330,66)
 	options_panel.custom_minimum_size = Vector2(310,230)
 	options_panel.visible = false
+	camera.far = 450.0
 	canvas.add_child(options_panel)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation",9)
@@ -429,6 +430,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	column.add_child(heading)
 	add_setting_slider(column,"Camera sensitivity",0.3,2.5,1.0,0.1,"camera")
 	add_setting_slider(column,"Camera field of view",40.0,90.0,camera.fov,1.0,"fov")
+	add_setting_slider(column,"View distance (m)",35.0,550.0,450.0,5.0,"view_distance")
 
 	add_setting_slider(column,"Fireball speed",0.25,100.0,1.0,0.25,"fireball")
 	add_setting_slider(column,"Fireball width",0.25,100.0,1.0,0.25,"fireball_size")
@@ -486,6 +488,9 @@ func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: 
 		match setting:
 			"camera": camera_sensitivity = value
 			"fov": camera.fov = value
+			"view_distance":
+				camera.far = value
+				print("[VIEW_DISTANCE] far_m=",value)
 
 			"fireball_size":
 				var arena: Node = get_tree().current_scene
@@ -649,7 +654,7 @@ func update_war_fighter(dt: float) -> void:
 		get_tree().current_scene.record_performance_sample("war_steering",Time.get_ticks_usec()-profile_phase)
 		profile_phase = Time.get_ticks_usec()
 	# Only Fighter01 may fly in the ten-fighter war; all others stay grounded.
-	var may_fly: bool = name == "Fighter01"
+	var may_fly: bool = autonomous_only and name.begins_with("Fighter") and int(name.trim_prefix("Fighter")) % 10 == 1
 	var must_fly: bool = may_fly and (distance > 22.0 or target_body.global_position.y > 3.0 or (war_flight_preference and distance > 10.0))
 	if not may_fly: flight_enabled = false
 	if must_fly: flight_enabled = true
