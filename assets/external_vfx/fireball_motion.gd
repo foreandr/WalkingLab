@@ -127,10 +127,7 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		affected_fighters += 1
 		damage.receive_aoe_regions(hit_regions,32.0,attacker_name)
 		affected_regions += hit_regions.size()
-	if scene == null or not bool(scene.get("stress_no_deaths")):
-		# Thousands of event prints per minute inflate the benchmark's main-thread
-		# logging cost; preserve damage/impact execution and count totals instead.
-		if arena != null and arena.has_method("record_aoe_event"):
-			arena.record_aoe_event(affected_fighters,affected_regions)
-		elif arena == null or not bool(arena.get("stress_no_deaths")):
-			print("[AOE_REGIONS] fighters=",affected_fighters," body_regions=",affected_regions," radius=",blast_radius)
+	if scene != null and scene.has_method("record_aoe_event"):
+		scene.record_aoe_event(affected_fighters,affected_regions)
+	elif scene == null or not bool(scene.get("stress_no_deaths")):
+		print("[AOE_REGIONS] fighters=",affected_fighters," body_regions=",affected_regions," radius=",blast_radius)
