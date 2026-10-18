@@ -22,6 +22,13 @@ var spawn_cooldown: float = 0.0
 var spawn_last_cost_ms: float = 0.0
 var spawn_peak_cost_ms: float = 0.0
 var spawn_count_window: int = 0
+# Opt-in: --flight-benchmark. Begins after all 60 fighters have spawned,
+# then performs sixty seconds of genuine player flight physics.
+var flight_benchmark_requested: bool = false
+var flight_benchmark_running: bool = false
+var flight_benchmark_start_usec: int = 0
+var flight_benchmark_last_log_second: int = -1
+var flight_benchmark_origin: Vector3 = Vector3.ZERO
 
 const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
 # Temporary sustained-load benchmark: every combatant remains alive.
@@ -64,6 +71,7 @@ func profile_percentile(values: Array[float], fraction: float) -> float:
 	return ordered[clampi(ceili(float(ordered.size()) * fraction) - 1,0,ordered.size()-1)]
 
 func _ready():
+	flight_benchmark_requested = "--flight-benchmark" in OS.get_cmdline_user_args()
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
 	# The user accepts a 30 FPS simulation target. Run physics at 30 Hz
@@ -252,6 +260,38 @@ func print_performance_report() -> void:
 	profile_spatial_max_projectile_bucket = 0
 
 func _process(dt: float) -> void:
+	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == 60 and is_instance_valid(player):
+		flight_benchmark_running = true
+		flight_benchmark_start_usec = Time.get_ticks_usec()
+		flight_benchmark_origin = player.actor.global_position
+		player.benchmark_flight_active = true
+		player.flight_enabled = true
+		player.flight_launch_remaining = 0.0
+		player.flight_clearance_time = 2.0
+		player.actor.global_position.y = maxf(player.actor.global_position.y,4.0)
+		print("[FLIGHT_BENCHMARK_START] duration_s=60 fighters=",mannequins.size()," position=",player.actor.global_position)
+	if flight_benchmark_running:
+		var elapsed: float = float(Time.get_ticks_usec()-flight_benchmark_start_usec)/1000000.0
+		if elapsed >= 60.0:
+			player.benchmark_flight_active = false
+			player.benchmark_flight_axis = Vector2.ZERO
+			print("[FLIGHT_BENCHMARK_END] elapsed_s=%.2f position=%s displacement_m=%.2f fighters=%d living=%d" % [
+				elapsed,str(player.actor.global_position),player.actor.global_position.distance_to(flight_benchmark_origin),mannequins.size(),active_war_fighters.size()
+			])
+			flight_benchmark_running = false
+			flight_benchmark_requested = false
+			get_tree().quit(0)
+		else:
+			# Orbit inside the arena and vary pitch to cover ascent/descent.
+			# The regular player controller still owns move_and_slide,
+			# animations, collision and flight movement.
+			player.orbit = sin(elapsed*0.18)*1.5
+			player.elevation = sin(elapsed*0.32)*0.40
+			player.benchmark_flight_axis = Vector2(sin(elapsed*0.45)*0.55,0.83).normalized()
+			var whole_second: int = int(elapsed)
+			if whole_second % 2 == 0 and whole_second != flight_benchmark_last_log_second:
+				flight_benchmark_last_log_second = whole_second
+				print("[FLIGHT_BENCHMARK_POSITION] t_s=",whole_second," xyz=",player.actor.global_position," velocity=",player.actor.velocity," living=",active_war_fighters.size()," fps=",Engine.get_frames_per_second())
 	# Incrementally build the requested fighters instead of blocking one frame
 	# on ten imported rigs, animation graphs and collision bodies.
 	if queued_fighter_spawns > 0:
