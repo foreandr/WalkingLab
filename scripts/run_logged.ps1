@@ -1,5 +1,6 @@
 param(
-    [Parameter(Mandatory=$true)][string]$GodotPath
+    [Parameter(Mandatory=$true)][string]$GodotPath,
+    [string[]]$GameArgs = @()
 )
 $ErrorActionPreference = "Stop"
 $logDir = Join-Path (Get-Location) "logs"
@@ -10,7 +11,12 @@ Write-Host ("Game running; recording to " + $logFile)
 ("WalkingLab run " + (Get-Date -Format "o")) | Out-File -FilePath $logFile -Encoding utf8
 ("Godot executable: " + $GodotPath) | Out-File -FilePath $logFile -Append -Encoding utf8
 try {
-    & $GodotPath --path (Get-Location).Path *>> $logFile
+    if ($GameArgs.Count -gt 0) {
+        ("Godot user args: " + ($GameArgs -join " ")) | Out-File -FilePath $logFile -Append -Encoding utf8
+        & $GodotPath --path (Get-Location).Path -- @GameArgs *>> $logFile
+    } else {
+        & $GodotPath --path (Get-Location).Path *>> $logFile
+    }
     $status = $LASTEXITCODE
 } catch {
     $_ | Out-File -FilePath $logFile -Append
