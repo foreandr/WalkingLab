@@ -36,6 +36,8 @@ const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a4
 # Temporary sustained-load benchmark: every combatant remains alive.
 # Damage, impact reactions, AI, flight, collision and projectiles stay enabled.
 var stress_no_deaths: bool = true
+# Controlled A/B switch. Default restores Cycle 4 anatomical shader writes.
+var batch_aoe_shader: bool = false
 var announced_winner: bool = false
 var winner_banner: Label3D = null
 var battle_feed: RichTextLabel
@@ -82,13 +84,14 @@ func profile_percentile(values: Array[float], fraction: float) -> float:
 
 func _ready():
 	flight_benchmark_requested = "--flight-benchmark" in OS.get_cmdline_user_args()
+	batch_aoe_shader = "--batch-aoe-shader" in OS.get_cmdline_user_args()
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
 	# The user accepts a 30 FPS simulation target. Run physics at 30 Hz
 	# as well, rather than simulating twice for every visible frame.
 	Engine.physics_ticks_per_second = 30
 	Engine.max_fps = 30
-	print("[PERF_CONFIG] fps_cap=30 physics_hz=",Engine.physics_ticks_per_second," ground_foot_correction_default=false stress_no_deaths=",stress_no_deaths)
+	print("[PERF_CONFIG] fps_cap=30 physics_hz=",Engine.physics_ticks_per_second," ground_foot_correction_default=false stress_no_deaths=",stress_no_deaths," batch_aoe_shader=",batch_aoe_shader)
 	# Lower internal 3D resolution without reducing UI readability.
 	get_viewport().scaling_3d_scale = 0.7
 	for entry in [["move_forward",KEY_W],["move_back",KEY_S],["move_left",KEY_A],["move_right",KEY_D],["sprint",KEY_ALT],["walk",KEY_CTRL]]:
@@ -228,7 +231,7 @@ func print_performance_report() -> void:
 	summary += " [SPAWN_PROFILE] queue=%d spawned_window=%d last_ms=%.2f max_ms=%.2f" % [queued_fighter_spawns,spawn_count_window,spawn_last_cost_ms,spawn_peak_cost_ms]
 	spawn_count_window = 0
 	spawn_peak_cost_ms = 0.0
-	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d" % [str(stress_no_deaths),60]
+	summary += " [STRESS_CONFIG] no_deaths=%s target_fighters=%d batch_aoe_shader=%s" % [str(stress_no_deaths),60,str(batch_aoe_shader)]
 	summary += " [WAR_ACTIVITY] living_min=%d living_max=%d living_avg=%.1f projectile_peak=%d fighter_grid_cells=%d projectile_grid_cells=%d max_fighter_bucket=%d max_projectile_bucket=%d" % [
 		0 if profile_living_samples == 0 else profile_living_min,profile_living_max,
 		float(profile_living_sum)/float(maxi(1,profile_living_samples)),profile_projectile_peak,
