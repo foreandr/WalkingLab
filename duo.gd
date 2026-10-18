@@ -98,10 +98,10 @@ func _ready():
 	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# Prepare one fighter before rendering; queue the remaining 49 rather
+	# Prepare one fighter before rendering; queue the remaining 59 rather
 	# than blocking the main thread constructing the entire arena at once.
 	spawn_more_fighters(1,true)
-	spawn_more_fighters(49)
+	spawn_more_fighters(59)
 	ai = mannequins[0]
 	ai_label = null
 
