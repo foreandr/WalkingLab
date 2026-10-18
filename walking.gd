@@ -1039,12 +1039,16 @@ func _physics_process(dt):
 						distance_best = distance_sq
 						closest = opponent
 			if closest != null and cast_elapsed < 0.0:
+				var changed_target: bool = war_target != closest
 				war_target = closest
 				# Reuse the AI aim/cast mechanic without enabling AI locomotion:
 				# the player still owns movement, camera, flight and manual input.
 				ai_abilities = true
 				cast_spell("fire")
 				ai_abilities = false
+				if cast_elapsed >= 0.0 and arena != null:
+					arena.record_player_auto_attack(closest.name)
+					if changed_target: arena.record_player_auto_target_change(closest.name)
 	if paused: return
 	if combat_dead:
 		update_combat_fall(dt)
