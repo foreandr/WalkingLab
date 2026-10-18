@@ -54,7 +54,7 @@ func make_arena():
 	fill.light_energy = 0.16
 	add_child(fill)
 	var ground = PlaneMesh.new()
-	ground.size = Vector2(98,98)
+	ground.size = Vector2(482,482)
 	mesh_node(ground,Vector3(0,-0.13,0),texture("forest_ground_04",0.35))
 	var stone = texture("medieval_blocks_03",0.4)
 	var platform = CylinderMesh.new()
