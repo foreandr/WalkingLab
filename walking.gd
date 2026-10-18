@@ -61,6 +61,9 @@ var backward_flying_clip: Dictionary = {}
 var selected_spell_target: CharacterBody3D = null
 var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
+var locomotion_phase: float = 0.0
+var locomotion_strafe_weight: float = 0.0
+var locomotion_last_clip: String = ""
 # All arena combatants use the same imported rig. Share immutable retargeted
 # animation curves rather than import and retarget twenty FBX files per fighter.
 static var shared_flight_clips_ready: bool = false
@@ -343,7 +346,7 @@ func _ready():
 
 		if player_controlled: print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
 	var flight_begin_usec: int = Time.get_ticks_usec()
-	if player_controlled or ai_abilities or ai_mode == "fly" or animation_test_mode != "" or stationary_only: load_flight_clips()
+	if player_controlled or ai_abilities or ai_mode != "" or animation_test_mode != "" or stationary_only: load_flight_clips()
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=flight_clips ms=",snappedf(float(Time.get_ticks_usec()-flight_begin_usec)/1000.0,0.01))
 	var feet_begin_usec: int = Time.get_ticks_usec()
 	feet.setup(visual,skeleton)
@@ -1250,6 +1253,9 @@ func _physics_process(dt):
 	if player_controlled:
 		apply_injured_walk(step)
 		apply_movement_clip(step)
+	# Directional overlays run only for the active solo CPU or human rig.
+	# War NPCs retain their profiled, independent update path.
+	if player_controlled or ai_mode != "": apply_directional_locomotion(step)
 		update_punch_contact(step)
 	if player_controlled:
 		debug_tick += step
@@ -1854,6 +1860,56 @@ func load_flight_clips() -> void:
 					movement_clips[filename] = {"file":filename,"length":maxf(selected.length,0.001),"curves":curves}
 				if player_controlled: debug_player("ANIMATION_LOADED",filename+" tracks="+str(curves.size())+" seconds="+str(selected.length))
 		root.free()
+
+	# User-supplied directional locomotion assets. These retarget to the
+	# existing Y Bot, rather than replacing its proven sprint animation tree.
+	for filename in ["left strafe walking.fbx","right strafe walking.fbx","left strafe.fbx","right strafe.fbx","Left Strafe run.fbx","Right Strafe run.fbx","left turn.fbx","right turn.fbx","left turn 90.fbx","right turn 90.fbx","idle.fbx","jump.fbx","running.fbx","walking.fbx"]:
+		var resource_path: String = "res://assets/locomotion/" + filename
+		if not ResourceLoader.exists(resource_path): continue
+		var packed = load(resource_path)
+		if not packed is PackedScene: continue
+		var root = packed.instantiate()
+		var rigs = root.find_children("*","Skeleton3D",true,false)
+		var animators = root.find_children("*","AnimationPlayer",true,false)
+		if rigs.is_empty() or animators.is_empty():
+			root.free()
+			continue
+		var source_rig: Skeleton3D = rigs[0]
+		var source_indices: Dictionary = {}
+		var target_indices: Dictionary = {}
+		for bi in range(source_rig.get_bone_count()):
+			source_indices[normalized_idle_bone(String(source_rig.get_bone_name(bi)))] = bi
+		for bi in range(skeleton.get_bone_count()):
+			target_indices[normalized_idle_bone(String(skeleton.get_bone_name(bi)))] = bi
+		var selected: Animation = null
+		for animator in animators:
+			for name in animator.get_animation_list():
+				if name == "RESET": continue
+				var candidate: Animation = animator.get_animation(name)
+				if selected == null or candidate.get_track_count() > selected.get_track_count(): selected = candidate
+		if selected != null:
+			var curves: Array = []
+			for t in range(selected.get_track_count()):
+				if selected.track_get_type(t) != Animation.TYPE_ROTATION_3D: continue
+				var path: NodePath = selected.track_get_path(t)
+				if path.get_subname_count() == 0: continue
+				var bone_label: String = normalized_idle_bone(String(path.get_subname(path.get_subname_count()-1)))
+				# Root translation/rotation are controlled by physical movement,
+				# not baked FBX movement: no foot teleport or root yaw jumps.
+				if bone_label == "hips": continue
+				if not source_indices.has(bone_label) or not target_indices.has(bone_label): continue
+				var src_index: int = source_indices[bone_label]
+				var dst_index: int = target_indices[bone_label]
+				var correction: Quaternion = (skeleton.get_bone_rest(dst_index).basis.get_rotation_quaternion().inverse()*source_rig.get_bone_rest(src_index).basis.get_rotation_quaternion()).normalized()
+				var keys: Array = []
+				for k in range(selected.track_get_key_count(t)):
+					var pose: Quaternion = selected.track_get_key_value(t,k)
+					keys.append({"time":selected.track_get_key_time(t,k),"rot":(correction*pose*correction.inverse()).normalized()})
+				if not keys.is_empty(): curves.append({"bone":dst_index,"keys":keys})
+			if curves.size() >= 8:
+				movement_clips["locomotion/"+filename.to_lower()] = {"length":maxf(selected.length,0.001),"curves":curves}
+				print("[LOCOMOTION_REGISTERED] ",filename," bones=",curves.size()," length=",selected.length)
+		root.free()
 	shared_flying_clip = flying_clip
 	shared_backward_flying_clip = backward_flying_clip
 	shared_movement_clips = movement_clips.duplicate()
@@ -1898,6 +1954,36 @@ func update_flight_orientation(dt: float) -> void:
 func debug_player(event_type: String, details: String) -> void:
 	if not player_controlled: return
 	print("[PLAYER_DEBUG] t=",snappedf(clock,0.01)," ",event_type," | ",details)
+
+func apply_directional_locomotion(dt: float) -> void:
+	# Existing forward gait/sprint logic remains fully authoritative.
+	# Only lateral movement overlays the user's strafe animation.
+	if combat_dead or flight_enabled or crouch.active(): return
+	var planar_velocity: Vector3 = Vector3(actor.velocity.x,0.0,actor.velocity.z)
+	var moving: float = planar_velocity.length()
+	var local_velocity: Vector3 = actor.global_basis.inverse() * planar_velocity
+	var lateral_ratio: float = absf(local_velocity.x)/maxf(moving,0.01)
+	var desired_weight: float = clampf((lateral_ratio-0.25)/0.5,0.0,1.0) if moving > 0.25 else 0.0
+	# Preserve the existing forward sprint animation and its acceleration.
+	if player_controlled and manual_sprint_clock > 0.0: desired_weight = 0.0
+	locomotion_strafe_weight = move_toward(locomotion_strafe_weight,desired_weight,dt*5.0)
+	if locomotion_strafe_weight < 0.001: return
+	var side: String = "right" if local_velocity.x > 0.0 else "left"
+	var filename: String = side+" strafe walking.fbx" if moving < 5.0 else side+" strafe.fbx"
+	if moving > 8.0: filename = side.capitalize()+" Strafe run.fbx"
+	var key: String = "locomotion/"+filename.to_lower()
+	if not movement_clips.has(key): return
+	var clip: Dictionary = movement_clips[key]
+	var length: float = float(clip["length"])
+	# Phase advances with actual world travel rather than stationary clock.
+	locomotion_phase = fmod(locomotion_phase+dt*maxf(moving,0.1)/3.0,maxf(length,0.001))
+	var weight: float = locomotion_strafe_weight
+	for entry in clip["curves"]:
+		var bone: int = entry["bone"]
+		var current: Quaternion = skeleton.get_bone_pose_rotation(bone)
+		var target: Quaternion = sample_flight_curve(entry["keys"],locomotion_phase)
+		skeleton.set_bone_pose_rotation(bone,current.slerp(target,weight))
+	skeleton.force_update_all_bone_transforms()
 
 func start_movement_clip(clip_name: String) -> void:
 	if not movement_clips.has(clip_name): 
