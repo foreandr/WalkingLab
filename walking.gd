@@ -455,8 +455,8 @@ func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: 
 
 			"fireball_size":
 				var arena: Node = get_tree().current_scene
-				if arena != null: arena.set("battle_fireball_size",value)
-				print("[STRESS_FIREBALL_SIZE] multiplier=",value)
+				if arena != null and arena.has_method("set_fireball_width"):
+					arena.set_fireball_width(value)
 			"fireball":
 				fireball_speed_scale = value
 				if get_tree().current_scene.get("battle_fireball_speed") != null:
@@ -2050,7 +2050,11 @@ func release_fireball(hand_world: Vector3) -> void:
 	var effect: GPUParticles3D = load(effect_path).instantiate()
 	projectile.add_child(effect)
 	# Three times the size at the hand and during travel.
-	effect.scale = Vector3.ONE * 3.0 * float(get_tree().current_scene.get("battle_fireball_size")) if get_tree().current_scene.get("battle_fireball_size") != null else Vector3.ONE * 3.0
+	var arena: Node = get_tree().current_scene
+	if arena != null and arena.has_method("configure_fireball_particles"):
+		arena.configure_fireball_particles(effect,float(arena.get("battle_fireball_size")))
+	else:
+		effect.scale = Vector3.ONE * 3.0
 	if animation_test_mode == "war": effect.amount = maxi(4,int(effect.amount / 3))
 	effect.emitting = true
 	effect.restart()
