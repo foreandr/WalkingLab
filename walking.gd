@@ -513,6 +513,7 @@ func update_war_fighter(dt: float) -> void:
 	var profile_start: int = Time.get_ticks_usec() if sampled else 0
 	var profile_physics: int = 0
 	var profile_animation: int = 0
+	var profile_phase: int = profile_start
 	# Re-evaluate a local opponent as the battle changes; never select a spectator.
 	var opponents: Array = []
 	# Scene owns the fighter roster; avoid searching the entire node tree.
@@ -524,6 +525,9 @@ func update_war_fighter(dt: float) -> void:
 		tree.advance(dt)
 		return
 	war_decision_timer -= dt
+	if sampled:
+		get_tree().current_scene.record_performance_sample("war_roster",Time.get_ticks_usec()-profile_phase)
+		profile_phase = Time.get_ticks_usec()
 	if war_target == null or not is_instance_valid(war_target) or war_target.combat_dead or war_decision_timer <= 0.0:
 		war_decision_timer = agent_rng.randf_range(0.9,2.0)
 		war_flight_preference = agent_rng.randf() < 0.65
@@ -536,6 +540,9 @@ func update_war_fighter(dt: float) -> void:
 				best_score = score
 				war_target = other
 	if war_target == null or not is_instance_valid(war_target): return
+	if sampled:
+		get_tree().current_scene.record_performance_sample("war_target_selection",Time.get_ticks_usec()-profile_phase)
+		profile_phase = Time.get_ticks_usec()
 	var target_body: CharacterBody3D = war_target.actor
 	var offset: Vector3 = target_body.global_position - actor.global_position
 	var flat: Vector3 = Vector3(offset.x,0.0,offset.z)
@@ -568,6 +575,9 @@ func update_war_fighter(dt: float) -> void:
 				if miss.length_squared() < 9.0:
 					war_cached_dodge += tangent*war_strafe_sign*3.5
 	desired += war_cached_dodge
+	if sampled:
+		get_tree().current_scene.record_performance_sample("war_steering",Time.get_ticks_usec()-profile_phase)
+		profile_phase = Time.get_ticks_usec()
 	# Only Fighter01 may fly in the ten-fighter war; all others stay grounded.
 	var may_fly: bool = name == "Fighter01"
 	var must_fly: bool = may_fly and (distance > 22.0 or target_body.global_position.y > 3.0 or (war_flight_preference and distance > 10.0))
@@ -585,18 +595,26 @@ func update_war_fighter(dt: float) -> void:
 		actor.velocity.x = move_toward(actor.velocity.x,wish.x*4.0,dt*12.5)
 		actor.velocity.z = move_toward(actor.velocity.z,wish.z*4.0,dt*12.5)
 		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
+	if sampled:
+		get_tree().current_scene.record_performance_sample("war_velocity_setup",Time.get_ticks_usec()-profile_phase)
+		profile_phase = Time.get_ticks_usec()
 	var physics_start: int = Time.get_ticks_usec() if sampled else 0
 	actor.move_and_slide()
 	if sampled: profile_physics = Time.get_ticks_usec()-physics_start
+	if sampled: profile_phase = Time.get_ticks_usec()
 	if distance > 0.1: actor.rotation.y = atan2(-flat.x,-flat.z)
 	speed = Vector2(actor.velocity.x,actor.velocity.z).length()
 	blend = speed_band(SPEEDS,speed)
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/Direction/blend_amount",0.0)
 	tree.set("parameters/Cadence/scale",maxf(0.2,speed/3.0))
+	if sampled:
+		get_tree().current_scene.record_performance_sample("war_blend_setup",Time.get_ticks_usec()-profile_phase)
+		profile_phase = Time.get_ticks_usec()
 	var animation_start: int = Time.get_ticks_usec() if sampled else 0
 	tree.advance(dt)
 	if sampled: profile_animation = Time.get_ticks_usec()-animation_start
+	if sampled: profile_phase = Time.get_ticks_usec()
 	if flight_enabled:
 		# The airborne rig must visually pitch with its velocity, not keep
 		# its standing orientation while flying.
@@ -609,6 +627,9 @@ func update_war_fighter(dt: float) -> void:
 		visual.rotation.x = move_toward(visual.rotation.x,0.0,dt*8.0)
 		visual.position.y = 0.0
 		if actor.is_on_floor(): feet.resolve(true)
+	if sampled:
+		get_tree().current_scene.record_performance_sample("war_pose_and_feet",Time.get_ticks_usec()-profile_phase)
+		profile_phase = Time.get_ticks_usec()
 	ai_action_clock += dt
 	if ai_action_clock >= 0.95 and distance < 70.0:
 		ai_action_clock = 0.0
@@ -618,6 +639,7 @@ func update_war_fighter(dt: float) -> void:
 	adjust_jab_arm()
 	update_cast_motion(dt)
 	if sampled:
+		get_tree().current_scene.record_performance_sample("war_cast_and_ik",Time.get_ticks_usec()-profile_phase)
 		var arena: Node = get_tree().current_scene
 		if arena != null and arena.has_method("record_performance_sample"):
 			arena.record_performance_sample("war_ai_total",Time.get_ticks_usec()-profile_start)
