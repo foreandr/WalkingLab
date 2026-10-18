@@ -368,7 +368,7 @@ func _ready():
 		signed_speed = 0.0
 		actor.rotation.y = orbit
 		manual_heading = orbit
-		distance = 6.5
+		distance = 5.0 # Start slightly closer to BLACK; mouse wheel can still adjust zoom.
 		controls.text = ""
 	update_camera()
 	if not player_controlled and "--crouch-demo" in OS.get_cmdline_user_args(): crouch.start_showcase()
