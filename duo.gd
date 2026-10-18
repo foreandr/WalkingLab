@@ -29,7 +29,9 @@ var profile_frame_physics_sum: float = 0.0
 func _ready():
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
-	# Render at 30 FPS while retaining the default 60 Hz gameplay physics tick.
+	# The user accepts a 30 FPS simulation target. Run physics at 30 Hz
+	# as well, rather than simulating twice for every visible frame.
+	Engine.physics_ticks_per_second = 30
 	Engine.max_fps = 30
 	print("[PERF_CONFIG] fps_cap=30 physics_hz=",Engine.physics_ticks_per_second," ground_foot_correction_default=false")
 	# Lower internal 3D resolution without reducing UI readability.
