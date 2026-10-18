@@ -4,6 +4,7 @@ var travel_direction: Vector3 = Vector3.FORWARD
 var travel_speed: float = 3.0
 var battle_base_speed: float = 0.0
 var owner_rid: RID
+var attacker_name: String = ""
 const LIFETIME: float = 25.0
 var lived: float = 0.0
 
@@ -27,13 +28,52 @@ func _physics_process(delta: float) -> void:
 			if spectator_body != null: ray.exclude.append(spectator_body.get_rid())
 	var hit: Dictionary = space.intersect_ray(ray)
 	if not hit.is_empty():
-		var victim: Object = hit.get("collider")
-		if victim is CharacterBody3D:
-			var damage: Node = victim.get_parent().get_node_or_null("DamageSystem")
-			if damage != null: damage.receive_hit(hit["position"],32.0)
+		explode(projectile,hit["position"])
 		projectile.queue_free()
 		return
 	projectile.global_position += displacement
 	lived += delta
 	if lived >= LIFETIME:
 		projectile.queue_free()
+
+func explode(projectile: Node3D, position: Vector3) -> void:
+	var scene: Node = projectile.get_tree().current_scene
+	# The source effect is already 3x. Explosion is 5x that size.
+	var impact := Node3D.new()
+	impact.name = "FireImpact"
+	scene.add_child(impact)
+	impact.global_position = position
+	var source: GPUParticles3D = null
+	for child in projectile.get_children():
+		if child is GPUParticles3D:
+			source = child
+			break
+	if source != null:
+		var burst: GPUParticles3D = source.duplicate() as GPUParticles3D
+		impact.add_child(burst)
+		burst.scale = Vector3.ONE * 15.0
+		burst.one_shot = true
+		burst.emitting = true
+		burst.restart()
+	var cleanup := impact.create_tween()
+	cleanup.tween_interval(1.5)
+	cleanup.tween_callback(impact.queue_free)
+	# An explosion damages every distinct fighter in range just once.
+	const BLAST_RADIUS: float = 5.0
+	for fighter in projectile.get_tree().get_nodes_in_group("combat_fighters"):
+		if fighter == null or not is_instance_valid(fighter): continue
+		if fighter.player_controlled and scene.get("battle_fireball_speed") != null: continue
+		var body: CharacterBody3D = fighter.actor as CharacterBody3D
+		if body == null or body.get_rid() == owner_rid: continue
+		var damage: Node = fighter.get_node_or_null("DamageSystem")
+		if damage == null or damage.dead: continue
+		var closest: Vector3 = body.global_position+Vector3.UP
+		var minimum: float = closest.distance_squared_to(position)
+		for region in damage.REGIONS:
+			var bone_point: Vector3 = damage.bone_position(region)
+			var dist: float = bone_point.distance_squared_to(position)
+			if dist < minimum:
+				minimum = dist
+				closest = bone_point
+		if minimum <= BLAST_RADIUS * BLAST_RADIUS:
+			damage.receive_hit(closest,32.0,attacker_name)
