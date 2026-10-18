@@ -320,6 +320,7 @@ func make_boundary():
 	add_child(lamp)
 
 func tick_war_fighters(dt: float) -> void:
+	var tick_start: int = Time.get_ticks_usec()
 	# One authoritative living roster shared by every fighter this tick.
 	active_war_fighters.clear()
 	for fighter in mannequins:
@@ -331,6 +332,8 @@ func tick_war_fighters(dt: float) -> void:
 			if not fighter.combat_pose_frozen: fighter.update_combat_fall(dt)
 		else:
 			fighter.war_simulation_tick(dt)
+	# Time the complete roster update, not just sampled per-fighter calls.
+	record_performance_sample("war_scheduler_total",Time.get_ticks_usec()-tick_start)
 
 func _physics_process(_dt):
 	if player == null: return
