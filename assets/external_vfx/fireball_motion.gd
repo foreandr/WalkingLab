@@ -10,6 +10,8 @@ var blast_width: float = 1.0
 # supplies an independently tuned impact and status effect.
 var spell_type: String = "fire"
 var spell_color: Color = Color("ff9b4f")
+# The flame-wave and target streams use the SAME impact radius as damage.
+# Impact applies to each target when its animated fire reaches that target.
 const LIFETIME: float = 25.0
 var lived: float = 0.0
 var profile_tick: int = 0
@@ -84,6 +86,45 @@ func _physics_process(delta: float) -> void:
 	if lived >= LIFETIME:
 		projectile.queue_free()
 
+func launch_visible_aoe_stream(impact: Node3D, source: GPUParticles3D, origin: Vector3, target_point: Vector3, victim: Node, hit_regions: Array[String], damage_amount: float) -> void:
+	# Copy the imported flame effect, not a generated mesh or fake hitbox.
+	# Emission follows the actual radial route; damage arrives with the fire.
+	if source == null or victim == null or not is_instance_valid(victim): return
+	var ember := source.duplicate() as GPUParticles3D
+	impact.add_child(ember)
+	ember.global_position = origin
+	ember.local_coords = false
+	ember.scale = Vector3.ONE*0.74
+	ember.amount = 22
+	ember.lifetime = 0.30
+	ember.one_shot = false
+	ember.fixed_fps = 30
+	ember.emitting = true
+	ember.restart()
+	var distance_to_hit: float = origin.distance_to(target_point)
+	var travel_time: float = clampf(distance_to_hit/15.0,0.12,0.74)
+	var trajectory := impact.create_tween()
+	trajectory.tween_property(ember,"global_position",target_point,travel_time).set_trans(Tween.TRANS_LINEAR)
+	trajectory.tween_callback(func() -> void:
+		if not is_instance_valid(victim): return
+		ember.emitting = false
+		var endpoint := source.duplicate() as GPUParticles3D
+		impact.add_child(endpoint)
+		endpoint.global_position = target_point
+		endpoint.local_coords = false
+		endpoint.scale = Vector3.ONE*0.92
+		endpoint.amount = 28
+		endpoint.lifetime = 0.48
+		endpoint.one_shot = true
+		endpoint.explosiveness = 1.0
+		endpoint.emitting = true
+		endpoint.restart()
+		var damage: Node = victim.get_node_or_null("DamageSystem")
+		if damage != null and not damage.dead:
+			damage.receive_aoe_regions(hit_regions,damage_amount,attacker_name)
+			if victim.has_method("apply_spell_status"): victim.apply_spell_status(spell_type,origin)
+	)
+
 func explode(projectile: Node3D, position: Vector3) -> void:
 	var scene: Node = projectile.get_tree().current_scene
 	# The source effect is already 3x. Explosion is 5x that size.
@@ -96,15 +137,9 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		if child is GPUParticles3D:
 			source = child
 			break
-	if source != null:
-		var burst: GPUParticles3D = source.duplicate() as GPUParticles3D
-		impact.add_child(burst)
-		burst.scale = source.scale * (6.0 if spell_type=="gravity" else 5.0)
-		burst.amount = mini(4,maxi(2,int(burst.amount / 2)))
-		burst.fixed_fps = 30
-		burst.one_shot = true
-		burst.emitting = true
-		burst.restart()
+	# Keep the imported VFX. A physically radial emitter now reaches the
+	# outer damage boundary instead of flashing a few pixels at the origin.
+	# Its radius and velocity are configured below after blast_radius is known.
 	if attacker_name == "PlayerMan":
 		var flash := OmniLight3D.new()
 		flash.light_color = spell_color
@@ -112,7 +147,7 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		flash.omni_range = 6.0
 		impact.add_child(flash)
 	var cleanup := impact.create_tween()
-	cleanup.tween_interval(0.6)
+	cleanup.tween_interval(1.65)
 	cleanup.tween_callback(impact.queue_free)
 	# The blast intersects each anatomical region independently. A large
 	# fireball can hit multiple body pools on one fighter in one explosion.
@@ -147,6 +182,29 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 			base_radius = 4.4
 			impact_damage = 10.0 # Long-lasting poison damage
 	var blast_radius: float = base_radius * blast_width
+	if source != null:
+		var wave := source.duplicate() as GPUParticles3D
+		impact.add_child(wave)
+		wave.global_position = position
+		wave.scale = Vector3.ONE*0.75
+		wave.local_coords = false
+		wave.one_shot = true
+		wave.explosiveness = 1.0
+		wave.lifetime = 0.75
+		wave.amount = clampi(ceili(blast_radius*32.0),70,280)
+		wave.fixed_fps = 30
+		var wave_material: ParticleProcessMaterial = wave.process_material.duplicate(true) as ParticleProcessMaterial
+		if wave_material != null:
+			wave_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+			wave_material.emission_sphere_radius = 0.28
+			wave_material.gravity = Vector3.ZERO
+			wave_material.direction = Vector3.UP
+			wave_material.spread = 180.0
+			wave_material.initial_velocity_min = blast_radius/0.61
+			wave_material.initial_velocity_max = blast_radius/0.48
+			wave.process_material = wave_material
+		wave.emitting = true
+		wave.restart()
 	var affected_fighters: int = 0
 	var struck: Dictionary = {}
 	var arc_candidates: Array = []
@@ -185,8 +243,24 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		if hit_regions.is_empty(): continue
 		affected_fighters += 1
 		struck[body.get_instance_id()] = true
-		damage.receive_aoe_regions(hit_regions,impact_damage,attacker_name)
-		if fighter.has_method("apply_spell_status"): fighter.apply_spell_status(spell_type,position)
+		# Flame physically expands to every AOE victim, and its impact is
+		# synchronized with the delayed damage callback on arrival.
+		if spell_type=="fire" and source != null:
+			launch_visible_aoe_stream(impact,source,position,damage.bone_position("torso"),fighter,hit_regions,impact_damage)
+		else:
+			damage.receive_aoe_regions(hit_regions,impact_damage,attacker_name)
+			if fighter.has_method("apply_spell_status"): fighter.apply_spell_status(spell_type,position)
+			if source != null:
+				# Other spell colours also extend outward toward their victims.
+				var matching_fire := source.duplicate() as GPUParticles3D
+				impact.add_child(matching_fire)
+				matching_fire.global_position = damage.bone_position("torso")
+				matching_fire.scale = Vector3.ONE*0.78
+				matching_fire.amount = 18
+				matching_fire.one_shot = true
+				matching_fire.lifetime = 0.50
+				matching_fire.emitting = true
+				matching_fire.restart()
 		affected_regions += hit_regions.size()
 	if spell_type == "arc":
 		# Jump to up to three extra distinct enemies outside the direct blast.
