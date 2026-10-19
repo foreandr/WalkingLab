@@ -344,7 +344,7 @@ func _ready():
 
 		if player_controlled: print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
 	var flight_begin_usec: int = Time.get_ticks_usec()
-	if player_controlled or ai_abilities or ai_mode == "fly" or animation_test_mode != "" or stationary_only: load_flight_clips()
+	if player_controlled or ai_abilities or ai_mode == "fly" or (name == "PlayerMan" and ai_mode == "sprint") or animation_test_mode != "" or stationary_only: load_flight_clips()
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=flight_clips ms=",snappedf(float(Time.get_ticks_usec()-flight_begin_usec)/1000.0,0.01))
 	var feet_begin_usec: int = Time.get_ticks_usec()
 	feet.setup(visual,skeleton)
@@ -1154,11 +1154,13 @@ func _physics_process(dt):
 		var should_fly: bool = solo_flight_time >= 32.0 and solo_flight_time < 42.0
 		if should_fly and not flight_enabled:
 			flight_enabled = true
+			vertical_jump_speed = 0.0
 			flight_launch_remaining = FLIGHT_LAUNCH_DURATION
 			print("[SOLO_FLIGHT] takeoff t=",snappedf(clock,0.1))
 		elif not should_fly and flight_enabled:
 			flight_enabled = false
 			flight_launch_remaining = 0.0
+			vertical_jump_speed = 0.0
 			print("[SOLO_FLIGHT] descent t=",snappedf(clock,0.1)," altitude=",snappedf(actor.position.y,0.1))
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
