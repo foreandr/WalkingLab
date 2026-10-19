@@ -649,8 +649,16 @@ func update_resource_hud() -> void:
 		label.add_theme_color_override("font_color",Color("888d98") if remaining>0.05 or mana<SPELL_COSTS[i] else SPELL_COLORS[i])
 	if options_panel != null and options_panel.visible and settings_stats != null and settings_stats.visible:
 		var arena: Node = get_tree().current_scene
-		var overlay_text: String = arena.performance_label.text if arena != null and arena.get("performance_label") != null else "Performance not ready"
-		settings_stats.text = overlay_text+"\nPhysics 30 Hz | Arena fighters: "+str(arena.get("mannequins").size() if arena != null else 0)+"\nDemo NPC: "+str(arena.ai != null if arena != null else false)+"\nFlight: "+str(flight_enabled)+"\nSpeed: %.1f m/s" % actor.velocity.length()
+		var overlay_text: String = "Performance not ready"
+		var fighter_count: int = 0
+		var demo_enabled: bool = false
+		if arena != null:
+			var perf: Label = arena.get("performance_label") as Label
+			if perf != null: overlay_text = perf.text
+			var roster: Array = arena.get("mannequins")
+			fighter_count = roster.size()
+			demo_enabled = is_instance_valid(arena.get("ai"))
+		settings_stats.text = overlay_text+"\nPhysics 30 Hz | Fighters: "+str(fighter_count)+"\nDemo NPC: "+str(demo_enabled)+"\nFlight: "+str(flight_enabled)+"\nSpeed: %.1f m/s" % actor.velocity.length()
 
 func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: float, initial: float, increment: float, setting: String) -> void:
 	var label := Label.new()
@@ -2687,7 +2695,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	var travel: Vector3 = raw_direction
 	var launch_speed: float = maxf(20.0,cast_hand_velocity.dot(travel))
 	var projectile := Node3D.new()
-	projectile.name = "Fireball"
+	projectile.name = cast_element.capitalize()+"Projectile"
 	projectile.add_to_group("battle_fireballs")
 	get_tree().current_scene.add_child(projectile)
 	projectile.global_position = hand_world + travel * 0.20
@@ -2697,9 +2705,18 @@ func release_fireball(hand_world: Vector3) -> void:
 	projectile.add_child(effect)
 	var spell_index: int = SPELL_IDS.find(cast_element)
 	var spell_color: Color = SPELL_COLORS[spell_index] if spell_index >= 0 else Color("ff9b4f")
-	if spell_index >= 0 and effect.process_material is ParticleProcessMaterial:
+	if spell_index > 0 and effect.process_material is ParticleProcessMaterial:
+		# The imported fire particle asset has a red/orange color ramp;
+		# multiplying it by cyan/green would make the new spells appear dark.
+		# Replace only the ramp; keep the externally sourced motion and texture.
 		var colored_particles: ParticleProcessMaterial = effect.process_material.duplicate(true) as ParticleProcessMaterial
-		colored_particles.color = spell_color
+		var tint_gradient := Gradient.new()
+		tint_gradient.set_color(0,spell_color)
+		tint_gradient.set_color(1,Color(spell_color.r,spell_color.g,spell_color.b,0.0))
+		var tint_ramp := GradientTexture1D.new()
+		tint_ramp.gradient = tint_gradient
+		colored_particles.color = Color.WHITE
+		colored_particles.color_ramp = tint_ramp
 		effect.process_material = colored_particles
 	if player_controlled:
 		var glow := OmniLight3D.new()
