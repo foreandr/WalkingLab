@@ -61,7 +61,6 @@ var backward_flying_clip: Dictionary = {}
 var selected_spell_target: CharacterBody3D = null
 var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
-var strafe_animation_clock: float = 0.0
 # All arena combatants use the same imported rig. Share immutable retargeted
 # animation curves rather than import and retarget twenty FBX files per fighter.
 static var shared_flight_clips_ready: bool = false
@@ -1289,7 +1288,6 @@ func _physics_process(dt):
 	if player_controlled:
 		apply_injured_walk(step)
 		apply_movement_clip(step)
-	if solo_showcase and absf(side_speed) > 0.2: apply_cpu_strafe_animation(step,side_speed)
 		update_punch_contact(step)
 	if player_controlled:
 		debug_tick += step
@@ -1855,8 +1853,8 @@ func load_flight_clips() -> void:
 		return
 	var import_start_usec: int = Time.get_ticks_usec()
 
-	for filename in ["Flying (1).fbx","Jumping Up.fbx","Sitting Idle.fbx","Punching (1).fbx","Punching(2).fbx","Reaction.fbx","Reaction (1).fbx","Medium Hit To Head.fbx","Medium Hit To Head (1).fbx","Light Hit To Head.fbx","Light Hit To Head (1).fbx","Big Kidney Hit.fbx","Big Kidney Hit (1).fbx","Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx","Stunned.fbx","Injured Walk (1).fbx","Injured Walk.fbx","left strafe walking.fbx","right strafe walking.fbx","left strafe.fbx","right strafe.fbx","Left Strafe run.fbx","Right Strafe run.fbx"]:
-		var resource_path: String = ("res://assets/locomotion/" if filename.to_lower().contains("strafe") else "res://assets/custom_idle/") + filename
+	for filename in ["Flying (1).fbx","Jumping Up.fbx","Sitting Idle.fbx","Punching (1).fbx","Punching(2).fbx","Reaction.fbx","Reaction (1).fbx","Medium Hit To Head.fbx","Medium Hit To Head (1).fbx","Light Hit To Head.fbx","Light Hit To Head (1).fbx","Big Kidney Hit.fbx","Big Kidney Hit (1).fbx","Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx","Stunned.fbx","Injured Walk (1).fbx","Injured Walk.fbx"]:
+		var resource_path: String = "res://assets/custom_idle/" + filename
 		if not ResourceLoader.exists(resource_path):
 			if player_controlled: debug_player("ASSET_MISSING",filename+" path="+resource_path)
 			continue
@@ -1953,27 +1951,6 @@ func update_flight_orientation(dt: float) -> void:
 func debug_player(event_type: String, details: String) -> void:
 	if not player_controlled: return
 	print("[PLAYER_DEBUG] t=",snappedf(clock,0.01)," ",event_type," | ",details)
-
-func apply_cpu_strafe_animation(dt: float, lateral_speed: float) -> void:
-	# Only the solo showcase uses this overlay; human forward sprint stays unchanged.
-	if flight_enabled or absf(lateral_speed) < 0.2: return
-	var direction: String = "right" if lateral_speed > 0.0 else "left"
-	var filename: String = direction + " strafe walking.fbx"
-	if absf(lateral_speed) >= 7.5: filename = direction.capitalize() + " Strafe run.fbx"
-	elif absf(lateral_speed) >= 4.0: filename = direction + " strafe.fbx"
-	if not movement_clips.has(filename):
-		# Some packs supply only the normal strafe when a run is missing.
-		filename = direction + " strafe.fbx"
-		if not movement_clips.has(filename): return
-	var clip: Dictionary = movement_clips[filename]
-	var duration: float = float(clip["length"])
-	strafe_animation_clock = fmod(strafe_animation_clock + dt * maxf(0.4,absf(lateral_speed)/4.0),duration)
-	for entry in clip["curves"]:
-		var bone: int = entry["bone"]
-		var current: Quaternion = skeleton.get_bone_pose_rotation(bone)
-		var pose: Quaternion = sample_flight_curve(entry["keys"],strafe_animation_clock)
-		skeleton.set_bone_pose_rotation(bone,current.slerp(pose,0.9))
-	skeleton.force_update_all_bone_transforms()
 
 func start_movement_clip(clip_name: String) -> void:
 	if not movement_clips.has(clip_name): 
