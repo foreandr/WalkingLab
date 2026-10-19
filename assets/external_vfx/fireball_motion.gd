@@ -9,6 +9,8 @@ var blast_width: float = 1.0
 # Player spells share the proven swept projectile / imported VFX, but each
 # supplies an independently tuned impact and status effect.
 var spell_type: String = "fire"
+# A hybrid applies both effects through this ONE authoritative projectile.
+var spell_components: Array[String] = []
 var spell_color: Color = Color("ff9b4f")
 var caster_team: String = ""
 var homing_target: CharacterBody3D = null
@@ -144,15 +146,19 @@ func finish_homing_impact(projectile: Node3D, hit_point: Vector3, collider: Obje
 	# The FIRST thing struck consumes the shot, whether its intended mark,
 	# another fighter, a pillar, the ground, or the arena walls/ceiling.
 	# Structures block damage rather than triggering a large splash.
-	if collider is CharacterBody3D:
+	if collider is CharacterBody3D and spell_components.size()<2:
 		var fighter_body: CharacterBody3D = collider as CharacterBody3D
 		if fighter_body.get_rid()!=owner_rid:
 			var controller: Node = fighter_body.get_parent()
 			var injury: Node = controller.get_node_or_null("DamageSystem") if controller!=null else null
 			if injury!=null and not injury.dead and (caster_team=="" or String(controller.get("team_id"))!=caster_team):
 				injury.receive_hit(hit_point,38.0,attacker_name)
-	# Small imported-particle impact, no lingering damage or AOE.
-	ricochet_spark(projectile,hit_point)
+	# Fused homing impacts distribute both effects in one compact AOE.
+	# A structure still consumes the missile; no blast passes through walls.
+	if spell_components.size()==2 and collider is CharacterBody3D:
+		explode(projectile,hit_point)
+	else:
+		ricochet_spark(projectile,hit_point)
 
 func update_homing_direction(projectile: Node3D, delta: float) -> void:
 	# Track living targets, not their positions when the cast was started.
@@ -220,8 +226,11 @@ func ricochet_spark(projectile: Node3D, point: Vector3) -> void:
 	cleanup.tween_callback(flash.queue_free)
 
 func update_ricochet(projectile: Node3D, delta: float) -> void:
-	# Deliberately no lifetime. Existing orbs bounce until the scene ends;
-	# the caster limits the number that may coexist, not their survival time.
+	# Deliberately no lifetime. Fused tracking expires after four seconds;
+	# the orb itself keeps bouncing and remains subject to the shared cap.
+	if spell_components.has("homing") and lived<HOMING_LIFETIME:
+		update_homing_direction(projectile,delta)
+	lived += delta
 	ricochet_effect_cooldown = maxf(0.0,ricochet_effect_cooldown-delta)
 	var space: PhysicsDirectSpaceState3D = projectile.get_world_3d().direct_space_state
 	if cached_ray == null:
@@ -255,7 +264,13 @@ func update_ricochet(projectile: Node3D, delta: float) -> void:
 				var timestamp: int = Time.get_ticks_msec()
 				if timestamp-int(ricochet_last_hit_ms.get(key,-100000))>=RICOCHET_HIT_COOLDOWN_MS:
 					ricochet_last_hit_ms[key] = timestamp
-					injury.receive_hit(contact,RICOCHET_DAMAGE,attacker_name)
+					var added_damage: float = 0.0
+					if spell_components.size()==2:
+						# Repeated bounces must not emit full AOE explosions.
+						added_damage = 7.0
+					injury.receive_hit(contact,RICOCHET_DAMAGE+added_damage,attacker_name)
+					if spell_components.size()==2 and controller.has_method("apply_spell_statuses"):
+						controller.apply_spell_statuses(spell_components,contact)
 		var normal: Vector3 = hit["normal"]
 		if normal.length_squared()<0.1: normal = -travel_direction
 		travel_direction = travel_direction.bounce(normal.normalized()).normalized()
@@ -303,7 +318,11 @@ func launch_visible_aoe_stream(impact: Node3D, source: GPUParticles3D, origin: V
 	trajectory.tween_callback(Callable(endpoint,"restart"))
 	if damage != null:
 		trajectory.tween_callback(Callable(damage,"receive_aoe_regions").bind(hit_regions.duplicate(),damage_amount,attacker_name))
-	if victim.has_method("apply_spell_status"):
+	if victim.has_method("apply_spell_statuses"):
+		var components_for_impact: Array[String] = spell_components.duplicate()
+		if components_for_impact.is_empty(): components_for_impact.append(spell_type)
+		trajectory.tween_callback(Callable(victim,"apply_spell_statuses").bind(components_for_impact,origin))
+	elif victim.has_method("apply_spell_status"):
 		trajectory.tween_callback(Callable(victim,"apply_spell_status").bind(spell_type,origin))
 
 func explode(projectile: Node3D, position: Vector3) -> void:
@@ -362,6 +381,36 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		"venom":
 			base_radius = 4.4
 			impact_damage = 10.0 # Long-lasting poison damage
+	if spell_components.size()==2:
+		# One blast, with two real status effects. Limit combined damage/radius
+		# to prevent a hybrid from being two full-cost AOEs on top of each other.
+		var largest_radius: float = 0.0
+		var combined_damage: float = 0.0
+		for component in spell_components:
+			match component:
+				"fire":
+					largest_radius = maxf(largest_radius,4.0)
+					combined_damage += 30.0
+				"frost":
+					largest_radius = maxf(largest_radius,7.0)
+					combined_damage += 12.0
+				"homing":
+					largest_radius = maxf(largest_radius,2.7)
+					combined_damage += 38.0
+				"gravity":
+					largest_radius = maxf(largest_radius,6.5)
+					combined_damage += 10.0
+				"grounding":
+					largest_radius = maxf(largest_radius,8.0)
+					combined_damage += 8.0
+				"tempest":
+					largest_radius = maxf(largest_radius,6.4)
+					combined_damage += 16.0
+				"venom":
+					largest_radius = maxf(largest_radius,4.4)
+					combined_damage += 10.0
+		base_radius = largest_radius*0.85
+		impact_damage = combined_damage*0.65
 	var blast_radius: float = base_radius * blast_width
 	if source != null:
 		var wave := source.duplicate() as GPUParticles3D
@@ -428,7 +477,11 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 			launch_visible_aoe_stream(impact,source,position,damage.bone_position("torso"),fighter,hit_regions,impact_damage)
 		else:
 			damage.receive_aoe_regions(hit_regions,impact_damage,attacker_name)
-			if fighter.has_method("apply_spell_status"): fighter.apply_spell_status(spell_type,position)
+			if fighter.has_method("apply_spell_statuses"):
+				var impact_components: Array[String] = spell_components.duplicate()
+				if impact_components.is_empty(): impact_components.append(spell_type)
+				fighter.apply_spell_statuses(impact_components,position)
+			elif fighter.has_method("apply_spell_status"): fighter.apply_spell_status(spell_type,position)
 		affected_regions += hit_regions.size()
 	if scene != null and scene.has_method("record_aoe_event"):
 		scene.record_aoe_event(affected_fighters,affected_regions)
