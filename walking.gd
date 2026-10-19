@@ -552,7 +552,10 @@ func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
 func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 	if name != "PlayerMan" or ai_mode != "sprint": return false
-	var path: String = "res://assets/locomotion/Left Strafe.fbx"
+	# Prefer the newly supplied single left-strafe run clip.
+	var path: String = "res://assets/locomotion/Left Strafe run(1).fbx"
+	if not ResourceLoader.exists(path):
+		path = "res://assets/locomotion/Left Strafe.fbx"
 	if not ResourceLoader.exists(path):
 		print("[SOLO_LEFT_STRAFE] missing=",path)
 		return false
@@ -597,14 +600,15 @@ func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 				dest_index = bi
 				break
 		if source_index < 0 or dest_index < 0: continue
-		var q_source: Quaternion = source_rig.get_bone_rest(source_index).basis.get_rotation_quaternion()
-		var q_dest: Quaternion = skeleton.get_bone_rest(dest_index).basis.get_rotation_quaternion()
-		var correction: Quaternion = (q_dest.inverse()*q_source).normalized()
+		# The imported Mixamo clips and Y Bot use corresponding local joint
+		# frames. Conjugating these poses by a rest quaternion caused the
+		# crossed/twisted limbs seen in the prior test. Copy local rotations
+		# directly; the physical body owns world heading and root position.
 		var track_id: int = clip.add_track(Animation.TYPE_ROTATION_3D)
 		clip.track_set_path(track_id,NodePath(String(dest_root)+":"+skeleton.get_bone_name(dest_index)))
 		for k in range(chosen.track_get_key_count(t)):
 			var rotation: Quaternion = chosen.track_get_key_value(t,k)
-			clip.rotation_track_insert_key(track_id,chosen.track_get_key_time(t,k),(correction*rotation*correction.inverse()).normalized())
+			clip.rotation_track_insert_key(track_id,chosen.track_get_key_time(t,k),rotation.normalized())
 		mapped += 1
 	source.free()
 	if mapped < 12:
@@ -613,7 +617,7 @@ func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 	var library := AnimationLibrary.new()
 	library.add_animation("Left",clip)
 	player.add_animation_library("strafe",library)
-	print("[SOLO_LEFT_STRAFE] ready tracks=",mapped," clip=Left Strafe.fbx")
+	print("[SOLO_LEFT_STRAFE] ready tracks=",mapped," file=",path," hips_ignored=true local_rotation=true")
 	return true
 
 func install_backwards(player: AnimationPlayer):
