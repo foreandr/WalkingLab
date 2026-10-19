@@ -553,9 +553,7 @@ func smooth_gait(t: float) -> float:
 func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 	if name != "PlayerMan" or ai_mode != "sprint": return false
 	# Prefer the newly supplied single left-strafe run clip.
-	var path: String = "res://assets/locomotion/Left Strafe run(1).fbx"
-	if not ResourceLoader.exists(path):
-		path = "res://assets/locomotion/Left Strafe.fbx"
+	var path: String = "res://assets/locomotion/Left Strafe.fbx"
 	if not ResourceLoader.exists(path):
 		print("[SOLO_LEFT_STRAFE] missing=",path)
 		return false
@@ -1327,7 +1325,7 @@ func _physics_process(dt):
 	# backward and lateral movement, using the existing collision and gait tree.
 	var solo_direction_phase: int = -1
 	if name == "PlayerMan" and ai_mode == "sprint":
-		solo_direction_phase = 4 # Test the same Left Strafe animation while moving RIGHT.
+		solo_direction_phase = 5 # Compare original Left Strafe animation moving LEFT.
 		if solo_direction_phase == 2 or solo_direction_phase == 3:
 			backward = true
 			signed_speed = -minf(agent_preferred_speed,BACK_SPEEDS[2])
