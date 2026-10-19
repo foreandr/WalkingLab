@@ -10,6 +10,13 @@ var blast_width: float = 1.0
 # supplies an independently tuned impact and status effect.
 var spell_type: String = "fire"
 var spell_color: Color = Color("ff9b4f")
+var homing_target: CharacterBody3D = null
+var homing_scan_left: float = 0.0
+var ricochet_last_hit_ms: Dictionary = {}
+var ricochet_effect_cooldown: float = 0.0
+const RICOCHET_DAMAGE: float = 19.0
+const RICOCHET_HIT_COOLDOWN_MS: int = 850
+const RICOCHET_COLLISION_LIMIT: int = 4
 # The flame-wave and target streams use the SAME impact radius as damage.
 # Impact applies to each target when its animated fire reaches that target.
 const LIFETIME: float = 25.0
@@ -22,17 +29,20 @@ var cached_spectator_rid: RID
 var cached_excludes: Array[RID] = []
 
 func _physics_process(delta: float) -> void:
+	var projectile: Node3D = get_parent() as Node3D
+	if projectile == null: return
+	if spell_type=="ricochet":
+		update_ricochet(projectile,delta)
+		return
+	if spell_type=="homing":
+		update_homing_direction(projectile,delta)
 	profile_tick += 1
 	var sampled: bool = (profile_tick & 31) == 0
 	var profile_start: int = Time.get_ticks_usec() if sampled else 0
-	var projectile: Node3D = get_parent() as Node3D
-	if projectile == null: return
 	var effective_speed: float = travel_speed
 	if battle_base_speed <= 0.0:
 		match spell_type:
-			"arc": effective_speed *= 1.7
 			"gravity": effective_speed *= 0.7
-			"leech": effective_speed *= 1.3
 			"comet": effective_speed *= 1.2
 			"bloom": effective_speed *= 0.8
 			"tempest": effective_speed *= 1.4
@@ -85,6 +95,116 @@ func _physics_process(delta: float) -> void:
 	lived += delta
 	if lived >= LIFETIME:
 		projectile.queue_free()
+
+func update_homing_direction(projectile: Node3D, delta: float) -> void:
+	# Track living targets, not their positions when the cast was started.
+	# Find a new target if the current opponent dies or disappears.
+	var target_valid: bool = is_instance_valid(homing_target)
+	if target_valid:
+		var controller: Node = homing_target.get_parent()
+		var damage: Node = controller.get_node_or_null("DamageSystem") if controller != null else null
+		target_valid = damage != null and not damage.dead
+	if not target_valid:
+		homing_target = null
+		homing_scan_left -= delta
+		if homing_scan_left<=0.0:
+			homing_scan_left = 0.2
+			var best_score: float = INF
+			for fighter in projectile.get_tree().get_nodes_in_group("combat_fighters"):
+				if not is_instance_valid(fighter) or fighter.combat_dead: continue
+				var body: CharacterBody3D = fighter.get("actor") as CharacterBody3D
+				if body == null or body.get_rid()==owner_rid: continue
+				var heading: Vector3 = body.global_position+Vector3.UP-projectile.global_position
+				var range_m: float = heading.length()
+				if range_m<0.1 or range_m>110.0: continue
+				var facing: float = travel_direction.dot(heading/range_m)
+				if facing<0.10: continue
+				var score: float = range_m+(1.0-facing)*45.0
+				if score<best_score:
+					best_score = score
+					homing_target = body
+	if is_instance_valid(homing_target):
+		var aim: Vector3 = homing_target.global_position+Vector3.UP*1.05
+		var distance_m: float = projectile.global_position.distance_to(aim)
+		# Short velocity lead avoids the tail chase when runners strafe.
+		aim += homing_target.velocity*clampf(distance_m/36.0,0.0,0.48)
+		var toward: Vector3 = aim-projectile.global_position
+		if toward.length_squared()>0.01:
+			travel_direction = travel_direction.slerp(toward.normalized(),clampf(delta*7.5,0.0,1.0)).normalized()
+
+func ricochet_spark(projectile: Node3D, point: Vector3) -> void:
+	if ricochet_effect_cooldown>0.0: return
+	ricochet_effect_cooldown = 0.22
+	var source: GPUParticles3D = null
+	for child in projectile.get_children():
+		if child is GPUParticles3D:
+			source = child
+			break
+	if source == null: return
+	var scene: Node = projectile.get_tree().current_scene
+	if scene == null: return
+	var flash := Node3D.new()
+	flash.name = "RicochetSpark"
+	scene.add_child(flash)
+	flash.global_position = point
+	var particles: GPUParticles3D = source.duplicate() as GPUParticles3D
+	flash.add_child(particles)
+	particles.scale = Vector3.ONE*0.48
+	particles.amount = 12
+	particles.lifetime = 0.38
+	particles.one_shot = true
+	particles.explosiveness = 1.0
+	particles.emitting = true
+	particles.restart()
+	var cleanup := flash.create_tween()
+	cleanup.tween_interval(0.6)
+	cleanup.tween_callback(flash.queue_free)
+
+func update_ricochet(projectile: Node3D, delta: float) -> void:
+	# Deliberately no lifetime. Existing orbs bounce until the scene ends;
+	# the caster limits the number that may coexist, not their survival time.
+	ricochet_effect_cooldown = maxf(0.0,ricochet_effect_cooldown-delta)
+	var space: PhysicsDirectSpaceState3D = projectile.get_world_3d().direct_space_state
+	if cached_ray == null:
+		cached_ray = PhysicsRayQueryParameters3D.new()
+		if owner_rid.is_valid(): cached_excludes.append(owner_rid)
+		cached_ray.exclude = cached_excludes
+	var scene: Node = projectile.get_tree().current_scene
+	var effective_speed: float = travel_speed
+	if battle_base_speed>0.0 and scene!=null:
+		effective_speed = battle_base_speed*float(scene.get("battle_fireball_speed"))
+	var remaining: float = maxf(0.0,effective_speed*delta)
+	var at: Vector3 = projectile.global_position
+	for i in range(RICOCHET_COLLISION_LIMIT):
+		if remaining<=0.01: break
+		cached_ray.from = at
+		cached_ray.to = at+travel_direction*remaining
+		var hit: Dictionary = space.intersect_ray(cached_ray)
+		if hit.is_empty():
+			at += travel_direction*remaining
+			remaining = 0.0
+			break
+		var contact: Vector3 = hit["position"]
+		var covered: float = at.distance_to(contact)
+		at = contact-travel_direction*0.06
+		var collider: Object = hit.get("collider")
+		if collider is CharacterBody3D:
+			var controller: Node = (collider as CharacterBody3D).get_parent()
+			var injury: Node = controller.get_node_or_null("DamageSystem") if controller != null else null
+			if injury != null and not injury.dead:
+				var key: int = collider.get_instance_id()
+				var timestamp: int = Time.get_ticks_msec()
+				if timestamp-int(ricochet_last_hit_ms.get(key,-100000))>=RICOCHET_HIT_COOLDOWN_MS:
+					ricochet_last_hit_ms[key] = timestamp
+					injury.receive_hit(contact,RICOCHET_DAMAGE,attacker_name)
+		var normal: Vector3 = hit["normal"]
+		if normal.length_squared()<0.1: normal = -travel_direction
+		travel_direction = travel_direction.bounce(normal.normalized()).normalized()
+		if travel_direction.length_squared()<0.01: travel_direction = normal.normalized()
+		at += travel_direction*0.12
+		remaining = maxf(0.0,remaining-covered-0.12)
+		ricochet_spark(projectile,contact)
+	projectile.global_position = at
 
 func launch_visible_aoe_stream(impact: Node3D, source: GPUParticles3D, origin: Vector3, target_point: Vector3, victim: Node, hit_regions: Array[String], damage_amount: float) -> void:
 	# Copy the imported flame effect, not a generated mesh or fake hitbox.
@@ -162,15 +282,15 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		"frost":
 			base_radius = 5.5
 			impact_damage = 18.0 # + heavy movement slow
-		"arc":
-			base_radius = 2.8
-			impact_damage = 26.0 # + lightning jumps to further targets
+		"homing":
+			base_radius = 2.7
+			impact_damage = 38.0 # Aim-assisted missile that follows the victim
 		"gravity":
 			base_radius = 6.5
 			impact_damage = 10.0 # + physical pull toward the blast
-		"leech":
-			base_radius = 4.0
-			impact_damage = 24.0 # + health/mana siphon for the caster
+		"ricochet":
+			base_radius = 0.0
+			impact_damage = 0.0 # Collisions handled by persistent bouncing sphere
 		"comet":
 			base_radius = 2.8
 			impact_damage = 70.0 # Focused, heavy impact
@@ -209,11 +329,10 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		wave.restart()
 	var affected_fighters: int = 0
 	var struck: Dictionary = {}
-	var arc_candidates: Array = []
 	var affected_regions: int = 0
 	# Arena spatial hash avoids testing the entire 60-fighter roster on
 	# every impact. Fall back to the scene group outside arena mode.
-	var query_radius: float = maxf(blast_radius,11.0 if spell_type == "arc" else 0.0)
+	var query_radius: float = blast_radius
 	var candidates: Array = scene.war_nearby_fighters(position,maxi(1,int(ceil((query_radius + 3.0) / scene.WAR_GRID_CELL)))) if scene != null and scene.has_method("war_nearby_fighters") else projectile.get_tree().get_nodes_in_group("combat_fighters")
 	if scene != null:
 		# The central battle roster excludes the manually controlled player
@@ -231,10 +350,8 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		if body == null or body.get_rid() == owner_rid: continue
 		var damage: Node = fighter.get_node_or_null("DamageSystem")
 		if damage == null or damage.dead: continue
-		# Arc looks farther for chain targets, without damaging them until the
-		# direct blast has resolved. Every projectile keeps the spatial broadphase.
+		# Keep the broad-phase and per-bone radius consistent with the VFX.
 		var radius_sq: float = body.global_position.distance_squared_to(position)
-		if spell_type == "arc" and radius_sq <= 121.0: arc_candidates.append(fighter)
 		if radius_sq > pow(blast_radius + 3.0,2.0): continue
 		var hit_regions: Array[String] = []
 		for region in damage.REGIONS:
@@ -253,26 +370,6 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 			damage.receive_aoe_regions(hit_regions,impact_damage,attacker_name)
 			if fighter.has_method("apply_spell_status"): fighter.apply_spell_status(spell_type,position)
 		affected_regions += hit_regions.size()
-	if spell_type == "arc":
-		# Jump to up to three extra distinct enemies outside the direct blast.
-		arc_candidates.sort_custom(func(a,b): return a.actor.global_position.distance_squared_to(position)<b.actor.global_position.distance_squared_to(position))
-		var chains: int = 0
-		for candidate in arc_candidates:
-			if chains>=3: break
-			if not is_instance_valid(candidate) or candidate.combat_dead: continue
-			var target_body: CharacterBody3D = candidate.actor
-			if struck.has(target_body.get_instance_id()): continue
-			var target_damage: Node = candidate.get_node_or_null("DamageSystem")
-			if target_damage == null or target_damage.dead: continue
-			target_damage.receive_region_hit("torso",target_damage.bone_position("torso"),18.0,attacker_name)
-			struck[target_body.get_instance_id()] = true
-			chains += 1
-			affected_fighters += 1
-			affected_regions += 1
-	if spell_type == "leech" and attacker_name == "PlayerMan" and affected_fighters>0:
-		var caster: Node = scene.get_node_or_null("PlayerMan")
-		if caster != null and caster.has_method("heal_from_spell"):
-			caster.heal_from_spell(7.0*float(affected_fighters))
 	if scene != null and scene.has_method("record_aoe_event"):
 		scene.record_aoe_event(affected_fighters,affected_regions)
 	elif scene == null or not bool(scene.get("stress_no_deaths")):
