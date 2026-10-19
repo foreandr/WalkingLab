@@ -40,6 +40,12 @@ var cast_elapsed: float = -1.0
 var cast_released: bool = false
 var cast_arm_name: String = ""
 var cast_element: String = "fire"
+# Each fused cast spawns one projectile with two independent effect components.
+var cast_components: Array[String] = []
+const FUSION_INPUT_WINDOW_MS: int = 115
+var pending_spell_slot: int = -1
+var pending_spell_since_ms: int = 0
+var pending_spell_arm: String = ""
 # Five fingers per hand. Shift changes which complete set 1-5 operates.
 # RIGHT: Ember, Frost, Homing Missile, Gravity, Ricochet.
 # LEFT: Grounding, Bloom, Tempest, Venom, Flight.
@@ -58,6 +64,23 @@ const SPELL_EFFECTS: Array[String] = [
 	"Toggle magical flight; stopped by Earthbind"
 ]
 const SPELL_IDS: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
+# Lifeweave and Ascension remain standalone, non-projectile abilities.
+const FUSION_PROJECTILES: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","tempest","venom"]
+const FUSION_NAMES: Dictionary = {
+	"fire+frost":"Thermal Rupture",
+	"fire+homing":"Hellseeker",
+	"fire+gravity":"Cinder Singularity",
+	"fire+ricochet":"Wildfire Orbit",
+	"frost+homing":"Winter's Pursuit",
+	"frost+gravity":"Frozen Abyss",
+	"frost+ricochet":"Glacial Rebound",
+	"homing+gravity":"Event Horizon",
+	"homing+ricochet":"Relentless Wisp",
+	"gravity+ricochet":"Orbitbreaker",
+	"grounding+tempest":"Skybreaker",
+	"grounding+venom":"Withering Earth",
+	"tempest+venom":"Plague Gale"
+}
 const SPELL_COSTS: Array[float] = [15.0,20.0,22.0,30.0,24.0,26.0,35.0,22.0,20.0,18.0]
 # Faster exchanges; persistent Everbound retains the longer 7s gate.
 const SPELL_COOLDOWNS: Array[float] = [1.6,5.2,3.0,6.2,7.0,5.5,9.0,4.5,5.2,3.0]
@@ -729,6 +752,8 @@ func update_resource_hud() -> void:
 	var hand_offset: int = 5 if controlled_arm == "left" else 0
 	if hand_indicator != null:
 		hand_indicator.text = ("LEFT HAND" if controlled_arm == "left" else "RIGHT HAND")+"  |  1-5 FINGERS (SHIFT)"
+		if cast_elapsed>=0.0 and cast_components.size()==2:
+			hand_indicator.text = "FUSION: "+fusion_name(cast_components)
 	for i in range(5):
 		var slot: int = hand_offset+i
 		var remaining: float = 0.0 if ignore_spell_cooldowns else spell_remaining[slot]
@@ -2065,6 +2090,7 @@ func _physics_process(dt):
 					if changed_target: arena.record_player_auto_target_change(closest.name)
 	if paused: return
 	if player_controlled:
+		flush_pending_spell()
 		tick_live_spell_effects(dt)
 		blink_cooldown_remaining = maxf(0.0,blink_cooldown_remaining-dt)
 		for i in range(spell_remaining.size()):
@@ -3336,42 +3362,120 @@ func toggle_flight_spell() -> void:
 		flight_clearance_time = 1.0
 		debug_player("FLIGHT_SPELL","air_launch")
 
-func cast_spell(element: String) -> void:
-	# Player controls five independent fingers per selected hand.
-	var slot: int = SPELL_IDS.find(element)
-	if slot<0: return
-	if player_controlled:
-		if slot<0: return
-		if (slot<5 and controlled_arm!="right") or (slot>=5 and controlled_arm!="left"): return
-		if element=="flight":
-			toggle_flight_spell()
-			return
-	if cast_elapsed>=0.0 or crouch.active(): return
-	if element=="ricochet" and get_tree().get_nodes_in_group("persistent_ricochets").size()>=MAX_ACTIVE_RICOCHETS:
+func fusion_name(elements: Array[String]) -> String:
+	if elements.size()==1: return SPELL_NAMES[SPELL_IDS.find(elements[0])]
+	if elements.size()!=2: return ""
+	var first_slot: int = mini(SPELL_IDS.find(elements[0]),SPELL_IDS.find(elements[1]))
+	var second_slot: int = maxi(SPELL_IDS.find(elements[0]),SPELL_IDS.find(elements[1]))
+	return String(FUSION_NAMES.get(SPELL_IDS[first_slot]+"+"+SPELL_IDS[second_slot],SPELL_NAMES[first_slot]+" + "+SPELL_NAMES[second_slot]))
+
+func spell_pair_is_ready(first_slot: int, second_slot: int) -> bool:
+	if first_slot<0 or second_slot<0 or first_slot==second_slot: return false
+	if first_slot>=SPELL_IDS.size() or second_slot>=SPELL_IDS.size(): return false
+	if (first_slot<5)!=(second_slot<5): return false
+	if not FUSION_PROJECTILES.has(SPELL_IDS[first_slot]) or not FUSION_PROJECTILES.has(SPELL_IDS[second_slot]): return false
+	if cast_elapsed>=0.0 or crouch.active() or combat_dead: return false
+	if not spell_is_ready(first_slot) or not spell_is_ready(second_slot): return false
+	if not infinite_mana and mana<SPELL_COSTS[first_slot]+SPELL_COSTS[second_slot]: return false
+	if (SPELL_IDS[first_slot]=="ricochet" or SPELL_IDS[second_slot]=="ricochet") and get_tree().get_nodes_in_group("persistent_ricochets").size()>=MAX_ACTIVE_RICOCHETS: return false
+	return true
+
+func begin_projectile_cast(elements: Array[String]) -> bool:
+	if cast_elapsed>=0.0 or crouch.active() or combat_dead: return false
+	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return false
+	if elements.is_empty() or elements.size()>2: return false
+	var slots: Array[int] = []
+	var total_mana: float = 0.0
+	var first_arm: String = ""
+	for element in elements:
+		var slot: int = SPELL_IDS.find(element)
+		if slot<0 or not FUSION_PROJECTILES.has(element) or not spell_is_ready(slot): return false
+		var hand: String = "left" if slot>=5 else "right"
+		if first_arm!="" and first_arm!=hand: return false
+		if player_controlled and controlled_arm!=hand: return false
+		if slots.has(slot): return false
+		first_arm = hand
+		slots.append(slot)
+		total_mana += SPELL_COSTS[slot]
+	if not infinite_mana and mana<total_mana: return false
+	if elements.size()==2 and not spell_pair_is_ready(slots[0],slots[1]): return false
+	if elements.has("ricochet") and get_tree().get_nodes_in_group("persistent_ricochets").size()>=MAX_ACTIVE_RICOCHETS:
 		if player_controlled: debug_player("RICOCHET_LIMIT","active orbs capped at "+str(MAX_ACTIVE_RICOCHETS))
-		return
-	if not spell_is_ready(slot): return
+		return false
 	var arm_health: Node = get_node_or_null("DamageSystem")
-	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"])<=0.0:
-		if player_controlled: debug_player("SPELL_BLOCKED","disabled "+controlled_arm+" arm")
-		return
-	if element=="bloom":
-		spend_spell(slot)
-		cast_bloom_pulse()
-		return
-	# Existing imported VFX/rig animation; no home-built substitute.
-	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return
-	cast_element = element
-	cast_arm_name = controlled_arm
+	if arm_health!=null and float(arm_health.hp["right_arm" if first_arm=="right" else "left_arm"])<=0.0:
+		if player_controlled: debug_player("SPELL_BLOCKED","disabled "+first_arm+" arm")
+		return false
+	var hand_id: int = jab_right_hand if first_arm=="right" else jab_left_hand
+	if hand_id<0: return false
+	# Commit both costs and cooldowns atomically, then create ONE shot.
+	cast_element = elements[0]
+	cast_components = elements.duplicate()
+	cast_arm_name = first_arm
 	cast_aim_point = ai_target_position() if ai_abilities else selected_target_aim_point()
-	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
-	if hand_id<0: return
-	spend_spell(slot)
+	for slot in slots:
+		if not ignore_spell_cooldowns: spell_remaining[slot] = SPELL_COOLDOWNS[slot]
+	if not infinite_mana: mana = maxf(0.0,mana-total_mana)
+	update_resource_hud()
 	skeleton.force_update_all_bone_transforms()
 	cast_last_hand = skeleton.global_transform*skeleton.get_bone_global_pose(hand_id).origin
 	cast_hand_velocity = Vector3.ZERO
 	cast_elapsed = 0.0
 	cast_released = false
+	if elements.size()==2 and player_controlled: print("SPELL_FUSION ",fusion_name(elements)," components=",elements)
+	return true
+
+func cast_spell_pair(first: String, second: String) -> bool:
+	var first_slot: int = SPELL_IDS.find(first)
+	var second_slot: int = SPELL_IDS.find(second)
+	if not spell_pair_is_ready(first_slot,second_slot): return false
+	var ordered: Array[String] = [SPELL_IDS[mini(first_slot,second_slot)],SPELL_IDS[maxi(first_slot,second_slot)]]
+	return begin_projectile_cast(ordered)
+
+func cast_spell(element: String) -> void:
+	var slot: int = SPELL_IDS.find(element)
+	if slot<0: return
+	if player_controlled:
+		if (slot<5 and controlled_arm!="right") or (slot>=5 and controlled_arm!="left"): return
+		if element=="flight":
+			toggle_flight_spell()
+			return
+	if element=="bloom":
+		if cast_elapsed>=0.0 or crouch.active() or combat_dead or not spell_is_ready(slot): return
+		var arm_health: Node = get_node_or_null("DamageSystem")
+		if arm_health!=null and float(arm_health.hp["left_arm"])<=0.0: return
+		spend_spell(slot)
+		cast_bloom_pulse()
+		return
+	begin_projectile_cast([element])
+
+func flush_pending_spell(force: bool = false) -> void:
+	if pending_spell_slot<0: return
+	if not force and Time.get_ticks_msec()-pending_spell_since_ms<FUSION_INPUT_WINDOW_MS: return
+	var slot: int = pending_spell_slot
+	var hand: String = pending_spell_arm
+	pending_spell_slot = -1
+	pending_spell_arm = ""
+	if controlled_arm==hand: cast_spell(SPELL_IDS[slot])
+
+func receive_spell_key(slot: int) -> void:
+	if slot<0 or slot>=SPELL_IDS.size(): return
+	var now_ms: int = Time.get_ticks_msec()
+	if pending_spell_slot>=0:
+		var first_slot: int = pending_spell_slot
+		var same_hand: bool = pending_spell_arm==controlled_arm
+		if first_slot!=slot and same_hand and now_ms-pending_spell_since_ms<=FUSION_INPUT_WINDOW_MS and spell_pair_is_ready(first_slot,slot):
+			pending_spell_slot = -1
+			pending_spell_arm = ""
+			cast_spell_pair(SPELL_IDS[first_slot],SPELL_IDS[slot])
+			return
+		flush_pending_spell(true)
+	if not FUSION_PROJECTILES.has(SPELL_IDS[slot]):
+		cast_spell(SPELL_IDS[slot])
+		return
+	pending_spell_slot = slot
+	pending_spell_arm = controlled_arm
+	pending_spell_since_ms = now_ms
 
 func update_cast_motion(dt: float) -> void:
 	if cast_elapsed < 0.0: return
@@ -3531,14 +3635,18 @@ func _unhandled_input(event):
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode>=KEY_1 and event.keycode<=KEY_5:
 				var spell_index: int = (5 if controlled_arm=="left" else 0)+(event.keycode-KEY_1)
-				cast_spell(SPELL_IDS[spell_index])
+				receive_spell_key(spell_index)
 			if event.keycode==KEY_F: select_hovered_target()
 			if event.keycode==KEY_SHIFT:
+				flush_pending_spell(true)
 				if cast_elapsed < 0.0:
 					controlled_arm = "left" if controlled_arm == "right" else "right"
 					update_resource_hud()
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		if event is InputEventKey and not event.pressed and event.keycode>=KEY_1 and event.keycode<=KEY_5:
+			var released_slot: int = (5 if pending_spell_arm=="left" else 0)+(event.keycode-KEY_1)
+			if pending_spell_slot==released_slot: flush_pending_spell(true)
 		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
 			orbit = wrapf(orbit-event.relative.x*0.004*camera_sensitivity,-PI,PI)
 			elevation = clampf(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
