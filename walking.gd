@@ -2593,7 +2593,7 @@ func _physics_process(dt):
 		update_flight_orientation(step)
 
 	# This arena has a flat floor at zero, including at wall contacts.
-	if actor.position.y<0.0:
+	if actor.position.y<0.0 and not bool(get_meta("allow_negative_terrain_y",false)):
 		actor.position.y = 0.0
 		actor.velocity.y = 0.0
 	if backward and not turning and not crouch_driving:
