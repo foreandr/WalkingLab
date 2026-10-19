@@ -167,12 +167,12 @@ func _ready():
 	player.benchmark_flight_axis = Vector2.ZERO
 	player.benchmark_flight_direction = Vector3.ZERO
 	add_child(player)
-	if String(current_level.get("biome","")) == "dirt":
+	if String(current_level.get("biome","")) == "flat_dirt":
 		player.actor.add_child(preload("res://dirt_footsteps.gd").new())
 	player.camera.current = true
 	player_label = make_label(player.actor,"BLACK / IMMORTAL [G]",TEAM_BLUE)
 	attach_status_label(player)
-	if String(current_level.get("biome","")) != "grassland" and String(current_level.get("biome","")) != "dirt":
+	if String(current_level.get("biome","")) != "grassland" and String(current_level.get("biome","")) != "flat_dirt":
 		make_boundary()
 	# Always show a separate autonomous locomotion demonstrator beside Black.
 	ai = null
