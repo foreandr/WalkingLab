@@ -1,0 +1,382 @@
+WalkingLab run 2026-10-19T17:38:59.3235916-04:00
+Godot executable: C:\Users\forea\Documents\Codex\2026-10-16\okay\work\godot\Godot_v4.7.2-stable_win64_console.exe
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 26.8.1.260806 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon(TM) 610M
+
+[BRAWL_BARRIERS] side=56.0m height=26.0m roof=SOLID collision_shapes=5
+[SOLO_LEFT_STRAFE] selected=res://assets/locomotion/Left Strafe run.fbx
+[SOLO_LEFT_STRAFE] ready tracks=51 file=res://assets/locomotion/Left Strafe run.fbx hips_ignored=true local_rotation=true
+[SOLO_LEFT_STRAFE] selected=res://assets/locomotion/Right Strafe run.fbx
+[SOLO_LEFT_STRAFE] ready tracks=51 file=res://assets/locomotion/Right Strafe run.fbx hips_ignored=true local_rotation=true
+MIXAMO_CLIPS ["EasyRun", "FastRun", "NewWalk", "PreviousWalk", "QuickRun", "Run", "StandardRun", "back/BackQuickRun", "back/BackRun", "back/BackWalk", "strafe/Left", "strafe/Right"]
+IDLE_REGISTERED Idle (3).fbx name=Idle3 tracks=52 length=2.2
+IDLE_REGISTERED Breathing Idle.fbx name=BreathingIdle tracks=52 length=9.93333333333333
+IDLE_REGISTERED Idle (2).fbx name=Idle1 tracks=42 length=4.0
+IDLE_REGISTERED Offensive Idle.fbx name=Idle2 tracks=52 length=10.5666666666667
+IDLE_REGISTERED Neutral Idle.fbx name=Idle0 tracks=52 length=8.76666666666667
+CROUCH_CLIPS ["EasyRun", "FastRun", "NewWalk", "PreviousWalk", "QuickRun", "Run", "StandardRun", "back/BackQuickRun", "back/BackRun", "back/BackWalk", "crouch/CrouchBack", "crouch/Enter", "crouch/Idle", "crouch/Launch", "crouch/SneakLeft", "crouch/Stand", "derived_crouch/Forward", "derived_crouch/Right", "manual/BreathingIdle", "manual/Idle0", "manual/Idle1", "manual/Idle2", "manual/Idle3", "strafe/Left", "strafe/Right"]
+JAB_IK_BONES arm=8 forearm=9 hand=10
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Flying (1).fbx tracks=51 seconds=2.63333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Jumping Up.fbx tracks=41 seconds=0.83333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Sitting Idle.fbx tracks=51 seconds=10.2666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Punching (1).fbx tracks=51 seconds=1.26666666666667
+[PLAYER_DEBUG] t=0.0 ASSET_MISSING | Punching(2).fbx path=res://assets/custom_idle/Punching(2).fbx
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Reaction.fbx tracks=50 seconds=1.83333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Reaction (1).fbx tracks=50 seconds=1.83333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Medium Hit To Head.fbx tracks=51 seconds=0.93333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Medium Hit To Head (1).fbx tracks=51 seconds=0.93333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Light Hit To Head.fbx tracks=51 seconds=0.76666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Light Hit To Head (1).fbx tracks=51 seconds=0.76666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Big Kidney Hit.fbx tracks=51 seconds=1.6
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Big Kidney Hit (1).fbx tracks=51 seconds=1.6
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Dying.fbx tracks=51 seconds=5.76666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Dying (1).fbx tracks=51 seconds=4.66666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Dying (2).fbx tracks=51 seconds=3.46666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Dying (3).fbx tracks=31 seconds=2.6
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Stunned.fbx tracks=51 seconds=2.13333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Injured Walk (1).fbx tracks=51 seconds=1.16666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Injured Walk.fbx tracks=51 seconds=1.16666666666667
+[ANIMATION_CACHE_BUILD] duration_ms=353.88 imported_clips=19
+FLIGHT_ANIMATION_LOADED PlayerMan tracks=51
+FOOT_SURFACE_SAMPLES 1282
+[FOOT_SUPPORT_CACHE] samples=1282 all_samples=35434
+[FIGHTER_INIT_PHASE] fighter=RED_01 phase=model_attach ms=0.45
+[FIGHTER_INIT_PHASE] fighter=RED_01 phase=backwards ms=9.89
+[FIGHTER_INIT_PHASE] fighter=RED_01 phase=crouch ms=18.4
+[FIGHTER_INIT_PHASE] fighter=RED_01 phase=idle ms=0.0
+[FIGHTER_INIT_PHASE] fighter=RED_01 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=RED_01 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=RED_01 duration_ms=30.33
+[BRAWL_COMBINED_ANIMATIONS] actor=RED_01 native_locomotion=UAL1 authored_sword_and_ninja=UAL2 clips_added=43
+[BRAWL_RIG_LOADED] fighter=RED_01 path=res://assets/source_original.glb visible_meshes=1 animations=["A_TPose", "Crouch_Fwd", "Crouch_Idle", "Dance", "Death01", "Driving", "Fixing_Kneeling", "Hit_Chest", "Hit_Head", "Idle", "Idle_Talking", "Idle_Torch", "Interact", "Jog_Fwd", "Jump", "Jump_Land", "Jump_Start", "PickUp_Table", "Pistol_Aim_Down", "Pistol_Aim_Neutral", "Pistol_Aim_Up", "Pistol_Idle", "Pistol_Reload", "Pistol_Shoot", "Punch_Cross", "Punch_Jab", "Push", "Roll", "Sitting_Enter", "Sitting_Exit", "Sitting_Idle", "Sitting_Talking", "Spell_Simple_Enter", "Spell_Simple_Exit", "Spell_Simple_Idle", "Spell_Simple_Shoot", "Sprint", "Swim_Fwd", "Swim_Idle", "Sword_Attack", "Sword_Idle", "Walk", "Walk_Formal", "ual2/A_TPose", "ual2/Chest_Open", "ual2/ClimbUp_1m", "ual2/Consume", "ual2/Farm_Harvest", "ual2/Farm_PlantSeed", "ual2/Farm_Watering", "ual2/Hit_Knockback", "ual2/Idle_FoldArms", "ual2/Idle_Lantern", "ual2/Idle_No", "ual2/Idle_Rail", "ual2/Idle_Rail_Call", "ual2/Idle_Shield", "ual2/Idle_Shield_Break", "ual2/Idle_TalkingPhone", "ual2/LayToIdle", "ual2/Melee_Hook", "ual2/Melee_Hook_Rec", "ual2/NinjaJump_Idle", "ual2/NinjaJump_Land", "ual2/NinjaJump_Start", "ual2/OverhandThrow", "ual2/Shield_Dash", "ual2/Shield_OneShot", "ual2/Slide", "ual2/Slide_Exit", "ual2/Slide_Start", "ual2/Sword_Block", "ual2/Sword_Dash", "ual2/Sword_Heavy_Combo", "ual2/Sword_Regular_A", "ual2/Sword_Regular_A_Rec", "ual2/Sword_Regular_B", "ual2/Sword_Regular_B_Rec", "ual2/Sword_Regular_C", "ual2/Sword_Regular_Combo", "ual2/TreeChopping", "ual2/Walk_Carry", "ual2/Yes", "ual2/Zombie_Idle", "ual2/Zombie_Scratch", "ual2/Zombie_Walk_Fwd"]
+[BRAWL_GEAR] fighter=RED_01 type=sword source=res://assets/kenney_weapons/mini-arena/weapon-sword.glb bone=hand_r
+[FIGHTER_INIT_PHASE] fighter=GOLD_02 phase=model_attach ms=0.41
+[FIGHTER_INIT_PHASE] fighter=GOLD_02 phase=backwards ms=9.29
+[FIGHTER_INIT_PHASE] fighter=GOLD_02 phase=crouch ms=23.92
+[FIGHTER_INIT_PHASE] fighter=GOLD_02 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=GOLD_02 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=GOLD_02 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=GOLD_02 duration_ms=35.32
+[BRAWL_RIG_LOADED] fighter=GOLD_02 path=res://assets/showcase/aether-02.glb visible_meshes=1 animations=["Backflip", "Collapse", "DodgeRoll", "HitChest", "HitHead", "KneelFire", "Knockback", "PunchCombo", "Run", "Sentinel", "Walk"]
+[BRAWL_GEAR] fighter=GOLD_02 type=dagger source=res://assets/kenney_weapons/weapon/knife_sharp.glb bone=hand.R
+[BRAWL_START] mode=NPC_1V1 npc_count=2 spectator=BLACK excluded_from_targeting=true
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=0.27 STATE_CHANGE |  -> IDLE
+[PLAYER_DEBUG] t=0.27 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=0.53 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[BRAWL_ACTION] GOLD_02 action=WEAPON DAGGER clip=PunchCombo
+[BRAWL_SWING] fighter=GOLD_02 combo=1 weapon=dagger
+[BRAWL_ACTION] RED_01 action=WEAPON SWORD clip=ual2/Sword_Regular_A
+[BRAWL_SWING] fighter=RED_01 combo=1 weapon=sword
+[DAMAGE] RED_01 left_arm -14.0 HP=86.0
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[BRAWL_WEAPON_HIT] attacker=GOLD_02 victim=RED_01 dmg=14.0 blocking=false weapon=dagger
+[DAMAGE] RED_01 head -12.0 HP=88.0
+[DAMAGE] RED_01 torso -12.0 HP=88.0
+[DAMAGE] RED_01 left_arm -12.0 HP=74.0
+[DAMAGE] RED_01 right_arm -12.0 HP=88.0
+[DAMAGE] RED_01 left_leg -12.0 HP=88.0
+[DAMAGE] RED_01 right_leg -12.0 HP=88.0
+[BRAWL_ACTION] GOLD_02 action=EVASIVE ACROBATICS clip=Backflip
+[BRAWL_DODGE] fighter=GOLD_02 invulnerability_s=0.24
+[PLAYER_DEBUG] t=0.8 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=1.07 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=1.33 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=1.6 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[PLAYER_DEBUG] t=1.87 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[PLAYER_DEBUG] t=1.95 MOUSE_DOWN | button=3
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=2.13 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.14 cam_pitch=-0.13
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[DAMAGE] RED_01 head -8.0 HP=80.0
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=Hit_Head
+[DAMAGE] RED_01 torso -8.0 HP=80.0
+[DAMAGE] RED_01 left_arm -8.0 HP=66.0
+[DAMAGE] RED_01 right_arm -8.0 HP=80.0
+[DAMAGE] RED_01 left_leg -8.0 HP=80.0
+[DAMAGE] RED_01 right_leg -8.0 HP=80.0
+[BRAWL_ACTION] GOLD_02 action=WEAPON DAGGER clip=PunchCombo
+[BRAWL_SWING] fighter=GOLD_02 combo=2 weapon=dagger
+[PLAYER_DEBUG] t=2.4 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.14 cam_pitch=-0.13
+[BRAWL_ACTION] RED_01 action=EVASIVE ACROBATICS clip=Roll
+[BRAWL_DODGE] fighter=RED_01 invulnerability_s=0.24
+[PLAYER_DEBUG] t=2.67 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.15 cam_pitch=-0.12
+[PLAYER_DEBUG] t=2.7 KEY_DOWN | W grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=2.93 STATE_CHANGE | IDLE -> MOVE
+[PLAYER_DEBUG] t=2.93 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(-0.353743, 0.0, -2.137594) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.99 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.16 cam_pitch=-0.1
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=3.07 MOUSE_DOWN | button=3
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=3.2 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(-0.354831, 0.0, -2.144171) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.97 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.21 cam_pitch=0.02
+[PLAYER_DEBUG] t=3.47 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(-0.180681, 0.0, -1.091817) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.14 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.31 cam_pitch=0.04
+[PLAYER_DEBUG] t=3.73 STATE_CHANGE | MOVE -> IDLE
+[PLAYER_DEBUG] t=3.73 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(-0.006531, 0.0, -0.039463) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.56 cam_pitch=-0.06
+[PLAYER_DEBUG] t=4.0 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.57 cam_pitch=-0.06
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=4.27 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.57 cam_pitch=-0.06
+[PLAYER_DEBUG] t=4.53 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.54 cam_pitch=-0.04
+[DAMAGE] GOLD_02 right_arm -38.0 HP=62.0
+[BRAWL_ACTION] GOLD_02 action=WEAPON IMPACT clip=HitChest
+[DAMAGE] RED_01 right_arm -38.0 HP=42.0
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[PLAYER_DEBUG] t=4.8 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.54 cam_pitch=-0.04
+[BRAWL_ACTION] RED_01 action=WEAPON SWORD clip=ual2/Sword_Regular_B
+[BRAWL_SWING] fighter=RED_01 combo=2 weapon=sword
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[BRAWL_ACTION] GOLD_02 action=EVASIVE ACROBATICS clip=Backflip
+[BRAWL_DODGE] fighter=GOLD_02 invulnerability_s=0.24
+[PLAYER_DEBUG] t=5.07 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.54 cam_pitch=-0.04
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[BRAWL_METRICS] fps=57.0 time=5.3 active=2 hits=1 swings=4 draw_calls=101.0
+[PLAYER_DEBUG] t=5.32 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=5.33 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.54 cam_pitch=-0.04
+[PLAYER_DEBUG] t=5.6 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.49 cam_pitch=-0.06
+[PLAYER_DEBUG] t=5.7 KEY_DOWN | D grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=5.8 KEY_DOWN | W grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=5.87 STATE_CHANGE | IDLE -> MOVE
+[PLAYER_DEBUG] t=5.87 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(2.479668, 0.0, 0.592654) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.01 strafe_weight=0.97 strafe_left_blend=0.0 strafe_right_blend=0.71 visual_yaw=-39.2 strafe_side_mps=5.53 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.43 cam_pitch=-0.08
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=6.13 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(4.172115, 0.0, -0.132082) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.48 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.88 visual_yaw=-48.4 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.43 cam_pitch=-0.08
+[BRAWL_ACTION] GOLD_02 action=EVASIVE ACROBATICS clip=Backflip
+[BRAWL_DODGE] fighter=GOLD_02 invulnerability_s=0.24
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=6.33 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=6.4 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(4.172115, 0.0, -0.132082) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.46 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.89 visual_yaw=-49.1 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.43 cam_pitch=-0.08
+[PLAYER_DEBUG] t=6.6 KEY_DOWN | Alt grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=6.67 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(2.411947, 0.0, -1.875894) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.62 strafe_weight=0.4 strafe_left_blend=0.0 strafe_right_blend=0.72 visual_yaw=-39.7 strafe_side_mps=2.33 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.38 cam_pitch=-0.1
+[PLAYER_DEBUG] t=6.68 KEY_DOWN | D grounded=true flying=false crouch=false
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=6.93 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(2.327781, 0.0, -2.112473) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.85 strafe_weight=0.32 strafe_left_blend=0.0 strafe_right_blend=0.62 visual_yaw=-34.0 strafe_side_mps=2.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.38 cam_pitch=-0.1
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[DAMAGE] RED_01 head -12.0 HP=73.9948999444448
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=Hit_Head
+[DAMAGE] RED_01 torso -12.0 HP=73.9948999444448
+[DAMAGE] RED_01 left_arm -12.0 HP=59.9948999444448
+[DAMAGE] RED_01 right_arm -12.0 HP=30.0
+[DAMAGE] RED_01 left_leg -12.0 HP=73.9948999444448
+[DAMAGE] RED_01 right_leg -12.0 HP=73.9948999444448
+[BRAWL_ACTION] RED_01 action=WEAPON SWORD clip=ual2/Sword_Regular_C
+[BRAWL_SWING] fighter=RED_01 combo=3 weapon=sword
+[PLAYER_DEBUG] t=7.2 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(1.307003, 0.0, -3.23469) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.32 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.08 visual_yaw=-4.3 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.38 cam_pitch=-0.1
+[DAMAGE] GOLD_02 left_leg -20.0 HP=80.0
+[BRAWL_ACTION] GOLD_02 action=WEAPON IMPACT clip=HitChest
+[BRAWL_WEAPON_HIT] attacker=RED_01 victim=GOLD_02 dmg=20.0 blocking=false weapon=sword
+[BRAWL_ACTION] GOLD_02 action=WEAPON DAGGER clip=PunchCombo
+[BRAWL_SWING] fighter=GOLD_02 combo=3 weapon=dagger
+[PLAYER_DEBUG] t=7.47 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(1.341611, 0.0, -3.320339) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.38 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.01 visual_yaw=-0.5 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.38 cam_pitch=-0.1
+[DAMAGE] GOLD_02 head -30.0 HP=70.0
+[DAMAGE] GOLD_02 torso -30.0 HP=70.0
+[DAMAGE] GOLD_02 left_arm -30.0 HP=70.0
+[DAMAGE] GOLD_02 right_arm -30.0 HP=32.0
+[DAMAGE] GOLD_02 left_leg -30.0 HP=50.0
+[DAMAGE] GOLD_02 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=7.62 MOUSE_DOWN | button=3
+[DAMAGE] RED_01 head -30.0 HP=43.9948999444448
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=Hit_Head
+[DAMAGE] RED_01 torso -30.0 HP=43.9948999444448
+[DAMAGE] RED_01 left_arm -30.0 HP=29.9948999444448
+[DAMAGE] RED_01 right_arm -30.0 HP=0.0
+[DAMAGE] RED_01 left_leg -30.0 HP=43.9948999444448
+[DAMAGE] RED_01 right_leg -30.0 HP=43.9948999444448
+[PLAYER_DEBUG] t=7.73 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(1.495129, 0.0, -3.832036) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.62 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=-0.1 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.37 cam_pitch=-0.1
+[BRAWL_MISSING_AUTHORED_CLIP] GOLD_02 source=res://assets/showcase/aether-02.glb options=["NinjaJump_Start", "Jump_Start", "Jump"]
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=8.0 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(1.28343, 0.0, -4.208536) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.68 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.3 cam_pitch=-0.1
+[PLAYER_DEBUG] t=8.0 KEY_DOWN | D grounded=true flying=false crouch=false
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[DAMAGE] GOLD_02 torso -4.0 HP=66.0
+[BRAWL_ACTION] GOLD_02 action=WEAPON IMPACT clip=HitChest
+[PLAYER_DEBUG] t=8.27 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(4.873955, 0.0, -1.92664) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.42 strafe_weight=0.8 strafe_left_blend=0.0 strafe_right_blend=0.57 visual_yaw=-31.4 strafe_side_mps=8.73 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.3 cam_pitch=-0.1
+[BRAWL_ACTION] GOLD_02 action=EVASIVE ACROBATICS clip=Backflip
+[BRAWL_DODGE] fighter=GOLD_02 invulnerability_s=0.24
+[DAMAGE] RED_01 torso -4.0 HP=39.9948999444448
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[PLAYER_DEBUG] t=8.53 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(8.036475, 0.0, -1.559309) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.84 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.85 visual_yaw=-46.6 strafe_side_mps=14.71 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.27 cam_pitch=-0.1
+[PLAYER_DEBUG] t=8.8 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(4.700915, 0.0, -4.181253) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=3.14 strafe_weight=0.5 strafe_left_blend=0.0 strafe_right_blend=0.7 visual_yaw=-38.3 strafe_side_mps=6.08 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.27 cam_pitch=-0.1
+[DAMAGE] GOLD_02 torso -4.0 HP=62.0
+[BRAWL_ACTION] GOLD_02 action=WEAPON IMPACT clip=HitChest
+[DAMAGE] RED_01 head -10.0 HP=33.9948999444448
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=Hit_Head
+[DAMAGE] RED_01 torso -10.0 HP=29.9948999444448
+[DAMAGE] RED_01 left_arm -10.0 HP=19.9948999444448
+[DAMAGE] RED_01 right_arm -10.0 HP=0.0
+[DAMAGE] RED_01 left_leg -10.0 HP=33.9948999444448
+[DAMAGE] RED_01 right_leg -10.0 HP=33.9948999444448
+[PLAYER_DEBUG] t=9.07 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(1.430336, 0.0, -5.128262) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=3.23 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.13 visual_yaw=-7.1 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.27 cam_pitch=-0.1
+[PLAYER_DEBUG] t=9.07 MOUSE_DOWN | button=3
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=9.08 KEY_DOWN | D grounded=true flying=false crouch=false
+[DAMAGE] RED_01 torso -4.0 HP=25.9948999444448
+[PLAYER_DEBUG] t=9.33 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(2.580523, 0.0, -4.731471) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.67 strafe_weight=0.73 strafe_left_blend=0.0 strafe_right_blend=0.5 visual_yaw=-27.6 strafe_side_mps=8.2 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.4 cam_pitch=-0.1
+[DAMAGE] GOLD_02 torso -4.0 HP=58.0
+[BRAWL_ACTION] GOLD_02 action=WEAPON IMPACT clip=HitChest
+[PLAYER_DEBUG] t=9.6 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(2.151685, 0.0, -3.721386) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.63 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.79 visual_yaw=-43.7 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.53 cam_pitch=-0.11
+[DAMAGE] RED_01 torso -4.0 HP=21.9948999444448
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[DAMAGE] RED_01 torso -4.0 HP=17.9948999444448
+[PLAYER_DEBUG] t=9.87 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(0.633754, 0.0, -2.685041) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.25 strafe_weight=0.62 strafe_left_blend=0.0 strafe_right_blend=0.79 visual_yaw=-43.6 strafe_side_mps=3.07 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.53 cam_pitch=-0.11
+[PLAYER_DEBUG] t=10.1 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=10.1 KEY_DOWN | W grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=10.13 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(-0.575685, 0.0, -1.014848) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.33 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.12 visual_yaw=-6.4 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.5 cam_pitch=-0.12
+[PLAYER_DEBUG] t=10.13 KEY_DOWN | D grounded=true flying=false crouch=false
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[DAMAGE] GOLD_02 torso -4.0 HP=54.0
+[BRAWL_ACTION] GOLD_02 action=WEAPON IMPACT clip=HitChest
+[PLAYER_DEBUG] t=10.4 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(3.614861, 0.0, -2.087276) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.72 visual_yaw=-39.6 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.06 cam_pitch=-0.14
+[DAMAGE] RED_01 torso -4.0 HP=50.477998777778
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[DAMAGE] RED_01 torso -4.0 HP=46.477998777778
+[PLAYER_DEBUG] t=10.67 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(3.614858, 0.0, -2.087275) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.49 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.87 visual_yaw=-48.1 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.06 cam_pitch=-0.14
+[BRAWL_METRICS] fps=60.0 time=10.7 active=2 hits=2 swings=6 draw_calls=87.0
+[BLINK] RED_01 direction=W_FORWARD distance=9.5
+[PLAYER_DEBUG] t=10.93 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(3.598043, 0.0, -2.116125) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.46 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.89 visual_yaw=-49.1 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.07 cam_pitch=-0.14
+[DAMAGE] GOLD_02 torso -4.0 HP=50.0
+[BRAWL_ACTION] GOLD_02 action=WEAPON IMPACT clip=HitChest
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=11.2 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(3.464676, 0.0, -2.32807) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.46 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.89 visual_yaw=-49.2 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.13 cam_pitch=-0.16
+[DAMAGE] RED_01 torso -4.0 HP=44.977998777778
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[DAMAGE] RED_01 left_arm -38.0 HP=23.4266757777779
+[DAMAGE] RED_01 torso -4.0 HP=40.977998777778
+[PLAYER_DEBUG] t=11.47 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(3.464676, 0.0, -2.32807) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.46 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.89 visual_yaw=-49.2 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.13 cam_pitch=-0.16
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=11.72 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=11.73 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(-0.228137, 0.0, -2.296323) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.61 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.47 visual_yaw=-26.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.13 cam_pitch=-0.16
+[BRAWL_ACTION] RED_01 action=EVASIVE ACROBATICS clip=Roll
+[BRAWL_DODGE] fighter=RED_01 invulnerability_s=0.24
+[PLAYER_DEBUG] t=12.0 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(-0.158286, 0.0, -1.229852) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.24 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.06 visual_yaw=-3.1 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.22 cam_pitch=-0.17
+[PLAYER_DEBUG] t=12.07 KEY_DOWN | W grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=12.27 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(-0.565814, 0.0, -2.578643) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.02 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.01 visual_yaw=-0.4 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.22 cam_pitch=-0.17
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[DAMAGE] RED_01 torso -4.0 HP=41.977998777778
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[PLAYER_DEBUG] t=12.53 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(-0.565814, 0.0, -2.578643) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.02 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.22 cam_pitch=-0.17
+[PLAYER_DEBUG] t=12.55 KEY_DOWN | D grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=12.8 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(3.246661, 0.0, -2.623558) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.75 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.67 visual_yaw=-37.1 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.22 cam_pitch=-0.17
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[BRAWL_ACTION] RED_01 action=WEAPON SWORD clip=ual2/Sword_Regular_Combo
+[BRAWL_SWING] fighter=RED_01 combo=4 weapon=sword
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[BRAWL_ACTION] GOLD_02 action=WEAPON DAGGER clip=PunchCombo
+[BRAWL_SWING] fighter=GOLD_02 combo=4 weapon=dagger
+[PLAYER_DEBUG] t=13.05 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=13.07 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(3.246661, 0.0, -2.623558) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.49 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.87 visual_yaw=-47.8 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.22 cam_pitch=-0.17
+[DAMAGE] RED_01 torso -4.0 HP=42.977998777778
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[DAMAGE] RED_01 head -12.0 HP=80.7161549444454
+[DAMAGE] RED_01 torso -12.0 HP=30.977998777778
+[DAMAGE] RED_01 left_arm -12.0 HP=21.4266757777779
+[DAMAGE] RED_01 right_arm -12.0 HP=46.7212549999995
+[DAMAGE] RED_01 left_leg -12.0 HP=80.7161549444454
+[DAMAGE] RED_01 right_leg -12.0 HP=80.7161549444454
+[DAMAGE] GOLD_02 left_leg -20.0 HP=39.7964871666662
+[BRAWL_ACTION] GOLD_02 action=WEAPON IMPACT clip=HitChest
+[BRAWL_WEAPON_HIT] attacker=RED_01 victim=GOLD_02 dmg=20.0 blocking=false weapon=sword
+[PLAYER_DEBUG] t=13.33 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(3.038091, 0.0, -2.862493) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.46 strafe_weight=0.86 strafe_left_blend=0.0 strafe_right_blend=0.89 visual_yaw=-48.8 strafe_side_mps=6.73 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.3 cam_pitch=-0.19
+[PLAYER_DEBUG] t=13.6 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(-0.830452, 0.0, -2.505971) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.93 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.21 visual_yaw=-11.5 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.32 cam_pitch=-0.19
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=13.78 KEY_DOWN | D grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=13.87 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(0.423788, 0.0, -2.25289) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.77 strafe_weight=0.61 strafe_left_blend=0.0 strafe_right_blend=0.23 visual_yaw=-12.5 strafe_side_mps=2.87 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.35 cam_pitch=-0.2
+[DAMAGE] RED_01 torso -4.0 HP=29.477998777778
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=14.13 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(0.860928, 0.0, -3.136724) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.5 strafe_left_blend=0.0 strafe_right_blend=0.67 visual_yaw=-37.0 strafe_side_mps=3.07 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.36 cam_pitch=-0.2
+[BRAWL_ACTION] GOLD_02 action=EVASIVE ACROBATICS clip=Backflip
+[BRAWL_DODGE] fighter=GOLD_02 invulnerability_s=0.24
+[PLAYER_DEBUG] t=14.4 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(-0.687759, 0.0, -1.849594) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.8 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.1 visual_yaw=-5.3 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.36 cam_pitch=-0.2
+[PLAYER_DEBUG] t=14.65 KEY_DOWN | W grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=14.67 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(-0.315997, 0.0, -0.849814) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.17 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.01 visual_yaw=-0.6 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.36 cam_pitch=-0.2
+[PLAYER_DEBUG] t=14.72 KEY_DOWN | D grounded=true flying=false crouch=false
+[DAMAGE] RED_01 torso -4.0 HP=30.477998777778
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[PLAYER_DEBUG] t=14.93 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(2.442456, 0.0, -2.899842) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.78 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.61 visual_yaw=-33.8 strafe_side_mps=7.13 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.36 cam_pitch=-0.2
+[DAMAGE] RED_01 head -10.0 HP=78.2161549444454
+[DAMAGE] RED_01 torso -10.0 HP=20.477998777778
+[DAMAGE] RED_01 left_arm -10.0 HP=18.9266757777779
+[DAMAGE] RED_01 right_arm -10.0 HP=44.2212549999995
+[DAMAGE] RED_01 left_leg -10.0 HP=78.2161549444454
+[DAMAGE] RED_01 right_leg -10.0 HP=78.2161549444454
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=15.2 TELEMETRY | state=MOVE input=(0.707107, 0.707107) velocity=(2.848795, 0.0, -3.050937) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.5 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.86 visual_yaw=-47.4 strafe_side_mps=7.47 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.36 cam_pitch=-0.2
+[BRAWL_ACTION] RED_01 action=EVASIVE ACROBATICS clip=Roll
+[BRAWL_DODGE] fighter=RED_01 invulnerability_s=0.24
+[PLAYER_DEBUG] t=15.47 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(-0.34856, 0.0, -0.937384) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.81 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.37 visual_yaw=-20.5 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.36 cam_pitch=-0.2
+[BRAWL_ACTION] GOLD_02 action=EVASIVE ACROBATICS clip=Backflip
+[BRAWL_DODGE] fighter=GOLD_02 invulnerability_s=0.24
+[PLAYER_DEBUG] t=15.73 STATE_CHANGE | MOVE -> IDLE
+[PLAYER_DEBUG] t=15.73 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.04 visual_yaw=-2.4 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.36 cam_pitch=-0.2
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[DAMAGE] RED_01 torso -4.0 HP=16.477998777778
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[PLAYER_DEBUG] t=15.98 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=15.98 KEY_DOWN | W grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=16.0 STATE_CHANGE | IDLE -> MOVE
+[PLAYER_DEBUG] t=16.0 TELEMETRY | state=MOVE input=(0.0, 1.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.18 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.01 visual_yaw=-0.3 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.37 cam_pitch=-0.21
+[PLAYER_DEBUG] t=16.02 KEY_DOWN | D grounded=true flying=false crouch=false
+[BRAWL_METRICS] fps=60.0 time=16.1 active=2 hits=3 swings=8 draw_calls=87.0
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=16.27 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(-0.930282, 0.0, -2.676243) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.02 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.74 visual_yaw=-40.5 strafe_side_mps=4.4 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.55 cam_pitch=-0.22
+[BLINK] RED_01 direction=W_FORWARD distance=9.5
+[PLAYER_DEBUG] t=16.53 TELEMETRY | state=MOVE input=(0.0, 0.0) velocity=(-0.132629, 0.0, -0.013682) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.07 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.16 visual_yaw=-9.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.27 cam_pitch=-0.24
+[DAMAGE] RED_01 torso -4.0 HP=12.477998777778
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[PLAYER_DEBUG] t=16.8 STATE_CHANGE | MOVE -> IDLE
+[PLAYER_DEBUG] t=16.8 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.02 visual_yaw=-1.1 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.61 cam_pitch=-0.26
+[BRAWL_ACTION] GOLD_02 action=EVASIVE ACROBATICS clip=Backflip
+[BRAWL_DODGE] fighter=GOLD_02 invulnerability_s=0.24
+[DAMAGE] RED_01 left_arm -38.0 HP=0.0
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[PLAYER_DEBUG] t=17.07 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=-0.1 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.61 cam_pitch=-0.26
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[PLAYER_DEBUG] t=17.33 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.61 cam_pitch=-0.26
+[PLAYER_DEBUG] t=17.33 MOUSE_DOWN | button=3
+[BRAWL_ACTION] RED_01 action=SPELL CAST clip=Spell_Simple_Shoot
+[DAMAGE] RED_01 torso -4.0 HP=8.47799877777804
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[PLAYER_DEBUG] t=17.6 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.59 cam_pitch=-0.2
+[PLAYER_DEBUG] t=17.87 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.55 cam_pitch=-0.18
+[PLAYER_DEBUG] t=18.13 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.55 cam_pitch=-0.18
+[BRAWL_ACTION] GOLD_02 action=SPELL CAST clip=KneelFire
+[DAMAGE] RED_01 torso -4.0 HP=4.47799877777804
+[BRAWL_ACTION] RED_01 action=WEAPON IMPACT clip=ual2/Hit_Knockback
+[PLAYER_DEBUG] t=18.4 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.16 cam_pitch=-0.16
+[DAMAGE] RED_01 head -30.0 HP=50.1410779444452
+[DAMAGE] RED_01 torso -30.0 HP=0.0
+[DAMAGE] RED_01 left_arm -30.0 HP=0.0
+[DAMAGE] RED_01 right_arm -30.0 HP=16.1461779999996
+[DAMAGE] RED_01 left_leg -30.0 HP=50.1410779444452
+[DAMAGE] RED_01 right_leg -30.0 HP=50.1410779444452
+[DEFEATED] RED_01 torso
+[BRAWL_COMPLETE] GOLD_02 WINS elapsed=18.5
+[BRAWL_ACTION] RED_01 action=DEATH clip=Death01
+[PLAYER_DEBUG] t=18.67 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.08 cam_pitch=-0.14
+[PLAYER_DEBUG] t=18.93 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.07 cam_pitch=-0.14
+[PLAYER_DEBUG] t=19.2 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.07 cam_pitch=-0.14
+[PLAYER_DEBUG] t=19.47 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.07 cam_pitch=-0.14
+[PLAYER_DEBUG] t=19.73 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.07 cam_pitch=-0.14
+[PLAYER_DEBUG] t=20.0 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.07 cam_pitch=-0.14
+[PLAYER_DEBUG] t=20.27 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.12 cam_pitch=-0.17
+[PLAYER_DEBUG] t=20.53 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=20.8 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=21.07 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=21.33 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[BRAWL_METRICS] fps=60.0 time=21.5 active=1 hits=3 swings=8 draw_calls=85.0
+[PLAYER_DEBUG] t=21.6 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=21.87 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=22.13 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=22.4 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=22.67 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=22.93 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=23.2 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=23.47 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=23.73 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=24.0 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=24.27 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+[PLAYER_DEBUG] t=24.53 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.13 cam_pitch=-0.17
+Run ended 2026-10-19T17:39:27.4721203-04:00 exit=0
