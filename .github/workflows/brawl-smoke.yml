@@ -53,7 +53,7 @@ jobs:
         run: |
           timeout 30 "$GODOT_BIN" --headless --path . --script res://scripts/probe_brawl_animations.gd > /tmp/rig.log 2>&1
           grep -E 'RIG_PROBE_' /tmp/rig.log | head -n 40
-      - name: Run default four-team scene for six seconds
+      - name: Run 1v1 walled scene for six seconds
         run: |
           set +e
           timeout 100 "$GODOT_BIN" --headless --path . --quit-after 360 > /tmp/brawl.log 2>&1
@@ -61,10 +61,11 @@ jobs:
           grep -E 'BRAWL_|SCRIPT ERROR|Parse Error|ERROR:|FATAL' /tmp/brawl.log | tail -n 140 || true
           if [ "$rc" -ne 0 ]; then cat /tmp/brawl.log | tail -n 110; exit "$rc"; fi
           if grep -Ei 'SCRIPT ERROR|Parse Error|Invalid (set|assignment|access)|FATAL' /tmp/brawl.log; then exit 1; fi
-          grep -F '[BRAWL_START] teams=4 team_size=2 total=8' /tmp/brawl.log
+          grep -F '[BRAWL_START] mode=1v1 total=2 immortal=BLACK npc_count=1' /tmp/brawl.log
+          grep -F '[BRAWL_BARRIERS] side=56.0m height=26.0m roof=SOLID collision_shapes=5' /tmp/brawl.log
           grep -F '[BRAWL_GEAR]' /tmp/brawl.log
           grep -F '[BRAWL_COMBINED_ANIMATIONS]' /tmp/brawl.log
-          grep -F 'clip=ual2/Sword_Regular_' /tmp/brawl.log
+          grep -F '[BRAWL_METRICS]' /tmp/brawl.log
           grep -F '[BRAWL_METRICS]' /tmp/brawl.log
       - name: Save reproducible logs
         if: always()

@@ -1,8 +1,8 @@
 extends "res://showcase.gd"
-# Four independent teams of exactly two: BLUE includes immortal BLACK.
+# One immortal BLACK versus one mortal swordfighter. Full physics arena.
 # Uses the production WalkingLab AI, hit-region damage, spells, and flight.
-const TEAMS: Array[String] = ["blue","red","gold","violet"]
-const COLORS: Array[Color] = [Color("4798ff"),Color("ff4556"),Color("ffc247"),Color("bf7bff")]
+const TEAMS: Array[String] = ["blue","red"]
+const COLORS: Array[Color] = [Color("4798ff"),Color("ff4556")]
 var fight_roster: Array = []
 var fight_hud: Label
 var elapsed_round: float = 0.0
@@ -19,12 +19,12 @@ func _ready() -> void:
 	get_viewport().scaling_3d_scale = 0.76
 	spawn_rng.randomize()
 	current_level = {
-		"number":0,"name":"Four-team physics brawl",
+		"number":0,"name":"1v1 sealed kinetic arena",
 		"biome":"arena","battle_royale_drop":false,
 		"player_spells":["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"],
 		"enemy_spells":["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
 	}
-	arena_half_extent = 56.0
+	arena_half_extent = 28.0
 	battle_fireball_speed = 1.35
 	battle_fireball_size = 0.72
 	for entry in [["move_forward",KEY_W],["move_back",KEY_S],["move_left",KEY_A],["move_right",KEY_D],["sprint",KEY_ALT],["walk",KEY_CTRL]]:
@@ -33,6 +33,7 @@ func _ready() -> void:
 		e.keycode = entry[1]
 		if not InputMap.action_has_event(entry[0],e): InputMap.action_add_event(entry[0],e)
 	_build_flat_stage()
+	_build_sealed_arena()
 	create_battle_feed()
 	# Game-real collision world plus original authored stage texture.
 	player = preload("res://walking.gd").new()
@@ -42,9 +43,10 @@ func _ready() -> void:
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.team_id = "blue"
-	player.spawn_point = Vector3(0,0.05,14.0)
+	player.spawn_point = Vector3(0,0.05,7.0)
 	player.character_tint = Color(0.12,0.14,0.17)
 	player.demo_immortal = true
+	player.set_meta("brawl_flight_limit",true)
 	player.infinite_mana = true
 	player.ignore_spell_cooldowns = true
 	var black_spells: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
@@ -54,16 +56,9 @@ func _ready() -> void:
 	_add_team_label(player,"BLACK / BLUE / IMMORTAL",COLORS[0])
 	attach_status_label(player)
 	_add_weapon(player,"sword",null)
-	# Both fighters on each enemy team are mortal. All six may fight any
-	# other team; the blue AI ally is the eighth participant.
+	# Exactly one mortal opponent. Real CC0 weapon and authored animations.
 	var formations: Array[Dictionary] = [
-		{"team":0,"position":Vector3(3.5,0.05,14.0),"weapon":"sword","acrobat":false},
-		{"team":1,"position":Vector3(-14.0,0.05,-3.0),"weapon":"sword","acrobat":false},
-		{"team":1,"position":Vector3(-12.0,0.05,1.0),"weapon":"axe","acrobat":false},
-		{"team":2,"position":Vector3(14.0,0.05,-3.0),"weapon":"axe","acrobat":false},
-		{"team":2,"position":Vector3(12.0,0.05,1.0),"weapon":"sword","acrobat":false},
-		{"team":3,"position":Vector3(-3.5,0.05,-14.0),"weapon":"dagger","acrobat":true},
-		{"team":3,"position":Vector3(3.5,0.05,-14.0),"weapon":"sword","acrobat":false}
+		{"team":1,"position":Vector3(0,0.05,-7.0),"weapon":"sword","acrobat":true}
 	]
 	for i in range(formations.size()):
 		var setup: Dictionary = formations[i]
@@ -78,6 +73,7 @@ func _ready() -> void:
 		fighter.team_id = TEAMS[team_index]
 		fighter.spawn_point = setup["position"]
 		fighter.demo_immortal = false
+		fighter.set_meta("brawl_flight_limit",true)
 		fighter.character_tint = COLORS[team_index].lerp(Color.WHITE,0.4)
 		var fighter_spells: Array[String] = []
 		fighter_spells.assign(current_level["enemy_spells"])
@@ -98,7 +94,45 @@ func _ready() -> void:
 		fighter.set_physics_process(false)
 	_create_fight_hud()
 	_update_fight_hud()
-	print("[BRAWL_START] teams=4 team_size=2 total=8 immortals=BLACK only npc_count=",mannequins.size())
+	print("[BRAWL_START] mode=1v1 total=2 immortal=BLACK npc_count=",mannequins.size())
+
+
+func _build_sealed_arena() -> void:
+	# One continuous collision perimeter with explicit finite thickness,
+	# sufficient height to contain ALL flight and jumps, and a solid roof.
+	# No invisible teleport boundaries.
+	const WALL_HEIGHT: float = 26.0
+	const WALL_THICKNESS: float = 1.8
+	var wall_body: StaticBody3D = StaticBody3D.new()
+	wall_body.name = "SealedArenaWallsAndCeiling"
+	add_child(wall_body)
+	var side: float = arena_half_extent * 2.0
+	var barriers: Array[Dictionary] = [
+		{"name":"North","size":Vector3(side+WALL_THICKNESS*2,WALL_HEIGHT,WALL_THICKNESS),"at":Vector3(0,WALL_HEIGHT*0.5,-arena_half_extent)},
+		{"name":"South","size":Vector3(side+WALL_THICKNESS*2,WALL_HEIGHT,WALL_THICKNESS),"at":Vector3(0,WALL_HEIGHT*0.5,arena_half_extent)},
+		{"name":"West","size":Vector3(WALL_THICKNESS,WALL_HEIGHT,side),"at":Vector3(-arena_half_extent,WALL_HEIGHT*0.5,0)},
+		{"name":"East","size":Vector3(WALL_THICKNESS,WALL_HEIGHT,side),"at":Vector3(arena_half_extent,WALL_HEIGHT*0.5,0)},
+		{"name":"Ceiling","size":Vector3(side+WALL_THICKNESS*2,1.4,side+WALL_THICKNESS*2),"at":Vector3(0,WALL_HEIGHT,0)}
+	]
+	var wall_material: StandardMaterial3D = StandardMaterial3D.new()
+	wall_material.albedo_color = Color(0.20,0.25,0.33)
+	wall_material.roughness = 0.88
+	for part in barriers:
+		var shape: CollisionShape3D = CollisionShape3D.new()
+		var geometry: BoxShape3D = BoxShape3D.new()
+		geometry.size = part["size"]
+		shape.shape = geometry
+		shape.position = part["at"]
+		wall_body.add_child(shape)
+		var surface: MeshInstance3D = MeshInstance3D.new()
+		surface.name = String(part["name"]) + "Wall"
+		var mesh: BoxMesh = BoxMesh.new()
+		mesh.size = part["size"]
+		surface.mesh = mesh
+		surface.position = part["at"]
+		surface.material_override = wall_material
+		wall_body.add_child(surface)
+	print("[BRAWL_BARRIERS] side=",side,"m height=",WALL_HEIGHT,"m roof=SOLID collision_shapes=",barriers.size())
 
 func _add_weapon(fighter, weapon_kind: String, driver) -> void:
 	var gear = preload("res://brawl_weapon.gd").new()
@@ -131,11 +165,11 @@ func _create_fight_hud() -> void:
 	var stack: VBoxContainer = VBoxContainer.new()
 	root.add_child(stack)
 	var headline: Label = Label.new()
-	headline.text = "THE GAME  •  FOUR-TEAM BRAWL  •  2 v 2 v 2 v 2"
+	headline.text = "THE GAME  |  SEALED ARENA  |  1 v 1"
 	headline.add_theme_font_size_override("font_size",17)
 	stack.add_child(headline)
 	var guide: Label = Label.new()
-	guide.text = "WASD move   MIDDLE DRAG camera   ALT sprint   SPACE jump   V fly   Q sword   R dodge   HOLD B block   TAB combat feed"
+	guide.text = "WASD move  |  MIDDLE DRAG camera  |  V fly (MAX 5s)  |  Q sword  |  R dodge  |  B block  |  F5 restart"
 	guide.add_theme_font_size_override("font_size",12)
 	stack.add_child(guide)
 	fight_hud = Label.new()
@@ -145,22 +179,11 @@ func _create_fight_hud() -> void:
 func _physics_process(dt: float) -> void:
 	if not is_instance_valid(player): return
 	tick_war_fighters(dt)
-	# NPCs can die; BLACK survives all combat. Fight can be restarted at F5.
+	# Enemy is mortal; BLACK survives all combat. Fight can be restarted at F5.
 	if fight_over: return
-	var living_teams: Array[String] = []
-	for team in TEAMS:
-		var alive: bool = team == "blue" and not player.combat_dead
-		for fighter in mannequins:
-			if is_instance_valid(fighter) and not fighter.combat_dead and fighter.team_id == team: alive = true
-		if alive: living_teams.append(team)
-	# BLUE remains represented by BLACK's immortality. End the round
-	# when all hostile mortal fighters have fallen.
-	var hostile_alive: int = 0
-	for fighter in mannequins:
-		if is_instance_valid(fighter) and not fighter.combat_dead and fighter.team_id != "blue": hostile_alive += 1
-	if hostile_alive == 0 and mannequins.size() == 7:
+	if not mannequins.is_empty() and is_instance_valid(mannequins[0]) and mannequins[0].combat_dead:
 		fight_over = true
-		round_victor = "BLUE (BLACK SURVIVED)"
+		round_victor = "BLACK WINS"
 		print("[BRAWL_COMPLETE] ",round_victor," elapsed=",snappedf(elapsed_round,0.1))
 
 func _process(dt: float) -> void:
@@ -194,8 +217,8 @@ func _update_fight_hud() -> void:
 		for fighter in mannequins:
 			if is_instance_valid(fighter) and not fighter.combat_dead and fighter.team_id == TEAMS[i]:
 				count += 1
-		parts.append("%s %d/2" % [TEAMS[i].to_upper(),count])
-	fight_hud.text = "    |    ".join(parts)+"\nFPS %d   •   elapsed %.0fs   •   BLACK IMMORTAL%s" % [Engine.get_frames_per_second(),elapsed_round,"\n"+round_victor if fight_over else ""]
+		parts.append("%s %d/1" % [TEAMS[i].to_upper(),count])
+	fight_hud.text = "  |  ".join(parts)+"\nFPS %d  |  elapsed %.0fs  |  BLACK IMMORTAL  |  flight %.1f/5.0s%s" % [Engine.get_frames_per_second(),elapsed_round,player.brawl_flight_elapsed if is_instance_valid(player) else 0.0,"\n"+round_victor if fight_over else ""]
 
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventKey): return

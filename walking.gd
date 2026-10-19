@@ -227,6 +227,10 @@ var brawl_impact_impulse: Vector3 = Vector3.ZERO
 var brawl_dodge_iframes: float = 0.0
 var brawl_stagger_time: float = 0.0
 var brawl_flight_override: bool = false
+var brawl_flight_elapsed: float = 0.0
+var brawl_flight_lock: float = 0.0
+const BRAWL_FLIGHT_MAX_SECONDS: float = 5.0
+const BRAWL_FLIGHT_RECOVERY: float = 2.0
 var pursuit_role: String = ""
 var pursuit_home: Vector3 = Vector3.ZERO
 var pursuit_cast_timer: float = 0.0
@@ -1924,7 +1928,27 @@ func tick_live_spell_effects(dt: float) -> void:
 					damage.hp[region] = minf(100.0,float(damage.hp[region])+2.5)
 				damage.update_damage_colors()
 
+
+func tick_brawl_flight(dt: float) -> void:
+	# A complete brawl flight activation lasts at most five seconds,
+	# including flight launched by AI. Recovery prevents immediate reflight.
+	if not bool(get_meta("brawl_flight_limit",false)): return
+	brawl_flight_lock = maxf(0.0,brawl_flight_lock-dt)
+	if flight_enabled:
+		brawl_flight_elapsed += dt
+		if brawl_flight_elapsed >= BRAWL_FLIGHT_MAX_SECONDS:
+			flight_enabled = false
+			flight_windup_remaining = 0.0
+			flight_launch_remaining = 0.0
+			brawl_flight_elapsed = 0.0
+			brawl_flight_lock = BRAWL_FLIGHT_RECOVERY
+			brawl_flight_override = false
+			print("[BRAWL_FLIGHT_TIMEOUT] fighter=",name," max_seconds=",BRAWL_FLIGHT_MAX_SECONDS)
+	elif flight_windup_remaining <= 0.0:
+		brawl_flight_elapsed = 0.0
+
 func update_team_battle_agent(dt: float) -> void:
+	tick_brawl_flight(dt)
 	# Full roster is shared by the arena scheduler; decisions use enemies only.
 	# Navigation, targeting, flight, statuses and casts remain autonomous.
 	var arena: Node = get_tree().current_scene
@@ -1953,7 +1977,7 @@ func update_team_battle_agent(dt: float) -> void:
 			var score: float = dist-vulnerability+agent_rng.randf_range(-3.0,3.0)
 			# An immortal spectator must not monopolize target selection and
 			# prevent opponents from engaging their mortal adversaries.
-			if bool(candidate.get("demo_immortal")): continue
+			# In a duel the only target is immortal BLACK; AI must still attack.
 			if candidate==previous_target: score-=4.0
 			if score<best_score:
 				best_score = score
@@ -2018,14 +2042,14 @@ func update_team_battle_agent(dt: float) -> void:
 	if team_mobility_timer<=0.0:
 		team_mobility_timer = agent_rng.randf_range(0.85,1.65)
 		var want_flight: bool = target_valid and spell_grounded_remaining<=0.0 and (brawl_flight_override or war_target.flight_enabled or offset.y>3.5 or (critical and agent_rng.randf()<0.40))
-		if want_flight and not flight_enabled:
+		if want_flight and not flight_enabled and brawl_flight_lock <= 0.0:
 			var flight_slot: int = SPELL_IDS.find("flight")
 			if "flight" in equipped_spells and spell_is_ready(flight_slot):
 				spend_spell(flight_slot)
 				flight_enabled = true
 		elif not want_flight:
 			flight_enabled = false
-	if spell_grounded_remaining>0.0: flight_enabled = false
+	if spell_grounded_remaining>0.0 or brawl_flight_lock>0.0: flight_enabled = false
 	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
 	var movement_speed: float = (17.2 if not critical else 14.4) * (1.0 if bool(get_meta("speed_boots",false)) else 0.79)
 	if melee_enabled and target_valid and distance_m < 7.0:
@@ -2210,6 +2234,7 @@ func _physics_process(dt):
 					if changed_target: arena.record_player_auto_target_change(closest.name)
 	if paused: return
 	if player_controlled:
+		tick_brawl_flight(dt)
 		flush_pending_spell()
 		fusion_feedback_remaining = maxf(0.0,fusion_feedback_remaining-dt)
 		tick_live_spell_effects(dt)
@@ -3510,6 +3535,7 @@ func spend_spell(slot: int) -> void:
 	update_resource_hud()
 
 func toggle_flight_spell() -> void:
+	if brawl_flight_lock > 0.0 and not flight_enabled: return
 	# Grounding prevents flight recast for the full debuff duration.
 	if spell_grounded_remaining>0.0: return
 	# Left-hand pinky: flight toggles off freely, even mid-cooldown.
