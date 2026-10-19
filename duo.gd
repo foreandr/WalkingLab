@@ -154,7 +154,9 @@ func _ready():
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	if not flight_benchmark_requested:
-		player.equipped_spells = current_level["player_spells"].duplicate()
+		var level_player_spells: Array[String] = []
+		level_player_spells.assign(current_level["player_spells"])
+		player.equipped_spells = level_player_spells
 	player.demo_immortal = true
 	# Black must not inherit any scripted AI/benchmark movement in normal play.
 	player.benchmark_flight_active = false
