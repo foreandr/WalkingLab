@@ -165,6 +165,13 @@ var lineup_cast_clock: float = 0.0
 # Spell-test targets: remain hittable but do not attack or hunt the player.
 # Each walker orbits a local anchor so targets remain within the test range.
 var spell_target_mode: String = ""
+# Scripted pursuit cast: four autonomous rigs share real collision and spells.
+var pursuit_role: String = ""
+var pursuit_home: Vector3 = Vector3.ZERO
+var pursuit_cast_timer: float = 0.0
+var pursuit_spell_cursor: int = 0
+var pursuit_plan_timer: float = 0.0
+var pursuit_flight_preference: bool = false
 var spell_target_anchor: Vector3 = Vector3.ZERO
 var spell_walker_phase: float = 0.0
 var spell_burn_remaining: float = 0.0
@@ -1456,7 +1463,135 @@ func update_spell_test_target(dt: float) -> void:
 	tree.set("parameters/Cadence/scale",maxf(0.15,walker_speed/STRIDES[0]))
 	tree.advance(dt)
 
+func update_pursuit_agent(dt: float) -> void:
+	# Pursuit sandbox: one frightened escapee versus three ability-constrained
+	# hunters. All use real move_and_slide and the imported animation rig.
+	clock += dt
+	var arena: Node = get_tree().current_scene
+	if arena == null: return
+	var is_escapee: bool = pursuit_role == "escapee"
+	var escapee: Node = arena.get_node_or_null("Fighter01")
+	var delta_to_target: Vector3 = Vector3.ZERO
+	var target_distance: float = 9999.0
+	if not is_escapee and is_instance_valid(escapee) and not escapee.combat_dead:
+		war_target = escapee
+		delta_to_target = escapee.actor.global_position-actor.global_position
+		target_distance = delta_to_target.length()
+	var desired: Vector3 = Vector3.ZERO
+	if is_escapee:
+		var nearest_distance: float = 9999.0
+		var nearest_away: Vector3 = Vector3.FORWARD
+		for other in arena.mannequins:
+			if not is_instance_valid(other) or other == self or other.combat_dead: continue
+			if other.pursuit_role == "": continue
+			var offset: Vector3 = actor.global_position-other.actor.global_position
+			offset.y = 0.0
+			var separation: float = offset.length()
+			if separation < nearest_distance and separation>0.001:
+				nearest_distance = separation
+				nearest_away = offset/separation
+		var bend: Vector3 = Vector3(-nearest_away.z,0.0,nearest_away.x)
+		desired = (nearest_away*1.15+bend*(0.40+0.23*sin(clock*0.58))).normalized()
+		# Alternate running and flight, taking off when badly pressured.
+		pursuit_flight_preference = sin(clock*0.43)>0.25 or nearest_distance<11.0
+	else:
+		if target_distance < 9998.0:
+			desired = Vector3(delta_to_target.x,0.0,delta_to_target.z).normalized()
+		pursuit_flight_preference = pursuit_role != "no_flight" and target_distance < 70.0 and is_instance_valid(escapee) and (escapee.flight_enabled or escapee.actor.global_position.y>3.0)
+	# Anticipate the smaller walls and stay in the real arena.
+	var position: Vector3 = actor.global_position
+	var edge: float = 40.0
+	var correction := Vector3.ZERO
+	if absf(position.x)>edge: correction.x = -signf(position.x)*(absf(position.x)-edge)/6.0
+	if absf(position.z)>edge: correction.z = -signf(position.z)*(absf(position.z)-edge)/6.0
+	if correction.length_squared()>0.001:
+		var wall_strength: float = clampf(correction.length()*3.0,0.0,4.0)
+		desired = (desired+correction.normalized()*wall_strength).normalized()
+	if is_escapee:
+		flight_enabled = pursuit_flight_preference and (position.y>0.6 or sin(clock*0.43)>0.55 or position.distance_to(pursuit_home)<30.0)
+	elif pursuit_role=="no_flight":
+		flight_enabled = false
+	else:
+		flight_enabled = pursuit_flight_preference
+	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
+	# Apply ongoing spell damage and physics impulses in this same simulation.
+	if spell_burn_remaining>0.0:
+		spell_burn_remaining = maxf(0.0,spell_burn_remaining-dt)
+		spell_burn_tick += dt
+		if spell_burn_tick>=0.65:
+			spell_burn_tick = 0.0
+			var burn_damage: Node = get_node_or_null("DamageSystem")
+			if burn_damage!=null and not burn_damage.dead:
+				burn_damage.receive_region_hit("torso",actor.global_position+Vector3.UP,4.5,"BURN",false)
+	if spell_venom_remaining>0.0:
+		spell_venom_remaining = maxf(0.0,spell_venom_remaining-dt)
+		spell_venom_tick += dt
+		if spell_venom_tick>=0.8:
+			spell_venom_tick=0.0
+			var venom_damage: Node = get_node_or_null("DamageSystem")
+			if venom_damage!=null and not venom_damage.dead:
+				venom_damage.receive_region_hit("torso",actor.global_position+Vector3.UP,5.0,"VENOM",false)
+	spell_frost_remaining = maxf(0.0,spell_frost_remaining-dt)
+	spell_gravity_remaining = maxf(0.0,spell_gravity_remaining-dt)
+	spell_tempest_remaining = maxf(0.0,spell_tempest_remaining-dt)
+	var travel_speed: float = 11.4 if is_escapee else (12.7 if pursuit_role=="hunter" else (10.8 if pursuit_role=="no_flight" else 4.7))
+	if flight_enabled:
+		travel_speed = 15.2 if is_escapee else (17.0 if pursuit_role=="hunter" else 8.0)
+	if spell_frost_remaining>0.0: travel_speed *= 0.24
+	if spell_tempest_remaining>0.0:
+		desired = spell_tempest_direction
+		travel_speed = 22.0*spell_tempest_remaining/0.75
+	elif spell_gravity_remaining>0.0:
+		desired = spell_gravity_origin-position
+		desired.y = 0.0
+		desired = desired.normalized()
+		travel_speed = 13.0
+	var wish_velocity: Vector3 = desired*travel_speed
+	if flight_enabled:
+		var destination_altitude: float = clampf((13.0+sin(clock*0.8)*2.0) if is_escapee else (escapee.actor.global_position.y+1.8 if is_instance_valid(escapee) else 10.0),5.0,28.0)
+		wish_velocity.y = clampf((destination_altitude-position.y)*2.7,-12.0,12.0)
+		actor.velocity = actor.velocity.move_toward(wish_velocity,dt*30.0)
+	else:
+		actor.velocity.x = move_toward(actor.velocity.x,wish_velocity.x,dt*27.0)
+		actor.velocity.z = move_toward(actor.velocity.z,wish_velocity.z,dt*27.0)
+		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
+	actor.move_and_slide()
+	if desired.length_squared()>0.01:
+		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-desired.x,-desired.z),dt*7.0)
+	speed = Vector2(actor.velocity.x,actor.velocity.z).length()
+	blend = speed_band(SPEEDS,speed)
+	tree.set("parameters/Gaits/blend_position",blend)
+	tree.set("parameters/Direction/blend_amount",0.0)
+	tree.set("parameters/Cadence/scale",maxf(0.25,speed/3.5))
+	tree.advance(dt)
+	if flight_enabled:
+		var planar_speed: float = Vector2(actor.velocity.x,actor.velocity.z).length()
+		var tilt: float = clampf(atan2(planar_speed,maxf(-5.0,actor.velocity.y)),0.12,2.7)
+		visual.rotation.x = move_toward(visual.rotation.x,tilt,dt*4.0)
+		visual.position.y = 0.95*absf(sin(visual.rotation.x))
+		apply_flight_pose(dt)
+	else:
+		visual.rotation.x = move_toward(visual.rotation.x,0.0,dt*6.0)
+		visual.position.y = 0.0
+	# Hunters pick spells from BOTH hands (other than flight), then throw
+	# real palm-origin projectiles at the escaping target.
+	if not is_escapee and is_instance_valid(escapee) and not escapee.combat_dead:
+		pursuit_cast_timer -= dt
+		if pursuit_cast_timer<=0.0 and target_distance<65.0 and cast_elapsed<0.0:
+			var choices: Array[String] = ["fire","frost","arc","gravity","leech","comet","tempest","venom"]
+			var chosen: String = choices[(pursuit_spell_cursor+int(name.right(1)))%choices.size()]
+			pursuit_spell_cursor += 1
+			controlled_arm = "left" if chosen in ["comet","tempest","venom"] else "right"
+			cast_spell(chosen)
+			pursuit_cast_timer = 1.65 if pursuit_role=="hunter" else (2.3 if pursuit_role=="no_flight" else 3.3)
+	jab_aim_strength = 1.0
+	adjust_jab_arm()
+	update_cast_motion(dt)
+
 func war_simulation_tick(dt: float) -> void:
+	if pursuit_role != "":
+		update_pursuit_agent(dt)
+		return
 	if spell_target_mode != "":
 		update_spell_test_target(dt)
 		return
