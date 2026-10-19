@@ -60,7 +60,7 @@ func make_arena():
 	fill.light_energy = 0.16
 	add_child(fill)
 	if biome == "flat_dirt":
-		# Two neighboring 250 x 500 m terrain surfaces: west grass, east dirt.
+		# Two neighboring 10 x 10 m terrain surfaces: west grass, east dirt.
 		# Reuse existing Godot PlaneMesh as the common collision-backed surface.
 		var grassland_mat := StandardMaterial3D.new()
 		grassland_mat.albedo_color = Color("8abc78")
@@ -76,24 +76,14 @@ func make_arena():
 			grassland_mat.albedo_texture = load("res://assets/forest_ground_04_diff.jpg")
 			grassland_mat.albedo_color = Color("75ba62")
 		var surface := PlaneMesh.new()
-		surface.size = Vector2(world_half_extent,world_half_extent*2.0)
+		surface.size = Vector2(world_half_extent,world_half_extent)
 		mesh_node(surface,Vector3(-world_half_extent*0.5,-0.13,0),grassland_mat)
 		mesh_node(surface,Vector3(world_half_extent*0.5,-0.13,0),texture("forest_ground_04",0.18))
-		var landform_half_size: float = world_half_extent * 0.49
-		var left_hills = preload("res://dirt_landforms.gd").new()
-		left_hills.name = "GrassHills"
-		left_hills.half_extent = landform_half_size
-		left_hills.grass_surface = true
-		left_hills.position = Vector3(-world_half_extent*0.5,0,0)
-		add_child(left_hills)
-		var right_hills = preload("res://dirt_landforms.gd").new()
-		right_hills.name = "DirtHills"
-		right_hills.half_extent = landform_half_size
-		right_hills.position = Vector3(world_half_extent*0.5,0,0)
-		add_child(right_hills)
+		# Preserve the authored Grass001 grass texture; no handmade terrain meshes.
+		# Hills and true cut-in valleys require terrain assets with matching collision.
 		var grass = preload("res://dirt_grass.gd").new()
-		grass.half_extent = landform_half_size
-		grass.position.x = -world_half_extent*0.5
+		grass.half_extent = world_half_extent * 0.5
+		grass.position.x = -world_half_extent * 0.5
 		add_child(grass)
 		# Biome map remains available for the next terrain-development phase.
 		print("[LEVEL_ENVIRONMENT] flat_dirt_open_sky=true roof=false side_m=",world_half_extent*2.0)
