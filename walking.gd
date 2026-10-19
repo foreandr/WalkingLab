@@ -3105,6 +3105,12 @@ func release_fireball(hand_world: Vector3) -> void:
 		effect.scale = Vector3.ONE * 3.0
 	effect.amount = mini(effect.amount,10 if cast_element=="ricochet" else 6)
 	if cast_element=="ricochet": effect.lifetime = 0.40
+	if cast_element=="homing":
+		# Particle positions stay relative to the travelling projectile so
+		# the entire imported effect grows thinner as the parent shrinks.
+		# World-space particles would otherwise leave a full-sized trail behind.
+		effect.local_coords = true
+		effect.lifetime = 0.35
 	effect.fixed_fps = 30
 	effect.emitting = true
 	effect.restart()
