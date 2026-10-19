@@ -138,6 +138,8 @@ var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
 var solo_left_strafe_available: bool = false
 var solo_right_strafe_available: bool = false
+var ring_inventory_panel: PanelContainer = null
+var ring_inventory_text: Label = null
 # Smooth, persistent crossfade weights shared by player and motion showcase.
 var strafe_left_blend: float = 0.0
 var strafe_right_blend: float = 0.0
@@ -543,6 +545,7 @@ func _ready():
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		reticle.add_child(dot)
 		install_options_menu(canvas)
+		install_ring_inventory(canvas)
 		install_resource_hud(canvas)
 		install_speed_streaks(canvas)
 	if player_controlled:
@@ -944,6 +947,38 @@ func install_solo_strafe(player: AnimationPlayer, direction: String) -> bool:
 		player.add_animation_library("strafe",library)
 	print("[SOLO_LEFT_STRAFE] ready tracks=",mapped," file=",path," hips_ignored=true local_rotation=true")
 	return true
+
+func install_ring_inventory(canvas: CanvasLayer) -> void:
+	ring_inventory_panel = PanelContainer.new()
+	ring_inventory_panel.name = "RingInventory"
+	ring_inventory_panel.visible = false
+	ring_inventory_panel.set_anchors_preset(Control.PRESET_CENTER)
+	ring_inventory_panel.position = Vector2(-225.0,-225.0)
+	ring_inventory_panel.custom_minimum_size = Vector2(450.0,450.0)
+	canvas.add_child(ring_inventory_panel)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation",8)
+	ring_inventory_panel.add_child(column)
+	var heading := Label.new()
+	heading.text = "INVENTORY  |  RINGS     [I to close]"
+	heading.add_theme_font_size_override("font_size",22)
+	column.add_child(heading)
+	var instructions := Label.new()
+	instructions.text = "Equipped spells - five fingers on each hand"
+	column.add_child(instructions)
+	ring_inventory_text = Label.new()
+	ring_inventory_text.add_theme_font_size_override("font_size",17)
+	column.add_child(ring_inventory_text)
+	refresh_ring_inventory()
+
+func refresh_ring_inventory() -> void:
+	if ring_inventory_text == null: return
+	var result: String = ""
+	for i in range(SPELL_NAMES.size()):
+		if i == 5: result += "\nLEFT HAND\n"
+		elif i == 0: result += "RIGHT HAND\n"
+		result += "  %d.  %s\n" % [i % 5 + 1,SPELL_NAMES[i]]
+	ring_inventory_text.text = result
 
 func install_backwards(player: AnimationPlayer):
 	install_motion_library(player,"res://assets/backward_motions.glb","back",BACK_NAMES,BACK_NAMES)
@@ -3758,7 +3793,14 @@ func _unhandled_input(event):
 				if Input.is_physical_key_pressed(KEY_W): cast_blink(1.0)
 				elif Input.is_physical_key_pressed(KEY_S): cast_blink(-1.0)
 
-			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
+			if event.keycode == KEY_I and ring_inventory_panel != null:
+				ring_inventory_panel.visible = not ring_inventory_panel.visible
+				if ring_inventory_panel.visible: refresh_ring_inventory()
+				get_viewport().set_input_as_handled()
+				return
+			if event.keycode==KEY_ESCAPE:
+				if ring_inventory_panel != null: ring_inventory_panel.visible = false
+				if options_panel != null: options_panel.visible = false
 			if event.keycode>=KEY_1 and event.keycode<=KEY_5:
 				var spell_index: int = (5 if controlled_arm=="left" else 0)+(event.keycode-KEY_1)
 				receive_spell_key(spell_index)
