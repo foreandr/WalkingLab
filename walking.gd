@@ -3056,9 +3056,15 @@ func release_fireball(hand_world: Vector3) -> void:
 	if arm_id < 0: return
 	# Aim at the SAME world target captured at cast start. This direction
 	# is measured from the palm so the projectile actually hits the cursor.
-	var raw_direction: Vector3 = (cast_aim_point - hand_world).normalized()
-	# The projectile travels directly from the releasing hand to the
-	# cursor/selected target. Never force the vector into actor-forward.
+	var homing_pick: CharacterBody3D = acquire_homing_target() if cast_element=="homing" else null
+	var raw_direction: Vector3 = (cast_aim_point-hand_world).normalized()
+	if is_instance_valid(homing_pick):
+		# Start toward the target immediately. A shot initially aimed at the
+		# ground should not strike the floor before guidance has time to turn.
+		var initial_intercept: Vector3 = homing_pick.global_position+Vector3.UP*1.05+homing_pick.velocity*0.20
+		if initial_intercept.distance_squared_to(hand_world)>0.01:
+			raw_direction = (initial_intercept-hand_world).normalized()
+	# Preserve the original precise palm/cursor aim for other spells.
 	var travel: Vector3 = raw_direction
 	var launch_speed: float = maxf(20.0,cast_hand_velocity.dot(travel))
 	var projectile := Node3D.new()
@@ -3115,7 +3121,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	mover.spell_type = cast_element
 	mover.spell_color = spell_color
 	if cast_element=="homing":
-		mover.homing_target = acquire_homing_target()
+		mover.homing_target = homing_pick
 		mover.travel_speed = maxf(mover.travel_speed,32.0)
 		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,32.0)
 	if cast_element=="ricochet":
