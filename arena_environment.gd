@@ -60,11 +60,11 @@ func make_arena():
 	fill.light_energy = 0.16
 	add_child(fill)
 	if biome == "grassland":
-		# Minimal construction stage: one full-size floor and one solid roof.
+		# Minimal test: only the 10m x 10m textured grass floor.
 		var ground := PlaneMesh.new()
 		ground.size = Vector2(world_half_extent * 2.0, world_half_extent * 2.0)
 		mesh_node(ground, Vector3(0.0,-0.13,0.0), texture("forest_ground_04",0.18))
-		add_child(preload("res://biome_map.gd").new())
+		# Biome map remains available for the next terrain-development phase.
 		print("[LEVEL_ENVIRONMENT] grassland_open_sky=true roof=false side_m=",world_half_extent*2.0)
 		return
 	var ground = PlaneMesh.new()
