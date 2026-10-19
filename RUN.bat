@@ -86,6 +86,11 @@ if exist "assets\external_grass\.new_import" (
     del /Q "assets\external_grass\.new_import"
     set "IDLE_NEW=1"
 )
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\install_grass_texture.ps1"
+if exist "assets\external_grass\.new_import" (
+    del /Q "assets\external_grass\.new_import"
+    set "IDLE_NEW=1"
+)
 rem Install the original Kenney particle texture used by the MIT Godot fire scene.
 rem No procedural fire meshes/textures. Asset stays cached locally.
 if not exist "assets\external_vfx" mkdir "assets\external_vfx"
