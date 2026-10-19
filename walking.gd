@@ -1569,7 +1569,7 @@ func status_description() -> String:
 	return "  |  ".join(active)
 
 func team_is_enemy(other: Node) -> bool:
-	return other != null and is_instance_valid(other) and other != self and not other.combat_dead and (team_id == "" or (String(other.get("team_id")) != "" and String(other.get("team_id")) != team_id))
+	return other != null and is_instance_valid(other) and other != self and not other.combat_dead and not bool(other.get_meta("brawl_spectator",false)) and (team_id == "" or (String(other.get("team_id")) != "" and String(other.get("team_id")) != team_id))
 
 func heal_from_bloom(amount: float) -> void:
 	var damage: Node = get_node_or_null("DamageSystem")
@@ -1977,7 +1977,8 @@ func update_team_battle_agent(dt: float) -> void:
 			var score: float = dist-vulnerability+agent_rng.randf_range(-3.0,3.0)
 			# An immortal spectator must not monopolize target selection and
 			# prevent opponents from engaging their mortal adversaries.
-			# In a duel the only target is immortal BLACK; AI must still attack.
+			# Spectators are not combatants; exclude them from AI target selection.
+			if bool(candidate.get_meta("brawl_spectator",false)): continue
 			if candidate==previous_target: score-=4.0
 			if score<best_score:
 				best_score = score

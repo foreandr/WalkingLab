@@ -71,8 +71,8 @@ func _ready() -> void:
 	last_tip = weapon.to_global(Vector3(0,-0.34,0))
 	fitted = true
 	decision_clock = randf_range(0.2,0.7)
-	acrobat_clock = randf_range(1.4,3.5)
-	flight_clock = randf_range(1.5,4.0)
+	acrobat_clock = randf_range(0.7,1.5)
+	flight_clock = randf_range(1.0,2.0)
 	print("[BRAWL_GEAR] fighter=",pilot.name," type=",kind," source=",main_file," bone=",right_hand)
 
 func _get_enemy():
@@ -118,7 +118,7 @@ func dodge() -> void:
 	pilot.brawl_impact_impulse += step*9.0
 	if pilot.actor.is_on_floor(): pilot.actor.velocity.y = maxf(pilot.actor.velocity.y,5.0)
 	if visual_driver != null and visual_driver.has_method("action"):
-		var options: Array = ["DodgeRoll","Roll","Roll_RM","SideFlip","Side_Flip","Backflip","NinjaJump_Start"]
+		var options: Array = ["Roll","Roll_RM","DodgeRoll","SideFlip","Side_Flip","Backflip","NinjaJump_Start"]
 		if String(visual_driver.source_file).ends_with("aether-02.glb"):
 			options = ["Backflip","DodgeRoll","Roll"]
 		visual_driver.action(options,0.54,"EVASIVE ACROBATICS")
@@ -159,20 +159,20 @@ func _physics_process(dt: float) -> void:
 			dodge()
 	acrobat_clock -= time
 	if acrobat_clock <= 0.0:
-		acrobat_clock = randf_range(2.0,4.4)
-		if gap < 19.0 and swing_clock <= 0.0:
-			if randf() < 0.40: dodge()
+		acrobat_clock = randf_range(1.0,2.5)
+		if gap < 19.0 and swing_clock <= 0.0 and not pilot.flight_enabled:
+			if randf() < 0.50 and dodge_cooldown <= 0.0: dodge()
 			elif pilot.actor.is_on_floor():
 				pilot.actor.velocity.y = 8.0
 				if visual_driver != null: visual_driver.action(["NinjaJump_Start","Jump_Start","Jump"],0.7,"VERTICAL JUMP")
 	flight_clock -= time
 	flight_burst_time = maxf(0.0,flight_burst_time-time)
 	if flight_clock <= 0.0:
-		flight_clock = randf_range(3.5,6.5)
-		if gap > 5.5 or randf()<0.35:
+		flight_clock = randf_range(2.5,4.5)
+		if gap > 4.0 or randf()<0.50:
 			flight_burst_time = randf_range(1.1,2.2)
-	pilot.brawl_flight_override = flight_burst_time > 0.0 and gap > 3.2 and pilot.spell_grounded_remaining <= 0.0
-	if pilot.flight_enabled and gap < 14.0 and randf() < time*0.18 and visual_driver != null and swing_clock <= 0.0:
+	pilot.brawl_flight_override = flight_burst_time > 0.0 and gap > 2.2 and pilot.spell_grounded_remaining <= 0.0
+	if pilot.flight_enabled and gap < 14.0 and randf() < time*0.95 and visual_driver != null and swing_clock <= 0.0:
 		visual_driver.action(["Backflip","NinjaJump_Start","DodgeRoll","Jump"],0.9,"AIRBORNE ACROBATICS")
 
 func _sweep_weapon(old_tip: Vector3, tip: Vector3) -> void:
@@ -182,7 +182,7 @@ func _sweep_weapon(old_tip: Vector3, tip: Vector3) -> void:
 	for victim in arena.mannequins:
 		if not is_instance_valid(victim) or victim == pilot or victim.combat_dead or victim.team_id == pilot.team_id: continue
 		_strike_candidate(victim,base,old_tip,tip)
-	if is_instance_valid(arena.player) and arena.player != pilot and not arena.player.combat_dead and arena.player.team_id != pilot.team_id:
+	if is_instance_valid(arena.player) and not bool(arena.player.get_meta("brawl_spectator",false)) and arena.player != pilot and not arena.player.combat_dead and arena.player.team_id != pilot.team_id:
 		_strike_candidate(arena.player,base,old_tip,tip)
 
 func _strike_candidate(victim,base: Vector3,old_tip: Vector3,tip: Vector3) -> void:

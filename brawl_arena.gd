@@ -1,8 +1,8 @@
 extends "res://showcase.gd"
-# One immortal BLACK versus one mortal swordfighter. Full physics arena.
+# Two mortal autonomous duelists; immortal BLACK is strictly a spectator.
 # Uses the production WalkingLab AI, hit-region damage, spells, and flight.
-const TEAMS: Array[String] = ["blue","red"]
-const COLORS: Array[Color] = [Color("4798ff"),Color("ff4556")]
+const TEAMS: Array[String] = ["red","gold"]
+const COLORS: Array[Color] = [Color("ff4556"),Color("ffc247")]
 var fight_roster: Array = []
 var fight_hud: Label
 var elapsed_round: float = 0.0
@@ -19,7 +19,7 @@ func _ready() -> void:
 	get_viewport().scaling_3d_scale = 0.76
 	spawn_rng.randomize()
 	current_level = {
-		"number":0,"name":"1v1 sealed kinetic arena",
+		"number":0,"name":"autonomous 1v1 spectator arena",
 		"biome":"arena","battle_royale_drop":false,
 		"player_spells":["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"],
 		"enemy_spells":["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
@@ -42,23 +42,24 @@ func _ready() -> void:
 	player.actor_only = true
 	player.auto_war_combat = false
 	player.ai_mode = ""
-	player.team_id = "blue"
-	player.spawn_point = Vector3(0,0.05,7.0)
+	player.team_id = "spectator"
+	player.set_meta("brawl_spectator",true)
+	player.spawn_point = Vector3(0,0.05,18.0)
 	player.character_tint = Color(0.12,0.14,0.17)
 	player.demo_immortal = true
 	player.set_meta("brawl_flight_limit",true)
 	player.infinite_mana = true
 	player.ignore_spell_cooldowns = true
-	var black_spells: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
+	var black_spells: Array[String] = ["flight"]
 	player.equipped_spells = black_spells
 	add_child(player)
 	player.camera.current = true
-	_add_team_label(player,"BLACK / BLUE / IMMORTAL",COLORS[0])
+	_add_team_label(player,"BLACK / IMMORTAL OBSERVER",Color("a9afb7"))
 	attach_status_label(player)
-	_add_weapon(player,"sword",null)
-	# Exactly one mortal opponent. Real CC0 weapon and authored animations.
+	# No spectator weapon: NPCs are the combatants, not BLACK.
 	var formations: Array[Dictionary] = [
-		{"team":1,"position":Vector3(0,0.05,-7.0),"weapon":"sword","acrobat":true}
+		{"team":0,"position":Vector3(-5.0,0.05,-1.0),"weapon":"sword","acrobat":false},
+		{"team":1,"position":Vector3(5.0,0.05,1.0),"weapon":"dagger","acrobat":true}
 	]
 	for i in range(formations.size()):
 		var setup: Dictionary = formations[i]
@@ -94,7 +95,7 @@ func _ready() -> void:
 		fighter.set_physics_process(false)
 	_create_fight_hud()
 	_update_fight_hud()
-	print("[BRAWL_START] mode=1v1 total=2 immortal=BLACK npc_count=",mannequins.size())
+	print("[BRAWL_START] mode=NPC_1V1 npc_count=",mannequins.size()," spectator=BLACK excluded_from_targeting=true")
 
 
 func _build_sealed_arena() -> void:
@@ -157,7 +158,7 @@ func _add_team_label(fighter,title: String,color: Color) -> void:
 
 func _create_fight_hud() -> void:
 	var ui: CanvasLayer = CanvasLayer.new()
-	ui.name = "FourTeamUI"
+	ui.name = "SpectatorDuelUI"
 	add_child(ui)
 	var root: PanelContainer = PanelContainer.new()
 	root.position = Vector2(10,10)
@@ -165,11 +166,11 @@ func _create_fight_hud() -> void:
 	var stack: VBoxContainer = VBoxContainer.new()
 	root.add_child(stack)
 	var headline: Label = Label.new()
-	headline.text = "THE GAME  |  SEALED ARENA  |  1 v 1"
+	headline.text = "THE GAME  |  NPC DUEL  |  BLACK OBSERVING"
 	headline.add_theme_font_size_override("font_size",17)
 	stack.add_child(headline)
 	var guide: Label = Label.new()
-	guide.text = "WASD move  |  MIDDLE DRAG camera  |  V fly (MAX 5s)  |  Q sword  |  R dodge  |  B block  |  F5 restart"
+	guide.text = "BLACK: WASD roam | MIDDLE DRAG camera | V fly (5s max) | F5 restart | NPCs fight one another"
 	guide.add_theme_font_size_override("font_size",12)
 	stack.add_child(guide)
 	fight_hud = Label.new()
@@ -179,12 +180,17 @@ func _create_fight_hud() -> void:
 func _physics_process(dt: float) -> void:
 	if not is_instance_valid(player): return
 	tick_war_fighters(dt)
-	# Enemy is mortal; BLACK survives all combat. Fight can be restarted at F5.
+	# Only the two mortal duelists determine the winner.
 	if fight_over: return
-	if not mannequins.is_empty() and is_instance_valid(mannequins[0]) and mannequins[0].combat_dead:
-		fight_over = true
-		round_victor = "BLACK WINS"
-		print("[BRAWL_COMPLETE] ",round_victor," elapsed=",snappedf(elapsed_round,0.1))
+	for fighter in mannequins:
+		if is_instance_valid(fighter) and fighter.combat_dead:
+			for rival in mannequins:
+				if is_instance_valid(rival) and not rival.combat_dead:
+					fight_over = true
+					round_victor = rival.name + " WINS"
+					print("[BRAWL_COMPLETE] ",round_victor," elapsed=",snappedf(elapsed_round,0.1))
+					break
+			break
 
 func _process(dt: float) -> void:
 	elapsed_round += dt
@@ -213,24 +219,19 @@ func _update_fight_hud() -> void:
 	if fight_hud == null: return
 	var parts: Array[String] = []
 	for i in range(TEAMS.size()):
-		var count: int = 1 if i==0 and is_instance_valid(player) and not player.combat_dead else 0
+		var count: int = 0
 		for fighter in mannequins:
 			if is_instance_valid(fighter) and not fighter.combat_dead and fighter.team_id == TEAMS[i]:
 				count += 1
 		parts.append("%s %d/1" % [TEAMS[i].to_upper(),count])
-	fight_hud.text = "  |  ".join(parts)+"\nFPS %d  |  elapsed %.0fs  |  BLACK IMMORTAL  |  flight %.1f/5.0s%s" % [Engine.get_frames_per_second(),elapsed_round,player.brawl_flight_elapsed if is_instance_valid(player) else 0.0,"\n"+round_victor if fight_over else ""]
+	fight_hud.text = "  |  ".join(parts)+"\nFPS %d  |  elapsed %.0fs  |  BLACK SPECTATOR  |  flight %.1f/5.0s%s" % [Engine.get_frames_per_second(),elapsed_round,player.brawl_flight_elapsed if is_instance_valid(player) else 0.0,"\n"+round_victor if fight_over else ""]
 
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventKey): return
 	var k: InputEventKey = event as InputEventKey
 	if not k.pressed or k.echo: return
 	if not is_instance_valid(player): return
-	var gear: Node = player.get_node_or_null("BrawlGear")
-	if gear == null: return
-	match k.keycode:
-		KEY_Q: gear.attack()
-		KEY_R: gear.dodge()
-		KEY_F5: get_tree().reload_current_scene()
+	if k.keycode == KEY_F5: get_tree().reload_current_scene()
 
 func _unhandled_input(_event: InputEvent) -> void:
 	# Let walking.gd keep all of BLACK's original camera, movement, and spells.
