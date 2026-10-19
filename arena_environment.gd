@@ -60,31 +60,37 @@ func make_arena():
 	fill.light_energy = 0.16
 	add_child(fill)
 	if biome == "flat_dirt":
-		# Two neighboring 10 x 10 m terrain surfaces: west grass, east dirt.
-		# Reuse existing Godot PlaneMesh as the common collision-backed surface.
-		var grassland_mat := StandardMaterial3D.new()
-		grassland_mat.albedo_color = Color("8abc78")
-		grassland_mat.roughness = 1.0
-		grassland_mat.uv1_triplanar = true
-		grassland_mat.uv1_world_triplanar = true
-		grassland_mat.uv1_scale = Vector3.ONE * 0.3
-		var grass_texture_path := "res://assets/external_grass/Grass001_Color.jpg"
-		if ResourceLoader.exists(grass_texture_path):
-			grassland_mat.albedo_texture = load(grass_texture_path)
-		else:
-			# Visible distinction if the sourced CC0 material cannot be downloaded.
-			grassland_mat.albedo_texture = load("res://assets/forest_ground_04_diff.jpg")
-			grassland_mat.albedo_color = Color("75ba62")
-		var surface := PlaneMesh.new()
-		surface.size = Vector2(world_half_extent,world_half_extent)
-		mesh_node(surface,Vector3(-world_half_extent*0.5,-0.13,0),grassland_mat)
-		mesh_node(surface,Vector3(world_half_extent*0.5,-0.13,0),texture("forest_ground_04",0.18))
-		# Preserve the authored Grass001 grass texture; no handmade terrain meshes.
-		# Hills and true cut-in valleys require terrain assets with matching collision.
-		var grass = preload("res://dirt_grass.gd").new()
-		grass.half_extent = world_half_extent * 0.5
-		grass.position.x = -world_half_extent * 0.5
-		add_child(grass)
+		# Development layout: four independently generated 30x30 metre biomes.
+		# Debug-only red boundaries are visualization guides, not arena walls.
+		var tile_side: float = world_half_extent
+		var grass_mat := StandardMaterial3D.new()
+		grass_mat.albedo_color = Color("84b877")
+		grass_mat.uv1_triplanar = true
+		grass_mat.uv1_world_triplanar = true
+		grass_mat.uv1_scale = Vector3.ONE * 0.3
+		grass_mat.roughness = 1.0
+		var authored_grass: String = "res://assets/external_grass/Grass001_Color.jpg"
+		grass_mat.albedo_texture = load(authored_grass) if ResourceLoader.exists(authored_grass) else load("res://assets/forest_ground_04_diff.jpg")
+		var dirt_mat := texture("forest_ground_04",0.18)
+		var tile_surface := PlaneMesh.new()
+		tile_surface.size = Vector2(tile_side,tile_side)
+		for ix in range(2):
+			for iz in range(2):
+				var center := Vector3((float(ix)-0.5)*tile_side,-0.13,(float(iz)-0.5)*tile_side)
+				var grassy: bool = (ix+iz)%2 == 0
+				mesh_node(tile_surface,center,grass_mat if grassy else dirt_mat)
+				var hills = preload("res://dirt_landforms.gd").new()
+				hills.name = "GrassHills_%d_%d" % [ix,iz] if grassy else "DirtHills_%d_%d" % [ix,iz]
+				hills.grass_surface = grassy
+				hills.half_extent = tile_side*0.5
+				hills.position = Vector3(center.x,0,center.z)
+				add_child(hills)
+				if grassy:
+					var tufts = preload("res://dirt_grass.gd").new()
+					tufts.half_extent = tile_side*0.5
+					tufts.position = Vector3(center.x,0,center.z)
+					add_child(tufts)
+				add_dev_tile_border(Vector3(center.x,0,center.z),tile_side)
 		# Biome map remains available for the next terrain-development phase.
 		print("[LEVEL_ENVIRONMENT] flat_dirt_open_sky=true roof=false side_m=",world_half_extent*2.0)
 		return
@@ -123,3 +129,23 @@ func make_arena():
 		holder.position = Vector3(sin(i*TAU/12)*44,0,cos(i*TAU/12)*44)
 
 
+
+func add_dev_tile_border(center: Vector3, side: float) -> void:
+	# Debug-only outline; unlit thick red 3D lines above the tile.
+	var visual := MeshInstance3D.new()
+	visual.name = "DEV_RED_BIOME_BORDER"
+	var m := ImmediateMesh.new()
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0,0.04,0.025)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.no_depth_test = true
+	m.surface_begin(Mesh.PRIMITIVE_LINES,mat)
+	var h: float = side*0.5
+	var corners: Array[Vector3] = [Vector3(-h,0.14,-h),Vector3(h,0.14,-h),Vector3(h,0.14,h),Vector3(-h,0.14,h)]
+	for i in range(4):
+		m.surface_add_vertex(corners[i])
+		m.surface_add_vertex(corners[(i+1)%4])
+	m.surface_end()
+	visual.mesh = m
+	visual.position = center
+	add_child(visual)
