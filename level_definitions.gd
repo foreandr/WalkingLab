@@ -12,7 +12,7 @@ static func get_level(number: int) -> Dictionary:
 			"arena_half_extent": 2000.0,
 			"enemy_count": 0,
 			"enemy_distance": 9.0,
-			"player_spells": [],
+			"player_spells": ["flight"],
 			"enemy_spells": [],
 			"enemy_ai": true,
 			"buildings": []
