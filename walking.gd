@@ -3407,8 +3407,7 @@ func spell_combo_is_ready(elements: Array[String]) -> bool:
 		if not spell_is_ready(slot): return false
 		seen[slot] = true
 		var hand: String = "left" if slot>=5 else "right"
-		if first_arm!="" and first_arm!=hand: return false
-		if player_controlled and controlled_arm!=hand: return false
+		# All projectile fingers can mix across hands.
 		first_arm = hand
 		total += SPELL_COSTS[slot]
 	if not infinite_mana and mana<total: return false
@@ -3476,10 +3475,8 @@ func flush_pending_spell(force: bool = false) -> void:
 	if pending_spell_slots.is_empty(): return
 	if not force and Time.get_ticks_msec()-pending_spell_since_ms<FUSION_INPUT_WINDOW_MS: return
 	var slots: Array[int] = pending_spell_slots.duplicate()
-	var hand: String = pending_spell_arm
 	pending_spell_slots.clear()
 	pending_spell_arm = ""
-	if controlled_arm!=hand: return
 	var combo: Array[String] = []
 	for slot in slots: combo.append(SPELL_IDS[slot])
 	# An unaffordable combo casts its largest affordable ordered subset.
@@ -3491,10 +3488,16 @@ func receive_spell_key(slot: int) -> void:
 	if slot<0 or slot>=SPELL_IDS.size(): return
 	if not FUSION_PROJECTILES.has(SPELL_IDS[slot]):
 		flush_pending_spell(true)
-		cast_spell(SPELL_IDS[slot])
+		if slot==SPELL_IDS.find("bloom") and controlled_arm!="left":
+			var old_arm: String = controlled_arm
+			controlled_arm = "left"
+			cast_spell(SPELL_IDS[slot])
+			controlled_arm = old_arm
+		else:
+			cast_spell(SPELL_IDS[slot])
 		return
 	var now_ms: int = Time.get_ticks_msec()
-	if not pending_spell_slots.is_empty() and (pending_spell_arm!=controlled_arm or now_ms-pending_spell_since_ms>FUSION_INPUT_WINDOW_MS):
+	if not pending_spell_slots.is_empty() and now_ms-pending_spell_since_ms>FUSION_INPUT_WINDOW_MS:
 		flush_pending_spell(true)
 	if pending_spell_slots.is_empty():
 		pending_spell_since_ms = now_ms
@@ -3670,6 +3673,8 @@ func _unhandled_input(event):
 			if event.keycode>=KEY_1 and event.keycode<=KEY_5:
 				var spell_index: int = (5 if controlled_arm=="left" else 0)+(event.keycode-KEY_1)
 				receive_spell_key(spell_index)
+			if event.keycode>=KEY_6 and event.keycode<=KEY_9:
+				receive_spell_key(5+event.keycode-KEY_6)
 			if event.keycode==KEY_F: select_hovered_target()
 			if event.keycode==KEY_SHIFT:
 				flush_pending_spell(true)
@@ -3678,8 +3683,8 @@ func _unhandled_input(event):
 					update_resource_hud()
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-		if event is InputEventKey and not event.pressed and event.keycode>=KEY_1 and event.keycode<=KEY_5:
-			var released_slot: int = (5 if pending_spell_arm=="left" else 0)+(event.keycode-KEY_1)
+		if event is InputEventKey and not event.pressed and event.keycode>=KEY_1 and event.keycode<=KEY_9:
+			var released_slot: int = (5+event.keycode-KEY_6) if event.keycode>=KEY_6 else (5 if controlled_arm=="left" else 0)+(event.keycode-KEY_1)
 			if pending_spell_slots.has(released_slot): flush_pending_spell(true)
 		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
 			orbit = wrapf(orbit-event.relative.x*0.004*camera_sensitivity,-PI,PI)
