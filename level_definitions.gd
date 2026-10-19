@@ -12,8 +12,8 @@ static func get_level(number: int) -> Dictionary:
 			"arena_half_extent": 50.0,
 			"enemy_count": 1,
 			"enemy_distance": 9.0,
-			"player_spells": [] as Array[String],
-			"enemy_spells": [] as Array[String],
+			"player_spells": [],
+			"enemy_spells": [],
 			"enemy_ai": true
 		}
 	# Placeholder deterministic generator contract for later level designs.
@@ -26,7 +26,7 @@ static func get_level(number: int) -> Dictionary:
 		"arena_half_extent": 50.0,
 		"enemy_count": 1,
 		"enemy_distance": 9.0,
-		"player_spells": [] as Array[String],
-		"enemy_spells": [] as Array[String],
+		"player_spells": [],
+		"enemy_spells": [],
 		"enemy_ai": true
 	}
