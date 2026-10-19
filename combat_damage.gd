@@ -1,5 +1,6 @@
 extends Node
-# Six independent anatomical hit pools. The visible limb markers follow Mixamo bones.
+# Six independent anatomical hit pools. Damage positions follow Mixamo bones;
+# visual debug spheres are optional and never participate in hit detection.
 const REGIONS = ["head","torso","left_arm","right_arm","left_leg","right_leg"]
 var hp: Dictionary = {}
 var owner_actor: CharacterBody3D
@@ -45,8 +46,9 @@ func setup(body: CharacterBody3D, rig: Skeleton3D) -> void:
 		material.no_depth_test = true
 		marker.material_override = material
 		owner_actor.add_child(marker)
-		# Test hitbox overlays are expensive transparent draws; disable in wars.
-		marker.visible = owner_controller.get("animation_test_mode") != "war"
+		# Debug spheres are presentation only; the player's actual hit zones
+		# remain bone-based and active even when these overlays are hidden.
+		marker.visible = not bool(owner_controller.get("player_controlled")) and owner_controller.get("animation_test_mode") != "war"
 		markers[region] = marker
 
 func apply_damage_material() -> void:
