@@ -3132,7 +3132,7 @@ func update_flight_orientation(dt: float) -> void:
 	if flight_enabled:
 		target_pitch = deg_to_rad(20.0)
 		# Hover leans forward by 20 degrees; steering keeps head-first alignment.
-		var steering: bool = manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL) if player_controlled else actor.velocity.length() > 0.7
+		var steering: bool = manual_input.length() > 0.08 if player_controlled else actor.velocity.length() > 0.7
 		if steering:
 			target_pitch = clampf(PI*0.5-elevation,0.08,PI-0.08)
 		# Backward flight uses the sitting pose and reclines toward the tail,
@@ -3224,10 +3224,13 @@ func apply_injured_walk(dt: float) -> void:
 
 func apply_flight_pose(dt: float) -> void:
 	if not flight_enabled: return
-	var moving: bool = (manual_input.length() > 0.08 or Input.is_key_pressed(KEY_SPACE) or Input.is_key_pressed(KEY_CTRL)) if player_controlled else actor.velocity.length() > 0.7
+	var moving: bool = manual_input.length() > 0.08 if player_controlled else actor.velocity.length() > 0.7
 	flight_idle_weight = move_toward(flight_idle_weight,0.0 if moving else 1.0,dt*4.0)
 	flight_animation_time += dt*0.65
 	flight_idle_time += dt
+	# Pure vertical ascent/descent stays in the underlying idle animation.
+	if player_controlled and not moving:
+		return
 	var source: Dictionary = backward_flying_clip if player_controlled and manual_input.y < -0.1 and not backward_flying_clip.is_empty() else flying_clip
 	if source.is_empty(): return
 	var moment: float = fmod(flight_animation_time,float(source["length"]))
