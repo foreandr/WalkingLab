@@ -63,34 +63,18 @@ func make_arena():
 		# Development layout: four independently generated 30x30 metre biomes.
 		# Debug-only red boundaries are visualization guides, not arena walls.
 		var tile_side: float = world_half_extent
-		var grass_mat := StandardMaterial3D.new()
-		grass_mat.albedo_color = Color("84b877")
-		grass_mat.uv1_triplanar = true
-		grass_mat.uv1_world_triplanar = true
-		grass_mat.uv1_scale = Vector3.ONE * 0.3
-		grass_mat.roughness = 1.0
-		var authored_grass: String = "res://assets/external_grass/Grass001_Color.jpg"
-		grass_mat.albedo_texture = load(authored_grass) if ResourceLoader.exists(authored_grass) else load("res://assets/forest_ground_04_diff.jpg")
-		var dirt_mat := texture("forest_ground_04",0.18)
-		var tile_surface := PlaneMesh.new()
-		tile_surface.size = Vector2(tile_side,tile_side)
 		for ix in range(2):
 			for iz in range(2):
-				var center := Vector3((float(ix)-0.5)*tile_side,-0.13,(float(iz)-0.5)*tile_side)
 				var grassy: bool = (ix+iz)%2 == 0
-				mesh_node(tile_surface,center,grass_mat if grassy else dirt_mat)
-				var hills = preload("res://dirt_landforms.gd").new()
-				hills.name = "GrassHills_%d_%d" % [ix,iz] if grassy else "DirtHills_%d_%d" % [ix,iz]
-				hills.grass_surface = grassy
-				hills.half_extent = tile_side*0.5
-				hills.position = Vector3(center.x,0,center.z)
-				add_child(hills)
-				if grassy:
-					var tufts = preload("res://dirt_grass.gd").new()
-					tufts.half_extent = tile_side*0.5
-					tufts.position = Vector3(center.x,0,center.z)
-					add_child(tufts)
-				add_dev_tile_border(Vector3(center.x,0,center.z),tile_side)
+				var center := Vector3((float(ix)-0.5)*tile_side,0,(float(iz)-0.5)*tile_side)
+				var terrain = preload("res://biome_heightfield.gd").new()
+				terrain.name = "GrassTerrain_%d_%d" % [ix,iz] if grassy else "DirtTerrain_%d_%d" % [ix,iz]
+				terrain.side = tile_side
+				terrain.grassy = grassy
+				terrain.tile_index = ix*2+iz
+				terrain.position = center
+				add_child(terrain)
+				add_dev_tile_border(center,tile_side)
 		# Biome map remains available for the next terrain-development phase.
 		print("[LEVEL_ENVIRONMENT] flat_dirt_open_sky=true roof=false side_m=",world_half_extent*2.0)
 		return
