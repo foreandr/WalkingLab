@@ -13,3 +13,8 @@
 /assets/kenney_weapons/**/*.glb
 /assets/kenney_weapons/**/*.png
 /assets/kenney_weapons/*.glb
+
+# Local cached third-party grass asset, installed by RUN.bat.
+/assets/external_grass/*.glb
+/assets/external_grass/*.partial
+/assets/external_grass/.new_import
