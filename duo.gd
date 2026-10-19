@@ -20,6 +20,8 @@ const MAX_ACTIVE_FIGHTERS: int = 80
 # Default: one fleeing runner, three differently constrained spellcasters.
 # The previous 80-fighter stress test remains opt-in through CLI.
 const TEAM_AI_FIGHTERS: int = 1
+var current_level: Dictionary = {}
+var level_number: int = 1
 const TEAM_BLUE: Color = Color("317bff")
 const TEAM_RED: Color = Color("ed4451")
 var status_refresh_clock: float = 0.0
@@ -100,6 +102,8 @@ func profile_percentile(values: Array[float], fraction: float) -> float:
 
 func _ready():
 	spawn_rng.randomize()
+	current_level = preload("res://level_definitions.gd").get_level(level_number)
+	spawn_rng.seed = int(current_level["seed"])
 	flight_benchmark_requested = "--flight-benchmark" in OS.get_cmdline_user_args()
 	if flight_benchmark_requested:
 		for argument in OS.get_cmdline_user_args():
@@ -128,7 +132,9 @@ func _ready():
 	create_battle_feed()
 	create_performance_hud()
 	# Restore the arena and its real physics floor independently of mannequins.
-	add_child(preload("res://arena_environment.gd").new())
+	var level_environment = preload("res://arena_environment.gd").new()
+	level_environment.biome = String(current_level["biome"])
+	add_child(level_environment)
 	var floor_body := StaticBody3D.new()
 	floor_body.name = "ArenaGroundCollision"
 	add_child(floor_body)
@@ -147,6 +153,8 @@ func _ready():
 	player.spawn_point = Vector3(0,0,0)
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
+	if not flight_benchmark_requested:
+		player.equipped_spells = current_level["player_spells"].duplicate()
 	player.demo_immortal = true
 	# Black must not inherit any scripted AI/benchmark movement in normal play.
 	player.benchmark_flight_active = false
@@ -165,8 +173,8 @@ func _ready():
 		spawn_more_fighters(benchmark_fighters)
 	else:
 		# Autonomous free-for-all combatants, spawned over separate frames.
-		spawn_more_fighters(TEAM_AI_FIGHTERS, true)
-	print("[ARENA_MODE] duel player=manual npc=1 arena_half_extent=",ARENA_HALF_EXTENT)
+		spawn_more_fighters(int(current_level["enemy_count"]), true)
+	print("[LEVEL_START] number=",level_number," name=",current_level["name"]," biome=",current_level["biome"]," enemies=",mannequins.size()," spells_player=",player.equipped_spells)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
 	if enabled:
@@ -245,7 +253,11 @@ func _spawn_single_fighter() -> void:
 	fighter.actor_only = true
 	fighter.ai_abilities = true
 	fighter.team_battle_ai = not flight_benchmark_requested
-	var duel_spells: Array[String] = ["fire", "frost"]
+	var duel_spells: Array[String] = []
+	if flight_benchmark_requested:
+		duel_spells = ["fire", "frost"]
+	else:
+		duel_spells.assign(current_level["enemy_spells"])
 	fighter.equipped_spells = duel_spells
 	fighter.animation_test_mode = "war"
 	fighter.war_pose_enabled = pose_enabled
@@ -265,7 +277,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = Vector3(0.0, 0.0, -9.0) if TEAM_AI_FIGHTERS == 1 else random_war_spawn()
+			fighter.spawn_point = Vector3(0.0, 0.0, -float(current_level["enemy_distance"])) if int(current_level["enemy_count"]) == 1 else random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
