@@ -46,6 +46,8 @@ const FUSION_INPUT_WINDOW_MS: int = 320
 var pending_spell_slots: Array[int] = []
 var pending_spell_since_ms: int = 0
 var pending_spell_arm: String = ""
+var fusion_feedback: String = ""
+var fusion_feedback_remaining: float = 0.0
 # Five fingers per hand. Shift changes which complete set 1-5 operates.
 # RIGHT: Ember, Frost, Homing Missile, Gravity, Ricochet.
 # LEFT: Grounding, Bloom, Tempest, Venom, Flight.
@@ -752,7 +754,9 @@ func update_resource_hud() -> void:
 	var hand_offset: int = 5 if controlled_arm == "left" else 0
 	if hand_indicator != null:
 		hand_indicator.text = ("LEFT HAND" if controlled_arm == "left" else "RIGHT HAND")+"  |  1-5 FINGERS (SHIFT)"
-		if cast_elapsed>=0.0 and cast_components.size()>1:
+		if fusion_feedback_remaining>0.0:
+			hand_indicator.text = fusion_feedback
+		elif cast_elapsed>=0.0 and cast_components.size()>1:
 			hand_indicator.text = "FUSION: "+fusion_name(cast_components)
 	for i in range(5):
 		var slot: int = hand_offset+i
@@ -2116,6 +2120,7 @@ func _physics_process(dt):
 	if paused: return
 	if player_controlled:
 		flush_pending_spell()
+		fusion_feedback_remaining = maxf(0.0,fusion_feedback_remaining-dt)
 		tick_live_spell_effects(dt)
 		blink_cooldown_remaining = maxf(0.0,blink_cooldown_remaining-dt)
 		for i in range(spell_remaining.size()):
@@ -2534,7 +2539,10 @@ func _physics_process(dt):
 func update_camera():
 	var subject: CharacterBody3D = camera_target if is_instance_valid(camera_target) else actor
 	if subject==null or camera==null: return
-	var subject_controller: Node = subject.get_parent().crouch if subject!=actor else crouch
+	var subject_controller: Node = crouch
+	if subject!=actor and is_instance_valid(subject.get_parent()):
+		var parent_controller: Node = subject.get_parent()
+		if parent_controller.get("crouch")!=null: subject_controller = parent_controller.get("crouch")
 	var focus_target: float = subject_controller.capsule.height*0.58 if subject_controller.capsule!=null else 1.05
 	camera_focus_height = lerpf(camera_focus_height,focus_target,0.18)
 	var focus: Vector3 = subject.global_position+Vector3.UP*camera_focus_height
@@ -2542,8 +2550,10 @@ func update_camera():
 		# Follow the actual animated body (not only its upright physics capsule).
 		# It may still be airborne, pitching forward, or lying prone after death.
 		skeleton.force_update_all_bone_transforms()
-		var torso_index: int = skeleton.find_bone("Spine2")
-		if torso_index<0: torso_index = skeleton.find_bone("Spine")
+		var torso_index: int = -1
+		for bone_name in ["Spine2","Spine1","Spine","mixamorig:Spine2","mixamorig:Spine1","mixamorig:Spine","Hips","mixamorig:Hips"]:
+			torso_index = skeleton.find_bone(bone_name)
+			if torso_index>=0: break
 		if torso_index>=0:
 			var torso_center: Vector3 = skeleton.global_transform*skeleton.get_bone_global_pose(torso_index).origin
 			if torso_center.distance_to(subject.global_position)<3.5:
@@ -3413,7 +3423,6 @@ func fusion_name(elements: Array[String]) -> String:
 
 func spell_combo_is_ready(elements: Array[String]) -> bool:
 	if elements.is_empty() or cast_elapsed>=0.0 or crouch.active() or combat_dead: return false
-	var first_arm: String = ""
 	var total: float = 0.0
 	var seen: Dictionary = {}
 	for element in elements:
@@ -3421,9 +3430,6 @@ func spell_combo_is_ready(elements: Array[String]) -> bool:
 		if slot<0 or seen.has(slot) or not FUSION_PROJECTILES.has(element): return false
 		if not spell_is_ready(slot): return false
 		seen[slot] = true
-		var hand: String = "left" if slot>=5 else "right"
-		# All projectile fingers can mix across hands.
-		first_arm = hand
 		total += SPELL_COSTS[slot]
 	if not infinite_mana and mana<total: return false
 	if seen.has(SPELL_IDS.find("ricochet")) and get_tree().get_nodes_in_group("persistent_ricochets").size()>=MAX_ACTIVE_RICOCHETS: return false
@@ -3494,10 +3500,21 @@ func flush_pending_spell(force: bool = false) -> void:
 	pending_spell_arm = ""
 	var combo: Array[String] = []
 	for slot in slots: combo.append(SPELL_IDS[slot])
-	# An unaffordable combo casts its largest affordable ordered subset.
-	while not combo.is_empty() and not spell_combo_is_ready(combo):
-		combo.pop_back()
-	if not combo.is_empty(): begin_projectile_cast(combo)
+	# Never silently change a requested combination into a different spell.
+	if combo.is_empty(): return
+	var required_mana: float = 0.0
+	for slot in slots: required_mana += SPELL_COSTS[slot]
+	if not infinite_mana and mana<required_mana:
+		fusion_feedback = "FUSION FAILED: %d mana needed (%d available)" % [ceili(required_mana),ceili(mana)]
+		fusion_feedback_remaining = 2.0
+		update_resource_hud()
+		if player_controlled: print(fusion_feedback," requested=",combo)
+		return
+	if not begin_projectile_cast(combo):
+		fusion_feedback = "FUSION UNAVAILABLE: spell cooldown, casting, or ricochet limit"
+		fusion_feedback_remaining = 2.0
+		update_resource_hud()
+		if player_controlled: print(fusion_feedback," requested=",combo)
 
 func receive_spell_key(slot: int) -> void:
 	if slot<0 or slot>=SPELL_IDS.size(): return
@@ -3739,6 +3756,8 @@ func _unhandled_input(event):
 			if event.keycode>=KEY_1 and event.keycode<=KEY_5:
 				var spell_index: int = (5 if controlled_arm=="left" else 0)+(event.keycode-KEY_1)
 				receive_spell_key(spell_index)
+			# Fixed fusion keys: 6=Earthbind, 7=Lifeweave, 8=Galeforce,
+			# 9=Blight. Right-hand 1-5 + 6/8/9 can chord all 8.
 			if event.keycode>=KEY_6 and event.keycode<=KEY_9:
 				receive_spell_key(5+event.keycode-KEY_6)
 			if event.keycode==KEY_F: select_hovered_target()
