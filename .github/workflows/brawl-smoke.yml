@@ -49,6 +49,10 @@ jobs:
           cat /tmp/import.log | tail -n 100
           if [ "$rc" -ne 0 ]; then exit "$rc"; fi
           if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/import.log; then exit 1; fi
+      - name: Examine authoritative animation rigs and track paths
+        run: |
+          timeout 30 "$GODOT_BIN" --headless --path . --script res://scripts/probe_brawl_animations.gd > /tmp/rig.log 2>&1
+          grep -E 'RIG_PROBE_' /tmp/rig.log | head -n 40
       - name: Run default four-team scene for six seconds
         run: |
           set +e
@@ -68,4 +72,5 @@ jobs:
           path: |
             /tmp/import.log
             /tmp/brawl.log
+            /tmp/rig.log
           if-no-files-found: ignore
