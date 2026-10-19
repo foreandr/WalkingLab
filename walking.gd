@@ -2516,6 +2516,15 @@ func _physics_process(dt):
 			actor.velocity.y = vertical_jump_speed
 	else:
 		actor.velocity.y = -0.3
+	var biome_effect: Dictionary = {}
+	if player_controlled:
+		biome_effect = preload("res://biome_map.gd").sample(actor.global_position)
+		if bool(biome_effect.get("grounded",false)) and flight_enabled:
+			flight_enabled = false
+			flight_launch_remaining = 0.0
+			actor.velocity.y = minf(actor.velocity.y,0.0)
+		if not flight_enabled and not actor.is_on_floor():
+			actor.velocity.y -= SIMPLE_JUMP_GRAVITY * (float(biome_effect.get("gravity",1.0))-1.0) * step
 	var flight_impact_speed: float = -actor.velocity.y if player_controlled and flight_enabled and actor.velocity.y < 0.0 else 0.0
 	# Frost reduces flight movement too, not only ground running.
 	if player_controlled and spell_frost_remaining>0.0 and flight_enabled:
@@ -2526,6 +2535,15 @@ func _physics_process(dt):
 		actor.velocity.x *= 0.5
 		actor.velocity.z *= 0.5
 		if flight_enabled and actor.velocity.y > 0.0: actor.velocity.y *= 0.5
+	if player_controlled:
+		var region_slow: float = float(biome_effect.get("speed",1.0))
+		actor.velocity.x *= region_slow
+		actor.velocity.z *= region_slow
+		var wind_force: Vector2 = biome_effect.get("wind",Vector2.ZERO)
+		actor.velocity.x += wind_force.x * step
+		actor.velocity.z += wind_force.y * step
+		if flight_enabled and float(biome_effect.get("gravity",1.0)) > 1.0:
+			actor.velocity.y -= SIMPLE_JUMP_GRAVITY * (float(biome_effect["gravity"])-1.0) * step
 	# Grassland flight ceiling: stay below 60 metres even when boosting upward.
 	if player_controlled and flight_enabled and actor.global_position.y >= 59.5 and actor.velocity.y > 0.0:
 		actor.velocity.y = 0.0
