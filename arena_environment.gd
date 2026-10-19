@@ -64,6 +64,9 @@ func make_arena():
 		var ground := PlaneMesh.new()
 		ground.size = Vector2(world_half_extent * 2.0, world_half_extent * 2.0)
 		mesh_node(ground, Vector3(0.0,-0.13,0.0), texture("forest_ground_04",0.18))
+		var landforms = preload("res://dirt_landforms.gd").new()
+		landforms.half_extent = world_half_extent
+		add_child(landforms)
 		# Biome map remains available for the next terrain-development phase.
 		print("[LEVEL_ENVIRONMENT] flat_dirt_open_sky=true roof=false side_m=",world_half_extent*2.0)
 		return
