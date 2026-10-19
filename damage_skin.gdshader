@@ -17,10 +17,15 @@ float region_distance(vec3 pixel, vec3 world, float radius) {
 	return length(pixel-world)/radius;
 }
 vec3 damage_color(float health) {
-	if (health >= 80.0) return base_color.rgb;
-	if (health >= 60.0) return mix(base_color.rgb,vec3(1.0,0.87,0.06),0.82);
-	if (health >= 20.0) return mix(base_color.rgb,vec3(1.0,0.29,0.015),0.90);
-	return mix(base_color.rgb,vec3(0.95,0.025,0.01),0.96);
+	// Continuous transitions: red -> orange -> yellow -> white.
+	// Restored HP should visibly remove injury without abrupt color jumps.
+	float h = clamp(health,0.0,100.0);
+	vec3 red = vec3(0.95,0.025,0.01);
+	vec3 orange = vec3(1.0,0.32,0.02);
+	vec3 yellow = vec3(1.0,0.86,0.12);
+	if (h < 25.0) return mix(red,orange,smoothstep(0.0,25.0,h));
+	if (h < 65.0) return mix(orange,yellow,smoothstep(25.0,65.0,h));
+	return mix(yellow,base_color.rgb,smoothstep(65.0,100.0,h));
 }
 void fragment() {
 	vec3 p = world_surface;
