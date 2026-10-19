@@ -2663,7 +2663,7 @@ func manual_target_speed() -> float:
 				var stage: int = mini(int(progress),2)
 				desired_speed = lerp(float(SPEEDS[2+stage]),float(SPEEDS[3+stage]),smooth_gait(progress-stage))
 	# Frost truly slows Black's movement, not only the autonomous fighters.
-	var running_boost: float = 1.12 if desired_speed >= SPEEDS[2] and not flight_enabled else 1.0
+	var running_boost: float = (1.12 if bool(get_meta("speed_boots",false)) else 0.88) if desired_speed >= SPEEDS[2] and not flight_enabled else 1.0
 	return desired_speed*running_boost*(0.12 if spell_frost_remaining>0.0 else 1.0)
 func speed_band(values: Array, value: float) -> float:
 	for index in range(values.size()-1):
