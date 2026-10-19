@@ -64,6 +64,7 @@ func make_arena():
 		var ground := PlaneMesh.new()
 		ground.size = Vector2(world_half_extent * 2.0, world_half_extent * 2.0)
 		mesh_node(ground, Vector3(0.0,-0.13,0.0), texture("forest_ground_04",0.18))
+		add_child(preload("res://biome_map.gd").new())
 		print("[LEVEL_ENVIRONMENT] grassland_open_sky=true roof=false side_m=",world_half_extent*2.0)
 		return
 	var ground = PlaneMesh.new()
