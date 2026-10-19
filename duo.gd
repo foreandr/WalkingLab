@@ -21,6 +21,8 @@ const MAX_ACTIVE_FIGHTERS: int = 80
 # The previous 80-fighter stress test remains opt-in through CLI.
 const TEAM_AI_FIGHTERS: int = 1
 var current_level: Dictionary = {}
+var royale_loot: Array[Dictionary] = []
+const ROYALE_SPELLS: Array[String] = ["fire","frost","homing"]
 var level_number: int = 1
 const TEAM_BLUE: Color = Color("317bff")
 const TEAM_RED: Color = Color("ed4451")
@@ -184,6 +186,8 @@ func _ready():
 		# Autonomous free-for-all combatants, spawned over separate frames.
 		if int(current_level.get("enemy_count",0)) > 0:
 			spawn_more_fighters(int(current_level["enemy_count"]), true)
+	if bool(current_level.get("battle_royale_drop",false)) and not flight_benchmark_requested:
+		create_royale_loot()
 	print("[LEVEL_START] number=",level_number," name=",current_level["name"]," biome=",current_level["biome"]," enemies=",mannequins.size()," spells_player=",player.equipped_spells)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
@@ -804,6 +808,7 @@ func tick_war_fighters(dt: float) -> void:
 
 func _physics_process(_dt):
 	if player == null: return
+	update_royale_loot()
 	tick_war_fighters(_dt)
 	player_label.position.y = player.crouch.capsule.height+0.3
 	if stress_no_deaths or announced_winner or queued_fighter_spawns>0: return
@@ -836,3 +841,68 @@ func _unhandled_input(event):
 		if event.keycode==KEY_0:
 			spawn_more_fighters()
 		# Tab is hold-to-view the war/damage feed; never switch the camera.
+
+func create_royale_loot() -> void:
+	var all_fighters: Array = [player]
+	all_fighters.append_array(mannequins)
+	for i in range(mini(3,all_fighters.size())):
+		var fighter: Node = all_fighters[i]
+		var spell: String = ROYALE_SPELLS[i]
+		var target: Vector3 = fighter.spawn_point
+		target.y = 0.16
+		var display := Node3D.new()
+		display.name = "LootRing_%s" % spell
+		display.position = target+Vector3(3.0 if i % 2 == 0 else -3.0,0,3.0)
+		add_child(display)
+		var torus := TorusMesh.new()
+		torus.inner_radius = 0.24
+		torus.outer_radius = 0.39
+		torus.rings = 20
+		torus.ring_segments = 8
+		var mesh := MeshInstance3D.new()
+		mesh.mesh = torus
+		var gold := StandardMaterial3D.new()
+		gold.albedo_color = Color("ebbf43")
+		gold.metallic = 0.65
+		mesh.material_override = gold
+		display.add_child(mesh)
+		var light := OmniLight3D.new()
+		light.light_color = Color("ffd16b")
+		light.light_energy = 0.8
+		light.omni_range = 3.0
+		display.add_child(light)
+		var label := Label3D.new()
+		label.text = spell.to_upper()+" RING  [E]"
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.position.y = 1.7
+		label.font_size = 42
+		display.add_child(label)
+		royale_loot.append({"spell":spell,"node":display,"claimed":false})
+		print("[ROYALE_RING] spell=",spell," at=",display.position)
+
+func update_royale_loot() -> void:
+	if royale_loot.is_empty(): return
+	var combatants: Array = [player]
+	combatants.append_array(mannequins)
+	for entry in royale_loot:
+		if entry["claimed"]: continue
+		var item: Node3D = entry["node"]
+		if not is_instance_valid(item): continue
+		var closest: Node = null
+		var nearest: float = 2.8
+		for fighter in combatants:
+			if not is_instance_valid(fighter) or fighter.combat_dead or not is_instance_valid(fighter.actor): continue
+			if fighter.actor.global_position.y > 2.5: continue
+			var d: float = fighter.actor.global_position.distance_to(item.global_position)
+			if d < nearest:
+				nearest = d
+				closest = fighter
+		if closest == null: continue
+		if closest == player and not Input.is_physical_key_pressed(KEY_E): continue
+		var spell: String = entry["spell"]
+		if not spell in closest.equipped_spells:
+			closest.equipped_spells.append(spell)
+			if closest.has_method("refresh_ring_inventory"): closest.refresh_ring_inventory()
+		entry["claimed"] = true
+		item.queue_free()
+		print("[ROYALE_RING_PICKUP] fighter=",closest.name," spell=",spell)
