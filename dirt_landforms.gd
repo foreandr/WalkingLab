@@ -7,8 +7,8 @@ var randomizer := RandomNumberGenerator.new()
 
 func _ready() -> void:
  randomizer.randomize()
- var hills: int = randomizer.randi_range(8,12)
- var mountains: int = randomizer.randi_range(5,10)
+ var hills: int = randomizer.randi_range(2,4)
+ var mountains: int = randomizer.randi_range(1,2)
  var placements: Array[Vector2] = []
  for i in range(hills):
   _place_landform("DirtHill%d" % (i+1),false,placements)
@@ -18,8 +18,8 @@ func _ready() -> void:
 
 func _place_landform(label: String, mountain: bool, positions: Array[Vector2]) -> void:
  var tier: int = randomizer.randi_range(7,10) if mountain else randomizer.randi_range(1,6)
- var radius: float = 5.0+float(tier)*2.8
- var height: float = 1.5+pow(float(tier),1.8)*0.65
+ var radius: float = minf(half_extent*0.50,1.7+float(tier)*0.35)
+ var height: float = minf(half_extent*0.40,0.35+pow(float(tier),1.35)*0.19)
  var center := Vector2.ZERO
  var best_distance: float = -1.0
  for attempt in range(40):
@@ -30,7 +30,7 @@ func _place_landform(label: String, mountain: bool, positions: Array[Vector2]) -
   if separation > best_distance:
    center = candidate
    best_distance = separation
-  if separation > radius+5.0: break
+  if separation > radius+1.0: break
  positions.append(center)
  var slices: int = 36
  var rings: int = 10
