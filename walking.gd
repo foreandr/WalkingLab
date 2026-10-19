@@ -38,19 +38,24 @@ var cast_elapsed: float = -1.0
 var cast_released: bool = false
 var cast_arm_name: String = ""
 var cast_element: String = "fire"
-# Slot order: 1 Ember, 2 Frost, 3 Arc, 4 Gravity, 5 Leech.
-const SPELL_NAMES: Array[String] = ["Ember","Frost","Arc","Gravity","Leech"]
-const SPELL_IDS: Array[String] = ["fire","frost","arc","gravity","leech"]
-const SPELL_COSTS: Array[float] = [15.0,20.0,24.0,30.0,25.0]
-const SPELL_COOLDOWNS: Array[float] = [2.0,5.0,6.0,9.0,8.0]
-const SPELL_COLORS: Array[Color] = [Color("ff9b4f"),Color("7de8ff"),Color("d5bbff"),Color("af83fa"),Color("80edaa")]
-var spell_remaining: Array[float] = [0.0,0.0,0.0,0.0,0.0]
+# Five fingers per hand. Shift changes which complete set 1-5 operates.
+# RIGHT: Ember, Frost, Arc, Gravity, Leech.
+# LEFT: Comet, Bloom, Tempest, Venom, Flight.
+const SPELL_NAMES: Array[String] = ["Ember","Frost","Arc","Gravity","Leech","Comet","Bloom","Tempest","Venom","Flight"]
+const SPELL_IDS: Array[String] = ["fire","frost","arc","gravity","leech","comet","bloom","tempest","venom","flight"]
+const SPELL_COSTS: Array[float] = [15.0,20.0,24.0,30.0,25.0,28.0,24.0,22.0,20.0,18.0]
+const SPELL_COOLDOWNS: Array[float] = [2.0,5.0,6.0,9.0,8.0,5.0,10.0,6.0,7.0,3.0]
+const SPELL_COLORS: Array[Color] = [Color("ff9b4f"),Color("7de8ff"),Color("d5bbff"),Color("af83fa"),Color("80edaa"),Color("f9d474"),Color("a6f4bc"),Color("99e5e9"),Color("9cdd59"),Color("f0f0ff")]
+var spell_remaining: Array[float] = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
 var mana: float = 100.0
+var infinite_mana: bool = false
+var ignore_spell_cooldowns: bool = false
 var stamina: float = 100.0
 var sprint_exhausted: bool = false
-var health: float = 100.0
+var spell_regen_remaining: float = 0.0
+var spell_regen_tick: float = 0.0
 var spell_slots: Array[Label] = []
-var health_progress: ProgressBar
+var hand_indicator: Label
 var stamina_progress: ProgressBar
 var mana_progress: ProgressBar
 var resources_status: Label
@@ -62,7 +67,8 @@ var was_moving_for_idle := false
 var spawn_point = Vector3(0,0,40)
 var route_center = Vector3.ZERO
 var route_radius = 40.0
-var character_tint = Color("d5d9dd")
+# The anatomical damage shader colors injured limbs; healthy skin is white.
+var character_tint = Color.WHITE
 var manual_input = Vector2.ZERO
 var manual_side_speed: float = 0.0
 # Only the opt-in flight benchmark drives these controls.
@@ -542,6 +548,25 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 							fighter.visual.position.y = 0.0
 		print("[PERF_POSE_TOGGLE] ground_feet_enabled=",enabled," player_and_ai=true flight_pose_enabled=true")
 	)
+	var mana_toggle := CheckButton.new()
+	mana_toggle.text = "Infinite mana"
+	mana_toggle.button_pressed = infinite_mana
+	column.add_child(mana_toggle)
+	mana_toggle.toggled.connect(func(enabled: bool):
+		infinite_mana = enabled
+		if enabled: mana = 100.0
+		update_resource_hud()
+	)
+	var cooldown_toggle := CheckButton.new()
+	cooldown_toggle.text = "Disable spell cooldowns"
+	cooldown_toggle.button_pressed = ignore_spell_cooldowns
+	column.add_child(cooldown_toggle)
+	cooldown_toggle.toggled.connect(func(enabled: bool):
+		ignore_spell_cooldowns = enabled
+		if enabled:
+			for i in range(spell_remaining.size()): spell_remaining[i] = 0.0
+		update_resource_hud()
+	)
 	var demo_toggle := CheckButton.new()
 	demo_toggle.text = "Motion demo NPC (debug)"
 	demo_toggle.button_pressed = false
@@ -563,19 +588,19 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; tap Alt twice, HOLD second: Dash\nCtrl: Walk / descend while flying\nSpace: Charged jump / ascend while flying\nMiddle-mouse drag: Rotate camera\nMouse wheel: Zoom\nShift: Switch arm; left click: Punch\n1 Ember | 2 Frost | 3 Arc | 4 Gravity | 5 Leech\nG: Toggle flight | F: Lock hovered target\nC: Crouch | Tab (hold): War / damage\n0: Spawn fighters | F11: Fullscreen"
+	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRight hand 1-5: Ember / Frost / Arc / Gravity / Leech\nLeft hand 1-5: Comet / Bloom / Tempest / Venom / Flight\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
 	cog.pressed.connect(func(): options_panel.visible = not options_panel.visible)
 
 func install_resource_hud(canvas: CanvasLayer) -> void:
-	# Compact game HUD: three resource bars at lower left, spells along bottom.
+	# Anatomical damage is visible directly on the white body; show stamina and mana only.
 	# All controls ignore mouse input so aiming and punching work through them.
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	panel.position = Vector2(16,-207)
-	panel.custom_minimum_size = Vector2(280,186)
+	panel.position = Vector2(16,-167)
+	panel.custom_minimum_size = Vector2(280,144)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.modulate.a = 0.88
 	canvas.add_child(panel)
@@ -584,11 +609,11 @@ func install_resource_hud(canvas: CanvasLayer) -> void:
 	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(stack)
 	var name_text := Label.new()
-	name_text.text = "BLACK"
+	name_text.text = "YOU"
 	name_text.add_theme_font_size_override("font_size",15)
 	name_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stack.add_child(name_text)
-	for bar_data in [["HEALTH",Color("db4a56")],["STAMINA",Color("d8a35e")],["MANA",Color("4b8eee")]]:
+	for bar_data in [["STAMINA",Color("d8a35e")],["MANA",Color("4b8eee")]]:
 		var bar_label := Label.new()
 		bar_label.text = String(bar_data[0])
 		bar_label.add_theme_font_size_override("font_size",12)
@@ -607,7 +632,6 @@ func install_resource_hud(canvas: CanvasLayer) -> void:
 		bar.add_theme_stylebox_override("fill",fill)
 		stack.add_child(bar)
 		match String(bar_data[0]):
-			"HEALTH": health_progress = bar
 			"STAMINA": stamina_progress = bar
 			"MANA": mana_progress = bar
 	resources_status = Label.new()
@@ -620,6 +644,13 @@ func install_resource_hud(canvas: CanvasLayer) -> void:
 	slots.add_theme_constant_override("separation",8)
 	slots.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(slots)
+	hand_indicator = Label.new()
+	hand_indicator.text = "RIGHT HAND  |  FIVE FINGERS"
+	hand_indicator.position = Vector2(315,-99)
+	hand_indicator.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	hand_indicator.add_theme_font_size_override("font_size",13)
+	hand_indicator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(hand_indicator)
 	for i in range(5):
 		var box := PanelContainer.new()
 		box.custom_minimum_size = Vector2(98,51)
@@ -635,19 +666,21 @@ func install_resource_hud(canvas: CanvasLayer) -> void:
 	update_resource_hud()
 
 func update_resource_hud() -> void:
-	if not player_controlled or health_progress == null: return
-	var damage: Node = get_node_or_null("DamageSystem")
-	if damage != null:
-		health = minf(float(damage.hp.get("head",100.0)),float(damage.hp.get("torso",100.0)))
-	health_progress.value = health
+	if not player_controlled or stamina_progress == null: return
 	stamina_progress.value = stamina
 	mana_progress.value = mana
-	resources_status.text = "HP %d  |  STA %d  |  MP %d" % [ceili(health),ceili(stamina),ceili(mana)]
+	resources_status.text = "STA %d   |   MANA %s" % [ceili(stamina),"∞" if infinite_mana else str(ceili(mana))]
+	var hand_offset: int = 5 if controlled_arm == "left" else 0
+	if hand_indicator != null:
+		hand_indicator.text = ("LEFT HAND" if controlled_arm == "left" else "RIGHT HAND")+"  |  1-5 FINGERS (SHIFT)"
 	for i in range(5):
-		var remaining: float = spell_remaining[i]
+		var slot: int = hand_offset+i
+		var remaining: float = 0.0 if ignore_spell_cooldowns else spell_remaining[slot]
 		var label: Label = spell_slots[i]
-		label.text = "%d  %s\n%s" % [i+1,SPELL_NAMES[i],("%.1fs" % remaining) if remaining>0.05 else ("%d MP" % int(SPELL_COSTS[i]))]
-		label.add_theme_color_override("font_color",Color("888d98") if remaining>0.05 or mana<SPELL_COSTS[i] else SPELL_COLORS[i])
+		var mana_needed: bool = not infinite_mana and mana<SPELL_COSTS[slot] and not (SPELL_IDS[slot]=="flight" and (flight_enabled or flight_windup_remaining>0.0))
+		var description: String = "OFF" if SPELL_IDS[slot]=="flight" and (flight_enabled or flight_windup_remaining>0.0) else ("%.1fs" % remaining if remaining>0.05 else ("%d MP" % int(SPELL_COSTS[slot])))
+		label.text = "%d  %s\n%s" % [i+1,SPELL_NAMES[slot],description]
+		label.add_theme_color_override("font_color",Color("888d98") if remaining>0.05 or mana_needed else SPELL_COLORS[slot])
 	if options_panel != null and options_panel.visible and settings_stats != null and settings_stats.visible:
 		var arena: Node = get_tree().current_scene
 		var overlay_text: String = "Performance not ready"
