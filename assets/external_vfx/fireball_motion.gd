@@ -10,6 +10,7 @@ var blast_width: float = 1.0
 # supplies an independently tuned impact and status effect.
 var spell_type: String = "fire"
 var spell_color: Color = Color("ff9b4f")
+var caster_team: String = ""
 var homing_target: CharacterBody3D = null
 var homing_scan_left: float = 0.0
 var ricochet_last_hit_ms: Dictionary = {}
@@ -69,8 +70,14 @@ func _physics_process(delta: float) -> void:
 	# sphere resource on every physics tick.
 	if cached_ray == null:
 		cached_ray = PhysicsRayQueryParameters3D.new()
-		# Never hit the caster, but enemy spells CAN hit the human player.
+		# Never hit the caster; allied bodies are transparent to their spells.
 		if owner_rid.is_valid(): cached_excludes.append(owner_rid)
+		if caster_team!="":
+			for fighter in projectile.get_tree().get_nodes_in_group("combat_fighters"):
+				if is_instance_valid(fighter) and String(fighter.get("team_id"))==caster_team:
+					var ally_body: CharacterBody3D = fighter.get("actor") as CharacterBody3D
+					if ally_body!=null and ally_body.get_rid()!=owner_rid:
+						cached_excludes.append(ally_body.get_rid())
 		cached_ray.exclude = cached_excludes
 	cached_ray.from = projectile.global_position
 	cached_ray.to = projectile.global_position + displacement
@@ -142,7 +149,7 @@ func finish_homing_impact(projectile: Node3D, hit_point: Vector3, collider: Obje
 		if fighter_body.get_rid()!=owner_rid:
 			var controller: Node = fighter_body.get_parent()
 			var injury: Node = controller.get_node_or_null("DamageSystem") if controller!=null else null
-			if injury!=null and not injury.dead:
+			if injury!=null and not injury.dead and (caster_team=="" or String(controller.get("team_id"))!=caster_team):
 				injury.receive_hit(hit_point,38.0,attacker_name)
 	# Small imported-particle impact, no lingering damage or AOE.
 	ricochet_spark(projectile,hit_point)
@@ -165,6 +172,7 @@ func update_homing_direction(projectile: Node3D, delta: float) -> void:
 				if not is_instance_valid(fighter) or fighter.combat_dead: continue
 				var body: CharacterBody3D = fighter.get("actor") as CharacterBody3D
 				if body == null or body.get_rid()==owner_rid: continue
+				if caster_team!="" and String(fighter.get("team_id"))==caster_team: continue
 				var heading: Vector3 = body.global_position+Vector3.UP-projectile.global_position
 				var range_m: float = heading.length()
 				if range_m<0.1 or range_m>110.0: continue
@@ -242,7 +250,7 @@ func update_ricochet(projectile: Node3D, delta: float) -> void:
 		if collider is CharacterBody3D:
 			var controller: Node = (collider as CharacterBody3D).get_parent()
 			var injury: Node = controller.get_node_or_null("DamageSystem") if controller != null else null
-			if injury != null and not injury.dead:
+			if injury != null and not injury.dead and (caster_team=="" or String(controller.get("team_id"))!=caster_team):
 				var key: int = collider.get_instance_id()
 				var timestamp: int = Time.get_ticks_msec()
 				if timestamp-int(ricochet_last_hit_ms.get(key,-100000))>=RICOCHET_HIT_COOLDOWN_MS:
@@ -331,8 +339,8 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 			base_radius = 4.0
 			impact_damage = 30.0 # + burning damage over time
 		"frost":
-			base_radius = 5.5
-			impact_damage = 18.0 # + heavy movement slow
+			base_radius = 7.0
+			impact_damage = 12.0 # + 88% movement slow for five seconds
 		"homing":
 			base_radius = 2.7
 			impact_damage = 38.0 # Aim-assisted missile that follows the victim
@@ -342,9 +350,9 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		"ricochet":
 			base_radius = 0.0
 			impact_damage = 0.0 # Collisions handled by persistent bouncing sphere
-		"comet":
-			base_radius = 2.8
-			impact_damage = 70.0 # Focused, heavy impact
+		"grounding":
+			base_radius = 8.0
+			impact_damage = 8.0 # Prevent flight for 6 seconds, force descent
 		"bloom":
 			base_radius = 6.0
 			impact_damage = 12.0 # Caster regenerates for six seconds
@@ -396,6 +404,7 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 			candidates.append(demo_target)
 	for fighter in candidates:
 		if not is_instance_valid(fighter): continue
+		if caster_team!="" and String(fighter.get("team_id"))==caster_team: continue
 		if fighter.player_controlled and attacker_name=="PlayerMan": continue
 		var body: CharacterBody3D = fighter.actor as CharacterBody3D
 		if body == null or body.get_rid() == owner_rid: continue
