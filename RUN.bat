@@ -113,6 +113,11 @@ if exist "assets\real_weapons\.downloaded_now" (
     del /Q "assets\real_weapons\.downloaded_now"
     set "IDLE_NEW=1"
 )
+powershell -NoProfile -ExecutionPolicy Bypass -File "scripts\install_showcase_animations.ps1"
+if exist "assets\showcase\.new_import" (
+    del /Q "assets\showcase\.new_import"
+    set "IDLE_NEW=1"
+)
 if "%IDLE_NEW%"=="1" (
     echo Importing downloaded 3D assets and Mixamo idle animations...
     "%GODOT%" --headless --editor --path . --import

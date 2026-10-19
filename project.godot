@@ -1,7 +1,7 @@
 config_version=5
 [application]
 config/name="Arena - Player + AI"
-run/main_scene="res://main.tscn"
+run/main_scene="res://showcase.tscn"
 [display]
 window/size/viewport_width=1280
 window/size/viewport_height=720
