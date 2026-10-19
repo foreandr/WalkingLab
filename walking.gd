@@ -553,7 +553,7 @@ func smooth_gait(t: float) -> float:
 func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 	if name != "PlayerMan" or ai_mode != "sprint": return false
 	# Prefer the newly supplied single left-strafe run clip.
-	var path: String = "res://assets/locomotion/Left Strafe.fbx"
+	var path: String = "res://assets/locomotion/Left Strafe run(1).fbx"
 	if not ResourceLoader.exists(path):
 		print("[SOLO_LEFT_STRAFE] missing=",path)
 		return false
@@ -1325,7 +1325,7 @@ func _physics_process(dt):
 	# backward and lateral movement, using the existing collision and gait tree.
 	var solo_direction_phase: int = -1
 	if name == "PlayerMan" and ai_mode == "sprint":
-		solo_direction_phase = 5 # Compare original Left Strafe animation moving LEFT.
+		solo_direction_phase = 5 if fmod(clock,10.0) < 5.0 else 4 # Five seconds LEFT, then five RIGHT.
 		if solo_direction_phase == 2 or solo_direction_phase == 3:
 			backward = true
 			signed_speed = -minf(agent_preferred_speed,BACK_SPEEDS[2])
@@ -1378,6 +1378,9 @@ func _physics_process(dt):
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
 			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
+	# Calibration only: pitch the visible character down, never the collider.
+	if name == "PlayerMan" and ai_mode == "sprint" and not flight_enabled:
+		visual.rotation.x = deg_to_rad(-25.0)
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
@@ -1408,7 +1411,7 @@ func _physics_process(dt):
 		# Preserve normal agent steering during forward-running phases.
 		var showcase_facing: float = manual_heading
 		if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
-			showcase_facing = deg_to_rad(60.0) if solo_direction_phase == 5 else 0.0
+			showcase_facing = deg_to_rad(80.0) if solo_direction_phase == 5 else deg_to_rad(-80.0)
 		actor.rotation.y = rotate_toward(actor.rotation.y,showcase_facing,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
 		var travel_direction = -tangent*speed-radial.normalized()*(radial.length()-route_radius)*2.0
@@ -1420,7 +1423,7 @@ func _physics_process(dt):
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
 	# Diagnostic: keep world travel exactly LEFT despite the 30-degree
 	# facing adjustment. Otherwise the rotation changes the movement path.
-	if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase == 5:
+	if name == "PlayerMan" and ai_mode == "sprint" and (solo_direction_phase == 5 or solo_direction_phase == 4):
 		actor.velocity.x = side_speed*(0.35 if slow else 1.0)
 		actor.velocity.z = 0.0
 	var injury_system: Node = get_node_or_null("DamageSystem")
