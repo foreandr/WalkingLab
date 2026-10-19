@@ -51,7 +51,7 @@ func _place_landform(label: String, mountain: bool, positions: Array[Vector2]) -
  for ring in range(rings):
   for slice in range(slices):
    var k: int = ring*(slices+1)+slice
-   indices.append_array(PackedInt32Array([k,k+slices+1,k+1,k+1,k+slices+1,k+slices+2]))
+   indices.append_array(PackedInt32Array([k,k+1,k+slices+1,k+1,k+slices+2,k+slices+1]))
  # Double sided collision generated from triangle faces.
  var faces := PackedVector3Array()
  for i in range(0,indices.size(),3):
