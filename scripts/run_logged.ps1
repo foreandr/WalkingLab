@@ -11,6 +11,9 @@ Write-Host ("Game running; recording to " + $logFile)
 ("WalkingLab run " + (Get-Date -Format "o")) | Out-File -FilePath $logFile -Encoding utf8
 ("Godot executable: " + $GodotPath) | Out-File -FilePath $logFile -Append -Encoding utf8
 try {
+    # Native Godot stderr is diagnostic output, not a terminating PowerShell exception.
+    # Keep the complete parser line in the log even when Godot exits nonzero.
+    $ErrorActionPreference = "Continue"
     # RUN.bat quotes the raw argument string so PowerShell cannot mistake
 # --flight-benchmark for a PowerShell named parameter.
 if ($GameArgs.Count -eq 1 -and $GameArgs[0].Contains(" ")) {
@@ -18,7 +21,7 @@ if ($GameArgs.Count -eq 1 -and $GameArgs[0].Contains(" ")) {
 }
 if ($GameArgs.Count -gt 0) {
         ("Godot user args: " + ($GameArgs -join " ")) | Out-File -FilePath $logFile -Append -Encoding utf8
-        & $GodotPath --path (Get-Location).Path -- @GameArgs *>> $logFile
+        & $GodotPath --path (Get-Location).Path -- @GameArgs 2>&1 | ForEach-Object { $_.ToString() | Out-File -FilePath $logFile -Append -Encoding utf8 }
     } else {
         & $GodotPath --path (Get-Location).Path -- @GameArgs *>> $logFile
     }
