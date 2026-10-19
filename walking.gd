@@ -1226,6 +1226,27 @@ func _physics_process(dt):
 		if mode_clock>=(40.0 if backward else 100.0): begin_direction_change(not backward)
 	max_step = max(max_step,max(abs(blend-old_blend),abs(back_blend-old_back_blend)))
 	var side_speed = crouch.lateral_speed if crouch_driving else 0.0
+	# Solo CPU demonstration: alternate ordinary forward travel with
+	# backward and lateral movement, using the existing collision and gait tree.
+	var solo_direction_phase: int = -1
+	if name == "PlayerMan" and ai_mode == "sprint":
+		solo_direction_phase = int(floor(fmod(clock,32.0)/4.0))
+		if solo_direction_phase == 2 or solo_direction_phase == 3:
+			backward = true
+			signed_speed = -minf(agent_preferred_speed,BACK_SPEEDS[2])
+			blend = 0.0
+			back_blend = speed_band(BACK_SPEEDS,absf(signed_speed))
+			direction_weight = 1.0
+		elif solo_direction_phase == 4 or solo_direction_phase == 5:
+			# Lateral velocity uses the existing actor.move_and_slide path.
+			side_speed = agent_preferred_speed*(1.0 if solo_direction_phase == 4 else -1.0)
+			signed_speed = 0.0
+			blend = speed_band(SPEEDS,absf(side_speed))
+			back_blend = 0.0
+			direction_weight = 0.0
+		else:
+			backward = false
+			direction_weight = 0.0
 	speed = Vector2(side_speed,signed_speed).length()
 	walk_choice = move_toward(walk_choice,walk_target,step/4.0)
 	var forward_strides = STRIDES.duplicate()
@@ -1286,7 +1307,12 @@ func _physics_process(dt):
 		elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 			actor.rotation.y = rotate_toward(actor.rotation.y,manual_heading,step*5.0)
 	elif ai_mode != "" or ai_abilities:
-		actor.rotation.y = rotate_toward(actor.rotation.y,manual_heading,step*(2.3 if ai_mode == "walk" else 4.4))
+		# Keep facing the selected direction while moving sideways/backwards.
+		# Preserve normal agent steering during forward-running phases.
+		var showcase_facing: float = manual_heading
+		if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
+			showcase_facing = 0.0
+		actor.rotation.y = rotate_toward(actor.rotation.y,showcase_facing,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
 		var travel_direction = -tangent*speed-radial.normalized()*(radial.length()-route_radius)*2.0
 		var local_yaw = atan2(-side_speed,signed_speed)
