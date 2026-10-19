@@ -47,6 +47,7 @@ var route_center = Vector3.ZERO
 var route_radius = 40.0
 var character_tint = Color("d5d9dd")
 var manual_input = Vector2.ZERO
+var manual_side_speed: float = 0.0
 # Only the opt-in flight benchmark drives these controls.
 var benchmark_flight_active: bool = false
 var benchmark_flight_axis: Vector2 = Vector2.ZERO
@@ -564,17 +565,39 @@ func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 	return install_solo_strafe(player,"Left")
 
 func install_solo_strafe(player: AnimationPlayer, direction: String) -> bool:
-	if name != "DemoNPC" or ai_mode != "sprint": return false
+	if not player_controlled and not (name == "DemoNPC" and ai_mode == "sprint"): return false
 	# Prefer the newly supplied single left-strafe run clip.
 	# The run(1) attachment is not automatically in the Windows project.
 	# Select an imported clip that actually exists, and log the selection.
 	var path: String = ""
-	for candidate_path in (["res://assets/locomotion/Left Strafe run.fbx", "res://assets/locomotion/Left Strafe.fbx", "res://assets/locomotion/left strafe.fbx"] if direction == "Left" else ["res://assets/locomotion/Right Strafe run.fbx","res://assets/locomotion/Right Strafe.fbx","res://assets/locomotion/right strafe.fbx"]):
+	for candidate_path in (["res://assets/locomotion/Left Strafe run(1).fbx", "res://assets/locomotion/Left Strafe run.fbx", "res://assets/locomotion/Left Strafe.fbx", "res://assets/locomotion/left strafe.fbx", "res://assets/locomotion/Left Strafe Walking.fbx"] if direction == "Left" else ["res://assets/locomotion/Right Strafe run.fbx","res://assets/locomotion/Right Strafe.fbx","res://assets/locomotion/right strafe.fbx","res://assets/locomotion/Right Strafe Walking.fbx"]):
 		if ResourceLoader.exists(candidate_path):
 			path = candidate_path
 			break
 	if path.is_empty():
-		push_error("[SOLO_LEFT_STRAFE] NO STRAFE CLIP FOUND: check Downloads/RUN.bat import")
+		# Use an actual mirrored strafe when the local pack has only LEFT.
+		# Do not silently substitute the forward walking or running clips.
+		if direction == "Right" and player.has_animation("strafe/Left"):
+			var source_left: Animation = player.get_animation("strafe/Left")
+			var mirrored: Animation = source_left.duplicate(true)
+			var dest_root: NodePath = player.get_node(player.root_node).get_path_to(skeleton)
+			for track_i in range(mirrored.get_track_count()):
+				if mirrored.track_get_type(track_i) != Animation.TYPE_ROTATION_3D: continue
+				var bone_path: NodePath = mirrored.track_get_path(track_i)
+				if bone_path.get_subname_count() == 0: continue
+				var original: String = String(bone_path.get_subname(bone_path.get_subname_count()-1))
+				var partner: String = original
+				if original.contains("Left"): partner = original.replace("Left","Right")
+				elif original.contains("Right"): partner = original.replace("Right","Left")
+				if skeleton.find_bone(partner) >= 0:
+					mirrored.track_set_path(track_i,NodePath(String(dest_root)+":"+partner))
+				for key_i in range(mirrored.track_get_key_count(track_i)):
+					var q: Quaternion = mirrored.track_get_key_value(track_i,key_i)
+					mirrored.track_set_key_value(track_i,key_i,Quaternion(q.x,-q.y,-q.z,q.w).normalized())
+			player.get_animation_library("strafe").add_animation("Right",mirrored)
+			print("[STRAFE_IMPORT] right_mirrored_from_left=true")
+			return true
+		push_error("[STRAFE_IMPORT] NO "+direction.to_upper()+" STRAFE CLIP FOUND; check Downloads/RUN.bat")
 		return false
 	print("[SOLO_LEFT_STRAFE] selected=",path)
 	var packed = load(path)
@@ -1281,11 +1304,8 @@ func _physics_process(dt):
 	if player_controlled:
 		manual_input = benchmark_flight_axis if benchmark_flight_active else Input.get_vector("move_left","move_right","move_back","move_forward")
 		if manual_input.length()>0.01:
-			var camera_forward = Vector3(-sin(orbit),0,-cos(orbit))
-			var camera_right = Vector3(cos(orbit),0,-sin(orbit))
-			var desired = camera_forward*manual_input.y+camera_right*manual_input.x
-			
-			manual_heading = atan2(-desired.x,-desired.z) if manual_input.y >= 0.0 else atan2(desired.x,desired.z)
+			# Face the camera's forward direction, not the lateral travel.
+			manual_heading = orbit
 		if not (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)): manual_launch_lock = false
 		if Input.is_action_just_pressed("sprint") and crouch.active():
 			manual_launch_lock = true
@@ -1308,12 +1328,15 @@ func _physics_process(dt):
 	elif crouch_driving:
 		signed_speed = crouch.forward_speed
 	elif player_controlled:
-		var target_speed = manual_target_speed()
-		signed_speed = move_toward(signed_speed,target_speed,step*(8.0 if target_speed==0.0 else 6.0))
-		backward = signed_speed<0.0
+		# Input axes remain separate: pure A/D never drives the forward gait.
+		var target_speed: float = absf(manual_target_speed())
+		var move_accel: float = step*(8.0 if manual_input.length()<0.01 else 6.0)
+		signed_speed = move_toward(signed_speed,target_speed*manual_input.y,move_accel)
+		manual_side_speed = move_toward(manual_side_speed,target_speed*manual_input.x,move_accel)
+		backward = signed_speed < -0.01
 		direction_weight = move_toward(direction_weight,1.0 if backward else 0.0,step*4.0)
-		blend = speed_band(SPEEDS,abs(signed_speed))
-		back_blend = speed_band(BACK_SPEEDS,abs(signed_speed))
+		blend = speed_band(SPEEDS,absf(signed_speed))
+		back_blend = speed_band(BACK_SPEEDS,absf(signed_speed))
 	elif turning:
 		turn_time += step
 		var weight = smooth_gait(clamp(turn_time/4.0,0.0,1.0))
@@ -1343,7 +1366,7 @@ func _physics_process(dt):
 			seen[LABELS[active.a]] = true
 		if mode_clock>=(40.0 if backward else 100.0): begin_direction_change(not backward)
 	max_step = max(max_step,max(abs(blend-old_blend),abs(back_blend-old_back_blend)))
-	var side_speed = crouch.lateral_speed if crouch_driving else 0.0
+	var side_speed = crouch.lateral_speed if crouch_driving else (manual_side_speed if player_controlled else 0.0)
 	# Solo CPU demonstration: alternate ordinary forward travel with
 	# backward and lateral movement, using the existing collision and gait tree.
 	var solo_direction_phase: int = -1
@@ -1387,11 +1410,15 @@ func _physics_process(dt):
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
-	if solo_left_strafe_available and name == "DemoNPC" and ai_mode == "sprint":
-		tree.set("parameters/SoloLeftBlend/blend_amount",1.0 if side_speed < -0.1 and not flight_enabled else 0.0)
-	if solo_right_strafe_available and name == "DemoNPC" and ai_mode == "sprint":
-		tree.set("parameters/SoloRightBlend/blend_amount",1.0 if side_speed > 0.1 and not flight_enabled else 0.0)
-	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
+	# Pure sideways travel plays the full strafe clip. Diagonals blend it
+	# with the corresponding forward/back gait, never rotate into a run.
+	var strafe_weight: float = absf(side_speed)/maxf(speed,0.001) if not flight_enabled else 0.0
+	if solo_left_strafe_available:
+		tree.set("parameters/SoloLeftBlend/blend_amount",strafe_weight if side_speed < -0.1 else 0.0)
+	if solo_right_strafe_available:
+		tree.set("parameters/SoloRightBlend/blend_amount",strafe_weight if side_speed > 0.1 else 0.0)
+	# The source strafe cycle was demonstrated at approximately 2 m/s.
+	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else lerpf(speed/stride,speed/2.0,strafe_weight))
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
 		var moving_now = speed > 0.12 or crouch.active()
@@ -1411,7 +1438,7 @@ func _physics_process(dt):
 		debug_tick += step
 		if debug_tick >= 0.25:
 			debug_tick = 0.0
-			var state: String = "FLIGHT" if flight_enabled else ("JUMP" if not actor.is_on_floor() else ("MOVE" if absf(signed_speed)>0.1 else "IDLE"))
+			var state: String = "FLIGHT" if flight_enabled else ("JUMP" if not actor.is_on_floor() else ("MOVE" if speed>0.1 else "IDLE"))
 			if state != last_debug_state:
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
