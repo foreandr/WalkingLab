@@ -579,7 +579,7 @@ func install_solo_strafe(player: AnimationPlayer, direction: String) -> bool:
 		# Do not silently substitute the forward walking or running clips.
 		if direction == "Right" and player.has_animation("strafe/Left"):
 			var source_left: Animation = player.get_animation("strafe/Left")
-			var mirrored: Animation = source_left.duplicate(true)
+			var mirrored: Animation = source_left.duplicate(true) as Animation
 			var dest_root: NodePath = player.get_node(player.root_node).get_path_to(skeleton)
 			for track_i in range(mirrored.get_track_count()):
 				if mirrored.track_get_type(track_i) != Animation.TYPE_ROTATION_3D: continue
@@ -1442,7 +1442,7 @@ func _physics_process(dt):
 			if state != last_debug_state:
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
-			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
+			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" strafe_weight="+str(snappedf(strafe_weight,0.01))+" strafe_side_mps="+str(snappedf(side_speed,0.01))+" strafe_left_ready="+str(solo_left_strafe_available)+" strafe_right_ready="+str(solo_right_strafe_available)+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	# Calibration only: pitch the visible character down, never the collider.
 	if name == "DemoNPC" and ai_mode == "sprint" and not flight_enabled:
 		visual.rotation.x = deg_to_rad(-8.0)
