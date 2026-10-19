@@ -553,10 +553,17 @@ func smooth_gait(t: float) -> float:
 func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 	if name != "PlayerMan" or ai_mode != "sprint": return false
 	# Prefer the newly supplied single left-strafe run clip.
-	var path: String = "res://assets/locomotion/Left Strafe run(1).fbx"
-	if not ResourceLoader.exists(path):
-		print("[SOLO_LEFT_STRAFE] missing=",path)
+	# The run(1) attachment is not automatically in the Windows project.
+	# Select an imported clip that actually exists, and log the selection.
+	var path: String = ""
+	for candidate_path in ["res://assets/locomotion/Left Strafe run.fbx", "res://assets/locomotion/Left Strafe.fbx", "res://assets/locomotion/left strafe.fbx"]:
+		if ResourceLoader.exists(candidate_path):
+			path = candidate_path
+			break
+	if path.is_empty():
+		push_error("[SOLO_LEFT_STRAFE] NO STRAFE CLIP FOUND: check Downloads/RUN.bat import")
 		return false
+	print("[SOLO_LEFT_STRAFE] selected=",path)
 	var packed = load(path)
 	if not packed is PackedScene: return false
 	var source: Node = packed.instantiate()
@@ -1352,7 +1359,7 @@ func _physics_process(dt):
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
 	if solo_left_strafe_available and name == "PlayerMan" and ai_mode == "sprint":
-		tree.set("parameters/SoloLeftBlend/blend_amount",0.75 if absf(side_speed) > 0.1 and not flight_enabled else 0.0)
+		tree.set("parameters/SoloLeftBlend/blend_amount",1.0 if absf(side_speed) > 0.1 and not flight_enabled else 0.0)
 	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
