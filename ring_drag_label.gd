@@ -15,7 +15,7 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 func _notification(what: int) -> void:
  if what != NOTIFICATION_DRAG_END or not drag_started: return
  drag_started = false
- if owner_fighter == null or gui_is_drag_successful(): return
+ if owner_fighter == null or get_viewport().gui_is_drag_successful(): return
  var parent_panel: Control = owner_fighter.ring_inventory_panel
  if parent_panel == null or not parent_panel.visible: return
  var mouse: Vector2 = get_viewport().get_mouse_position()
