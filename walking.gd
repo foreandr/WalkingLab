@@ -42,7 +42,7 @@ var cast_arm_name: String = ""
 var cast_element: String = "fire"
 # Each fused cast spawns one projectile with two independent effect components.
 var cast_components: Array[String] = []
-const FUSION_INPUT_WINDOW_MS: int = 115
+const FUSION_INPUT_WINDOW_MS: int = 320
 var pending_spell_slots: Array[int] = []
 var pending_spell_since_ms: int = 0
 var pending_spell_arm: String = ""
@@ -2131,11 +2131,13 @@ func _physics_process(dt):
 		update_resource_hud()
 	if combat_dead:
 		update_combat_fall(dt)
+		if player_controlled: update_camera()
 		return
 	if animation_test_mode == "sky_target":
 		update_sky_target(dt)
 		return
 	if animation_test_mode == "war":
+		if player_controlled: update_camera()
 		# Arena owns updates of all war fighters. A fallback remains for isolated tests.
 		if get_tree().current_scene.has_method("tick_war_fighters"): return
 		war_simulation_tick(dt)
@@ -2530,13 +2532,16 @@ func _physics_process(dt):
 		else:
 			hud.text = "%s  |  %.1f m/s" % [name,absf(signed_speed)]
 func update_camera():
-	var subject = camera_target if is_instance_valid(camera_target) else actor
-	var subject_controller = subject.get_parent().crouch if camera_target!=null else crouch
-	var focus_target = subject_controller.capsule.height*0.58 if subject_controller.capsule!=null else 1.05
-	camera_focus_height = lerp(camera_focus_height,focus_target,0.06)
-	var focus = subject.global_position+Vector3.UP*camera_focus_height
-	camera.position = focus+Vector3(sin(orbit)*cos(elevation),-sin(elevation),cos(orbit)*cos(elevation))*distance
-	camera.look_at(focus)
+	var subject: CharacterBody3D = camera_target if is_instance_valid(camera_target) else actor
+	if subject==null or camera==null: return
+	var subject_controller: Node = subject.get_parent().crouch if subject!=actor else crouch
+	var focus_target: float = subject_controller.capsule.height*0.58 if subject_controller.capsule!=null else 1.05
+	camera_focus_height = lerpf(camera_focus_height,focus_target,0.18)
+	var focus: Vector3 = subject.global_position+Vector3.UP*camera_focus_height
+	# World-space follow is mandatory when grounding pulls a flying fighter
+	# down. Avoid root-local offsets and never smooth the actor's world Y.
+	camera.global_position = focus+Vector3(sin(orbit)*cos(elevation),-sin(elevation),cos(orbit)*cos(elevation))*distance
+	camera.look_at(focus,Vector3.UP)
 func _process(_dt):
 	frame += 1
 	var shots = OS.get_environment("WALK_SHOTS")
@@ -3683,9 +3688,8 @@ func _unhandled_input(event):
 					update_resource_hud()
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-		if event is InputEventKey and not event.pressed and event.keycode>=KEY_1 and event.keycode<=KEY_9:
-			var released_slot: int = (5+event.keycode-KEY_6) if event.keycode>=KEY_6 else (5 if controlled_arm=="left" else 0)+(event.keycode-KEY_1)
-			if pending_spell_slots.has(released_slot): flush_pending_spell(true)
+		# Releasing a key does NOT immediately fire: give the remaining
+		# fingers the full chord window even if the first key was tapped.
 		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
 			orbit = wrapf(orbit-event.relative.x*0.004*camera_sensitivity,-PI,PI)
 			elevation = clampf(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
