@@ -222,6 +222,11 @@ var team_strafe_sign: float = 1.0
 var team_mobility_timer: float = 0.0
 var team_clear_shot: bool = true
 var team_projectile_dodge: Vector3 = Vector3.ZERO
+# Close-quarters combat is optional: existing WalkingLab arena remains unchanged.
+var brawl_impact_impulse: Vector3 = Vector3.ZERO
+var brawl_dodge_iframes: float = 0.0
+var brawl_stagger_time: float = 0.0
+var brawl_flight_override: bool = false
 var pursuit_role: String = ""
 var pursuit_home: Vector3 = Vector3.ZERO
 var pursuit_cast_timer: float = 0.0
@@ -1940,6 +1945,9 @@ func update_team_battle_agent(dt: float) -> void:
 			var dist: float = actor.global_position.distance_to(candidate.actor.global_position)
 			var vulnerability: float = (100.0-float(enemy_damage.hp["torso"]))*0.10
 			var score: float = dist-vulnerability+agent_rng.randf_range(-3.0,3.0)
+			# An immortal spectator must not monopolize target selection and
+			# prevent opponents from engaging their mortal adversaries.
+			if bool(candidate.get("demo_immortal")): continue
 			if candidate==previous_target: score-=4.0
 			if score<best_score:
 				best_score = score
@@ -1967,8 +1975,15 @@ func update_team_battle_agent(dt: float) -> void:
 		team_clear_shot = obstacle.is_empty() or obstacle.get("collider")==war_target.actor
 	var injury: Node = get_node_or_null("DamageSystem")
 	var critical: bool = injury != null and (float(injury.hp["torso"])<42.0 or float(injury.hp["head"])<46.0)
-	var desired: Vector3 = flank*team_strafe_sign*0.5
-	if target_valid:
+	var melee_enabled: bool = bool(get_meta("brawl_melee",false))
+	var desired: Vector3 = flank*team_strafe_sign*(0.25 if melee_enabled else 0.5)
+	if melee_enabled and target_valid:
+		# Melee AI commits to actual weapon range. Old 10m retreat kept
+		# swords separated and prevented contact.
+		if distance_m>2.45: desired += forward*2.35
+		elif distance_m<1.45: desired -= forward*0.8
+		else: desired += forward*0.35
+	elif target_valid:
 		if distance_m>21.0: desired += forward*1.3
 		elif distance_m<10.0 or critical: desired -= forward*1.5
 		else: desired += forward*0.2
@@ -1996,7 +2011,7 @@ func update_team_battle_agent(dt: float) -> void:
 	team_mobility_timer -= dt
 	if team_mobility_timer<=0.0:
 		team_mobility_timer = agent_rng.randf_range(0.85,1.65)
-		var want_flight: bool = target_valid and spell_grounded_remaining<=0.0 and (war_target.flight_enabled or offset.y>3.5 or (critical and agent_rng.randf()<0.40))
+		var want_flight: bool = target_valid and spell_grounded_remaining<=0.0 and (brawl_flight_override or war_target.flight_enabled or offset.y>3.5 or (critical and agent_rng.randf()<0.40))
 		if want_flight and not flight_enabled:
 			var flight_slot: int = SPELL_IDS.find("flight")
 			if "flight" in equipped_spells and spell_is_ready(flight_slot):
@@ -2007,6 +2022,11 @@ func update_team_battle_agent(dt: float) -> void:
 	if spell_grounded_remaining>0.0: flight_enabled = false
 	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
 	var movement_speed: float = (17.2 if not critical else 14.4) * (1.0 if bool(get_meta("speed_boots",false)) else 0.79)
+	if melee_enabled and target_valid and distance_m < 7.0:
+		movement_speed = 9.0 if not critical else 7.4
+	if brawl_stagger_time > 0.0:
+		brawl_stagger_time = maxf(0.0,brawl_stagger_time-dt)
+		movement_speed *= 0.30
 	if flight_enabled: movement_speed = 21.0
 	if spell_frost_remaining>0.0: movement_speed *= 0.12
 	if spell_gravity_remaining>0.0:
@@ -2024,6 +2044,9 @@ func update_team_battle_agent(dt: float) -> void:
 		actor.velocity.x = move_toward(actor.velocity.x,target_velocity.x,dt*41.0)
 		actor.velocity.z = move_toward(actor.velocity.z,target_velocity.z,dt*41.0)
 		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
+	if brawl_impact_impulse.length_squared() > 0.001:
+		actor.velocity += brawl_impact_impulse
+		brawl_impact_impulse = brawl_impact_impulse.move_toward(Vector3.ZERO,dt*34.0)
 	actor.move_and_slide()
 	if desired.length_squared()>0.01:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-desired.x,-desired.z),dt*8.2)
@@ -2562,6 +2585,11 @@ func _physics_process(dt):
 	# Grassland flight ceiling: stay below 60 metres even when boosting upward.
 	if player_controlled and flight_enabled and actor.global_position.y >= 59.5 and actor.velocity.y > 0.0:
 		actor.velocity.y = 0.0
+	# Melee knockback/dodge impulses affect BLACK's real CharacterBody3D
+	# rather than teleporting the character or displacing a duplicate model.
+	if brawl_impact_impulse.length_squared() > 0.001:
+		actor.velocity += brawl_impact_impulse
+		brawl_impact_impulse = brawl_impact_impulse.move_toward(Vector3.ZERO,step*34.0)
 	actor.move_and_slide()
 	if player_controlled and flight_enabled and actor.global_position.y > 60.0:
 		actor.global_position.y = 60.0

@@ -189,6 +189,7 @@ func _strike_candidate(victim: Node3D,base: Vector3,old_tip: Vector3,tip: Vector
 	var id: int = victim.get_instance_id()
 	if struck.has(id): return
 	var center: Vector3 = victim.actor.global_position + Vector3.UP * 1.15
+	if center.distance_squared_to(base) > 16.0 and center.distance_squared_to(tip) > 16.0: return
 	var closest_a: Vector3 = Geometry3D.get_closest_point_to_segment(center,base,tip)
 	var closest_b: Vector3 = Geometry3D.get_closest_point_to_segment(center,old_tip,tip)
 	var closest: Vector3 = closest_a if center.distance_squared_to(closest_a) < center.distance_squared_to(closest_b) else closest_b

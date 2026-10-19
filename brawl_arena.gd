@@ -78,7 +78,9 @@ func _ready() -> void:
 		fighter.spawn_point = setup["position"]
 		fighter.demo_immortal = false
 		fighter.character_tint = COLORS[team_index].lerp(Color.WHITE,0.4)
-		fighter.equipped_spells = current_level["enemy_spells"].duplicate()
+		var fighter_spells: Array[String] = []
+		fighter_spells.assign(current_level["enemy_spells"])
+		fighter.equipped_spells = fighter_spells
 		fighter.set_meta("brawl_melee",true)
 		add_child(fighter)
 		_add_team_label(fighter,"%s  #%d" % [TEAMS[team_index].to_upper(),i+1],COLORS[team_index])
@@ -150,8 +152,8 @@ func _physics_process(dt: float) -> void:
 		for fighter in mannequins:
 			if is_instance_valid(fighter) and not fighter.combat_dead and fighter.team_id == team: alive = true
 		if alive: living_teams.append(team)
-	# BLUE remains represented by BLACK's immortality; conclude when all
-	# other mortal teams die, or when one mortal team survives besides BLACK.
+	# BLUE remains represented by BLACK's immortality. End the round
+	# when all hostile mortal fighters have fallen.
 	var hostile_alive: int = 0
 	for fighter in mannequins:
 		if is_instance_valid(fighter) and not fighter.combat_dead and fighter.team_id != "blue": hostile_alive += 1
