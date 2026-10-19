@@ -265,6 +265,7 @@ func _ready():
 	if player.has_animation("Sprint"): player.get_animation_library("").remove_animation("Sprint")
 	var backwards_begin_usec: int = Time.get_ticks_usec()
 	install_backwards(player)
+	var solo_left_strafe_available: bool = install_solo_left_strafe(player)
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=backwards ms=",snappedf(float(Time.get_ticks_usec()-backwards_begin_usec)/1000.0,0.01))
 	if player_controlled: print("MIXAMO_CLIPS ",player.get_animation_list())
 	var white = StandardMaterial3D.new()
@@ -316,8 +317,16 @@ func _ready():
 	graph.add_node("Direction",direction_blend)
 	graph.connect_node("Direction",0,"Gaits")
 	graph.connect_node("Direction",1,"BackGaits")
+	if solo_left_strafe_available:
+		var solo_strafe := AnimationNodeAnimation.new()
+		solo_strafe.animation = "strafe/Left"
+		graph.add_node("SoloLeftClip",solo_strafe)
+		var solo_blend := AnimationNodeBlend2.new()
+		graph.add_node("SoloLeftBlend",solo_blend)
+		graph.connect_node("SoloLeftBlend",0,"Direction")
+		graph.connect_node("SoloLeftBlend",1,"SoloLeftClip")
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
-	graph.connect_node("Cadence",0,"Direction")
+	graph.connect_node("Cadence",0,"SoloLeftBlend" if solo_left_strafe_available else "Direction")
 	var crouch_begin_usec: int = Time.get_ticks_usec()
 	crouch.setup(self,player,graph)
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=crouch ms=",snappedf(float(Time.get_ticks_usec()-crouch_begin_usec)/1000.0,0.01))
@@ -540,6 +549,72 @@ func draw_speed_streaks() -> void:
 
 func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
+func install_solo_left_strafe(player: AnimationPlayer) -> bool:
+	if name != "PlayerMan" or ai_mode != "sprint": return false
+	var path: String = "res://assets/locomotion/Left Strafe.fbx"
+	if not ResourceLoader.exists(path):
+		print("[SOLO_LEFT_STRAFE] missing=",path)
+		return false
+	var packed = load(path)
+	if not packed is PackedScene: return false
+	var source: Node = packed.instantiate()
+	var players: Array[Node] = source.find_children("*","AnimationPlayer",true,false)
+	var rigs: Array[Node] = source.find_children("*","Skeleton3D",true,false)
+	if players.is_empty() or rigs.is_empty():
+		source.free()
+		return false
+	var source_player: AnimationPlayer = players[0] as AnimationPlayer
+	var source_rig: Skeleton3D = rigs[0] as Skeleton3D
+	var chosen: Animation = null
+	for animation_name in source_player.get_animation_list():
+		if animation_name == "RESET": continue
+		var candidate: Animation = source_player.get_animation(animation_name)
+		if chosen == null or candidate.get_track_count() > chosen.get_track_count():
+			chosen = candidate
+	if chosen == null:
+		source.free()
+		return false
+	var dest_root: NodePath = player.get_node(player.root_node).get_path_to(skeleton)
+	var clip := Animation.new()
+	clip.length = chosen.length
+	clip.loop_mode = Animation.LOOP_LINEAR
+	var mapped: int = 0
+	for t in range(chosen.get_track_count()):
+		if chosen.track_get_type(t) != Animation.TYPE_ROTATION_3D: continue
+		var subpath: NodePath = chosen.track_get_path(t)
+		if subpath.get_subname_count() == 0: continue
+		var normalized: String = normalized_idle_bone(String(subpath.get_subname(subpath.get_subname_count()-1)))
+		if normalized == "hips": continue
+		var source_index: int = -1
+		var dest_index: int = -1
+		for bi in range(source_rig.get_bone_count()):
+			if normalized_idle_bone(String(source_rig.get_bone_name(bi))) == normalized:
+				source_index = bi
+				break
+		for bi in range(skeleton.get_bone_count()):
+			if normalized_idle_bone(String(skeleton.get_bone_name(bi))) == normalized:
+				dest_index = bi
+				break
+		if source_index < 0 or dest_index < 0: continue
+		var q_source: Quaternion = source_rig.get_bone_rest(source_index).basis.get_rotation_quaternion()
+		var q_dest: Quaternion = skeleton.get_bone_rest(dest_index).basis.get_rotation_quaternion()
+		var correction: Quaternion = (q_dest.inverse()*q_source).normalized()
+		var track_id: int = clip.add_track(Animation.TYPE_ROTATION_3D)
+		clip.track_set_path(track_id,NodePath(String(dest_root)+":"+skeleton.get_bone_name(dest_index)))
+		for k in range(chosen.track_get_key_count(t)):
+			var rotation: Quaternion = chosen.track_get_key_value(t,k)
+			clip.rotation_track_insert_key(track_id,chosen.track_get_key_time(t,k),(correction*rotation*correction.inverse()).normalized())
+		mapped += 1
+	source.free()
+	if mapped < 12:
+		print("[SOLO_LEFT_STRAFE] rejected tracks=",mapped)
+		return false
+	var library := AnimationLibrary.new()
+	library.add_animation("Left",clip)
+	player.add_animation_library("strafe",library)
+	print("[SOLO_LEFT_STRAFE] ready tracks=",mapped," clip=Left Strafe.fbx")
+	return true
+
 func install_backwards(player: AnimationPlayer):
 	install_motion_library(player,"res://assets/backward_motions.glb","back",BACK_NAMES,BACK_NAMES)
 func install_motion_library(player: AnimationPlayer, resource_path: String, library_name: String, clip_names: Array, loops: Array):
@@ -1273,6 +1348,8 @@ func _physics_process(dt):
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
+	if solo_left_strafe_available and name == "PlayerMan" and ai_mode == "sprint":
+		tree.set("parameters/SoloLeftBlend/blend_amount",1.0 if absf(side_speed) > 0.1 and not flight_enabled else 0.0)
 	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
