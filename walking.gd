@@ -70,6 +70,10 @@ var strafe_right_blend: float = 0.0
 const STRAFE_VISUAL_YAW: float = 55.0
 const STRAFE_BLEND_RATE: float = 8.0
 const STRAFE_ACTIVATE_SPEED: float = 1.25
+# Black only: travel twice as far sideways while strafe clips play half as fast.
+# Keep these independent so movement distance does not speed up the animation.
+const STRAFE_TRAVEL_MULTIPLIER: float = 2.0
+const STRAFE_PLAYBACK_MULTIPLIER: float = 0.5
 # All arena combatants use the same imported rig. Share immutable retargeted
 # animation curves rather than import and retarget twenty FBX files per fighter.
 static var shared_flight_clips_ready: bool = false
@@ -1340,9 +1344,11 @@ func _physics_process(dt):
 		var target_speed: float = absf(manual_target_speed())
 		var move_accel: float = step*(8.0 if manual_input.length()<0.01 else 6.0)
 		signed_speed = move_toward(signed_speed,target_speed*manual_input.y,move_accel)
-		# Side movement reacts promptly; the animation crossfade supplies visual softness.
+		# Double sideways travel without lengthening the acceleration ramp.
+		# Forward/backward velocities and sprint progression are unchanged.
 		var lateral_rate: float = 22.0 if manual_input.x*manual_side_speed <= 0.0 else 16.0
-		manual_side_speed = move_toward(manual_side_speed,target_speed*manual_input.x,step*lateral_rate)
+		var lateral_target: float = target_speed*manual_input.x*STRAFE_TRAVEL_MULTIPLIER
+		manual_side_speed = move_toward(manual_side_speed,lateral_target,step*lateral_rate*STRAFE_TRAVEL_MULTIPLIER)
 		backward = signed_speed < -0.01
 		direction_weight = move_toward(direction_weight,1.0 if backward else 0.0,step*4.0)
 		blend = speed_band(SPEEDS,absf(signed_speed))
@@ -1441,9 +1447,16 @@ func _physics_process(dt):
 	if player_controlled:
 		var visible_strafe: float = strafe_right_blend-strafe_left_blend
 		visual.rotation.y = PI-deg_to_rad(STRAFE_VISUAL_YAW)*visible_strafe
-	# The imported strafe cycle was calibrated at approximately 2 m/s.
+	# Use pre-boost lateral speed as the animation's speed reference. Then
+	# halve the strafe playback independently of the doubled travel distance.
+	# The original run cadence stays untouched whenever strafing is inactive.
 	var active_strafe: float = maxf(strafe_left_blend,strafe_right_blend)
-	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else lerpf(speed/stride,speed/2.0,active_strafe))
+	var cadence: float = lerpf(speed/stride,speed/2.0,active_strafe)
+	if player_controlled and not crouch_driving:
+		var original_speed: float = Vector2(side_speed/STRAFE_TRAVEL_MULTIPLIER,signed_speed).length()
+		var original_cadence: float = lerpf(original_speed/stride,original_speed/2.0,active_strafe)
+		cadence = original_cadence*lerpf(1.0,STRAFE_PLAYBACK_MULTIPLIER,active_strafe)
+	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else cadence)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
 		var moving_now = speed > 0.12 or crouch.active()
@@ -1467,7 +1480,7 @@ func _physics_process(dt):
 			if state != last_debug_state:
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
-			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" strafe_weight="+str(snappedf(strafe_weight,0.01))+" strafe_left_blend="+str(snappedf(strafe_left_blend,0.01))+" strafe_right_blend="+str(snappedf(strafe_right_blend,0.01))+" visual_yaw="+str(snappedf(rad_to_deg(wrapf(visual.rotation.y-PI,-PI,PI)),0.1))+" strafe_side_mps="+str(snappedf(side_speed,0.01))+" strafe_left_ready="+str(solo_left_strafe_available)+" strafe_right_ready="+str(solo_right_strafe_available)+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
+			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" animation_cadence="+str(snappedf(cadence,0.01))+" strafe_weight="+str(snappedf(strafe_weight,0.01))+" strafe_left_blend="+str(snappedf(strafe_left_blend,0.01))+" strafe_right_blend="+str(snappedf(strafe_right_blend,0.01))+" visual_yaw="+str(snappedf(rad_to_deg(wrapf(visual.rotation.y-PI,-PI,PI)),0.1))+" strafe_side_mps="+str(snappedf(side_speed,0.01))+" strafe_left_ready="+str(solo_left_strafe_available)+" strafe_right_ready="+str(solo_right_strafe_available)+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	# Calibration only: pitch the visible character down, never the collider.
 	if name == "DemoNPC" and ai_mode == "sprint" and not flight_enabled:
 		visual.rotation.x = deg_to_rad(-8.0)
