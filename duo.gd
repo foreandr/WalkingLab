@@ -32,9 +32,10 @@ var spawn_cooldown: float = 0.0
 var spawn_last_cost_ms: float = 0.0
 var spawn_peak_cost_ms: float = 0.0
 var spawn_count_window: int = 0
-# Opt-in: --flight-benchmark. Begins after all 110 fighters have spawned,
+# Opt-in: --flight-benchmark. Begins after the requested fighters spawn,
 # then performs sixty seconds of genuine player flight physics.
 var flight_benchmark_requested: bool = false
+var benchmark_fighters: int = MAX_ACTIVE_FIGHTERS
 var flight_benchmark_running: bool = false
 var flight_benchmark_start_usec: int = 0
 var flight_benchmark_last_log_second: int = -1
@@ -98,6 +99,15 @@ func profile_percentile(values: Array[float], fraction: float) -> float:
 
 func _ready():
 	flight_benchmark_requested = "--flight-benchmark" in OS.get_cmdline_user_args()
+	if flight_benchmark_requested:
+		for argument in OS.get_cmdline_user_args():
+			if argument.begins_with("--benchmark-fighters="):
+				var requested := argument.trim_prefix("--benchmark-fighters=")
+				if not requested.is_valid_int() or int(requested) < 1 or int(requested) > MAX_ACTIVE_FIGHTERS:
+					push_error("benchmark-fighters must be between 1 and %d" % MAX_ACTIVE_FIGHTERS)
+					get_tree().quit(2)
+					return
+				benchmark_fighters = int(requested)
 	batch_aoe_shader = "--batch-aoe-shader" in OS.get_cmdline_user_args()
 	# Normal gravity, animations, spells and AI timing; only travel slows.
 	Engine.time_scale = 1.0
@@ -134,21 +144,22 @@ func _ready():
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,34)
 	player.character_tint = FIGHTER_COLOR
-	player.team_id = "blue"
+	player.team_id = ""
+	player.demo_immortal = true
 	add_child(player)
 	player.camera.current = true
-	player_label = make_label(player.actor,"YOU / BLUE",TEAM_BLUE)
+	player_label = make_label(player.actor,"BLACK / IMMORTAL [G]",TEAM_BLUE)
 	attach_status_label(player)
 	make_boundary()
 	# Always show a separate autonomous locomotion demonstrator beside Black.
 	ai = null
 	set_demo_npc_enabled(true)
 	if flight_benchmark_requested:
-		spawn_more_fighters(MAX_ACTIVE_FIGHTERS)
+		spawn_more_fighters(benchmark_fighters)
 	else:
 		# Blue player + 3 AI versus 4 red AI, spawned over separate frames.
 		spawn_more_fighters(TEAM_AI_FIGHTERS)
-	print("[ARENA_MODE] 4v4 team battle player=BLUE allies=3 enemies=4 arena_half_extent=",ARENA_HALF_EXTENT)
+	print("[ARENA_MODE] free_for_all player=manual immortal=true starting_spells=1 arena_half_extent=",ARENA_HALF_EXTENT)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
 	if enabled:
@@ -205,7 +216,7 @@ func _spawn_single_fighter() -> void:
 	fighter.ai_abilities = true
 	fighter.animation_test_mode = "war"
 	fighter.war_pose_enabled = pose_enabled
-	var is_team_battle: bool = not flight_benchmark_requested and index < TEAM_AI_FIGHTERS
+	var is_team_battle: bool = false
 	var label_text: String = "FIGHTER %02d" % (index+1)
 	if is_team_battle:
 		var blue_spawn: Array[Vector3] = [Vector3(-9,0,24),Vector3(0,0,24),Vector3(9,0,24)]
@@ -220,7 +231,9 @@ func _spawn_single_fighter() -> void:
 		# Preserve the existing 80-fighter benchmark and manual war-spawn path.
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
-		if index < LINEUP_DISTANCES.size():
+		if not flight_benchmark_requested:
+			fighter.spawn_point = Vector3(sin(angle)*20.0,0.0,cos(angle)*20.0)
+		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
 			fighter.animation_lineup_mode = true
@@ -357,7 +370,7 @@ func _process(dt: float) -> void:
 	if battle_feed_refresh_clock <= 0.0:
 		battle_feed_refresh_clock = 0.2
 		refresh_battle_feed()
-	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == MAX_ACTIVE_FIGHTERS and is_instance_valid(player):
+	if flight_benchmark_requested and not flight_benchmark_running and queued_fighter_spawns == 0 and mannequins.size() == benchmark_fighters and is_instance_valid(player) and DisplayServer.get_name() != "headless" and DisplayServer.window_is_focused():
 		flight_benchmark_running = true
 		flight_benchmark_unfocused_frames = 0
 		flight_benchmark_low_draw_frames = 0

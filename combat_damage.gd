@@ -143,6 +143,7 @@ func scene_debug_damage() -> bool:
 
 func receive_region_hit(region: String, world_point: Vector3, amount: float, attacker: String = "", show_number: bool = true) -> void:
 	if dead or not hp.has(region): return
+	if bool(owner_actor.get_parent().get("demo_immortal")): return
 	# Stress-test mode retains injuries, reactions and damage accounting,
 	# but vital organs never reach zero and no fighter can be defeated.
 	var stress_immortal: bool = false

@@ -139,6 +139,8 @@ var movement_clips: Dictionary = {}
 var solo_left_strafe_available: bool = false
 var solo_right_strafe_available: bool = false
 var ring_inventory_panel: PanelContainer = null
+var demo_immortal: bool = false
+var equipped_spells: Array[String] = ["fire"]
 var ring_inventory_text: Label = null
 # Smooth, persistent crossfade weights shared by player and motion showcase.
 var strafe_left_blend: float = 0.0
@@ -661,7 +663,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRIGHT 1-5: Cinderburst / Permafrost / Soulseeker / Voidwell / Everbound\nLEFT 1-5: Earthbind / Lifeweave / Galeforce / Blight / Ascension\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
+	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nStart: Right 1 Cinderburst; other ring slots empty\nI: Inventory | V: Flight | G: Immortality\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
@@ -756,7 +758,7 @@ func update_resource_hud() -> void:
 	resources_status.text = "STA %d   |   MANA %s" % [ceili(stamina),"∞" if infinite_mana else str(ceili(mana))]
 	var hand_offset: int = 5 if controlled_arm == "left" else 0
 	if hand_indicator != null:
-		hand_indicator.text = ("LEFT HAND" if controlled_arm == "left" else "RIGHT HAND")+" | 1-5 (SHIFT) | 6 EARTH 7 HEAL 8 WIND 9 VENOM"
+		hand_indicator.text = ("LEFT HAND" if controlled_arm == "left" else "RIGHT HAND")+" | 1-5 (SHIFT) | I INVENTORY | V FLIGHT | G IMMORTAL"
 		if fusion_feedback_remaining>0.0:
 			hand_indicator.text = fusion_feedback
 		elif cast_elapsed>=0.0 and cast_components.size()>1:
@@ -765,6 +767,11 @@ func update_resource_hud() -> void:
 		var slot: int = hand_offset+i
 		var remaining: float = 0.0 if ignore_spell_cooldowns else spell_remaining[slot]
 		var label: Label = spell_slots[i]
+		if not SPELL_IDS[slot] in equipped_spells:
+			label.text = "%d  Empty" % (i+1)
+			label.tooltip_text = "No ring equipped"
+			label.add_theme_color_override("font_color",Color("888d98"))
+			continue
 		var mana_needed: bool = not infinite_mana and mana<SPELL_COSTS[slot] and not (SPELL_IDS[slot]=="flight" and (flight_enabled or flight_windup_remaining>0.0))
 		var description: String = "OFF" if SPELL_IDS[slot]=="flight" and (flight_enabled or flight_windup_remaining>0.0) else ("%.1fs" % remaining if remaining>0.05 else ("%d MP" % int(SPELL_COSTS[slot])))
 		label.text = "%d  %s\n%s" % [i+1,SPELL_NAMES[slot],description]
@@ -952,10 +959,10 @@ func install_ring_inventory(canvas: CanvasLayer) -> void:
 	ring_inventory_panel = PanelContainer.new()
 	ring_inventory_panel.name = "RingInventory"
 	ring_inventory_panel.visible = false
-	ring_inventory_panel.set_anchors_preset(Control.PRESET_CENTER)
-	ring_inventory_panel.position = Vector2(-225.0,-225.0)
 	ring_inventory_panel.custom_minimum_size = Vector2(450.0,450.0)
 	canvas.add_child(ring_inventory_panel)
+	ring_inventory_panel.position = (get_viewport().get_visible_rect().size-Vector2(450,450))*0.5
+	get_viewport().size_changed.connect(func(): ring_inventory_panel.position = (get_viewport().get_visible_rect().size-ring_inventory_panel.size)*0.5)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation",8)
 	ring_inventory_panel.add_child(column)
@@ -977,7 +984,8 @@ func refresh_ring_inventory() -> void:
 	for i in range(SPELL_NAMES.size()):
 		if i == 5: result += "\nLEFT HAND\n"
 		elif i == 0: result += "RIGHT HAND\n"
-		result += "  %d.  %s\n" % [i % 5 + 1,SPELL_NAMES[i]]
+		result += "  %d.  %s\n" % [i % 5 + 1,SPELL_NAMES[i] if SPELL_IDS[i] in equipped_spells else "Empty"]
+	result += "\nV: Flight movement   |   G: Immortality"
 	ring_inventory_text.text = result
 
 func install_backwards(player: AnimationPlayer):
@@ -1418,7 +1426,7 @@ func update_combat_fall(dt: float) -> void:
 	# The physics capsule remains upright, but the visible rig lies prone.
 	# Once settled, compute floor clearance from animated bones rather
 	# than raising the entire body by a guessed constant.
-	visual.rotation.x = lerpf(combat_initial_pitch,-PI*0.5,smoothstep(0.0,0.95,combat_death_time))
+	visual.rotation.x = lerpf(combat_initial_pitch,0.0,smoothstep(0.0,0.95,combat_death_time))
 	if combat_death_time >= 0.95:
 		# The capsule's upright center is not a corpse floor-contact point.
 		# Adjust the visual rig until its lowest animated joint sits at floor height.
@@ -3560,6 +3568,7 @@ func flush_pending_spell(force: bool = false) -> void:
 
 func receive_spell_key(slot: int) -> void:
 	if slot<0 or slot>=SPELL_IDS.size(): return
+	if not SPELL_IDS[slot] in equipped_spells: return
 	if not FUSION_PROJECTILES.has(SPELL_IDS[slot]):
 		flush_pending_spell(true)
 		if slot==SPELL_IDS.find("bloom") and controlled_arm!="left":
@@ -3802,6 +3811,14 @@ func _unhandled_input(event):
 				if ring_inventory_panel.visible: refresh_ring_inventory()
 				get_viewport().set_input_as_handled()
 				return
+			if event.keycode == KEY_G:
+				demo_immortal = not demo_immortal
+				var arena: Node = get_tree().current_scene
+				if arena.get("player_label") != null:
+					arena.player_label.text = "BLACK / %s [G]" % ("IMMORTAL" if demo_immortal else "MORTAL")
+				print("[PLAYER_IMMORTAL] enabled=",demo_immortal)
+			if event.keycode == KEY_V:
+				toggle_flight_spell()
 			if event.keycode==KEY_ESCAPE:
 				if ring_inventory_panel != null: ring_inventory_panel.visible = false
 				if options_panel != null: options_panel.visible = false
