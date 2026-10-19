@@ -5,6 +5,11 @@ var performers: Array = []
 var info: Label
 var fps_elapsed: float = 0.0
 var actors_started: int = 0
+var preview_camera: Camera3D
+var using_preview_camera: bool = false
+var player_sword_on_ground: Node3D
+var player_sword_in_hand: Node3D
+var player_sword_label: Label3D
 
 func _ready() -> void:
 	Engine.time_scale = 1.0
@@ -36,25 +41,16 @@ func _ready() -> void:
 	add_child(player)
 	player.camera.current = true
 	make_label(player.actor, "YOU / FULL CONTROL", Color("fff0a5"))
-	var source1: String = "res://assets/source_original.glb"
-	var source2: String = "res://assets/showcase/UAL2_Standard.glb"
-	var acrobat: String = "res://assets/showcase/aether-02.glb"
-	var acrobat_available: bool = ResourceLoader.exists(acrobat)
-	var newer_available: bool = ResourceLoader.exists(source2)
-	for i in range(10):
-		var performer = preload("res://showcase_performer.gd").new()
-		performer.name = "Performer%02d" % (i+1)
-		performer.performer_index = i
-		# UAL1 is already tracked; UAL2 is downloaded by RUN.bat.
-		performer.source_file = acrobat if i == 4 and acrobat_available else (source2 if newer_available and i in [3,5,8,9] else source1)
-		performer.position = Vector3(float((i%5)-2)*6.5,0.0,-7.0-float(i/5)*14.0)
-		add_child(performer)
-		performers.append(performer)
-	actors_started = performers.size()
+	var performer = preload("res://showcase_single_performer.gd").new()
+	performer.name = "SingleAnimationPerformer"
+	performer.position = Vector3(0,0,-4.0)
+	add_child(performer)
+	performers.append(performer)
+	actors_started = 1
+	_build_player_sword()
+	_build_camera()
 	_build_hud()
-	print("[ANIMATION_SHOWCASE] count=",actors_started, " player=controlled", " ual1=",source1," ual2_available=",newer_available," aether_backflip_available=",acrobat_available," fps_target=60")
-	if not newer_available:
-		push_warning("[SHOWCASE] UAL2 is not installed: RUN.bat should download it; parkour/combo performers will report missing clips until import succeeds.")
+	print("[SINGLE_SHOWCASE_READY] npc_count=1 steps=",performer.sequence.size()," controllable_player=true")
 
 func _build_flat_stage() -> void:
 	var ground: MeshInstance3D = MeshInstance3D.new()
@@ -98,6 +94,59 @@ func _build_flat_stage() -> void:
 	fill.light_energy = 0.40
 	add_child(fill)
 
+func _build_camera() -> void:
+	preview_camera = Camera3D.new()
+	preview_camera.fov = 42
+	preview_camera.position = Vector3(3.5,3.0,2.7)
+	add_child(preview_camera)
+	preview_camera.current = false
+
+func _build_player_sword() -> void:
+	var sword_path: String = "res://assets/kenney_weapons/mini-arena/weapon-sword.glb"
+	if not ResourceLoader.exists(sword_path):
+		print("[PLAYER_SWORD_UNAVAILABLE] ",sword_path)
+		return
+	var packed: PackedScene = load(sword_path) as PackedScene
+	if packed == null: return
+	player_sword_on_ground = packed.instantiate() as Node3D
+	if player_sword_on_ground == null: return
+	add_child(player_sword_on_ground)
+	player_sword_on_ground.position = player.actor.global_position + Vector3(1.0,0.08,-1.4)
+	player_sword_on_ground.rotation_degrees = Vector3(0,0,90)
+	player_sword_label = Label3D.new()
+	player_sword_label.text = "SWORD - PRESS E"
+	player_sword_label.font_size = 54
+	player_sword_label.pixel_size = 0.0045
+	player_sword_label.outline_size = 11
+	player_sword_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	player_sword_label.position = Vector3(0,0.9,0)
+	player_sword_on_ground.add_child(player_sword_label)
+
+func _pickup_player_sword() -> void:
+	if not is_instance_valid(player_sword_on_ground) or player_sword_in_hand != null: return
+	if player.actor.global_position.distance_to(player_sword_on_ground.global_position) > 2.8: return
+	var skeleton: Skeleton3D = player.skeleton
+	if skeleton == null: return
+	var right_hand: String = ""
+	for candidate in ["mixamorig_RightHand","RightHand","hand_r","Hand_R"]:
+		if skeleton.find_bone(candidate)>=0:
+			right_hand = candidate
+			break
+	if right_hand.is_empty():
+		print("[PLAYER_SWORD_ERROR] Right-hand bone missing")
+		return
+	var attachment: BoneAttachment3D = BoneAttachment3D.new()
+	attachment.bone_name = right_hand
+	attachment.name = "PlayerShowcaseSwordHand"
+	skeleton.add_child(attachment)
+	player_sword_on_ground.reparent(attachment,false)
+	player_sword_on_ground.position = Vector3(0.03,0.47,0.0)
+	player_sword_on_ground.rotation_degrees = Vector3(0,0,90)
+	player_sword_label.visible = false
+	player_sword_in_hand = player_sword_on_ground
+	player_sword_on_ground = null
+	print("[PLAYER_SHOWCASE_SWORD_PICKED_UP] key=E bone=",right_hand)
+
 func _build_hud() -> void:
 	var layer: CanvasLayer = CanvasLayer.new()
 	layer.name = "ShowcaseHUD"
@@ -108,15 +157,15 @@ func _build_hud() -> void:
 	var box: VBoxContainer = VBoxContainer.new()
 	top.add_child(box)
 	var title: Label = Label.new()
-	title.text = "ANIMATION + SPELL SHOWCASE  |  10 AUTOMATED PERFORMERS"
+	title.text = "SINGLE ACTOR - ANIMATION ACCEPTANCE TEST"
 	title.add_theme_font_size_override("font_size",18)
 	box.add_child(title)
 	var description: Label = Label.new()
-	description.text = "WASD move   ALT sprint   CTRL walk   SPACE jump / fly   Mouse camera  |  Player controls unchanged"
+	description.text = "WASD player   E pickup YOUR sword   F6 close-up camera   F7 next   F8 previous   F9 pause   F10 replay"
 	description.add_theme_font_size_override("font_size",13)
 	box.add_child(description)
 	var notice: Label = Label.new()
-	notice.text = "Only source animation clips are played. Missing flips / strafes are marked honestly above the performer."
+	notice.text = "One demonstrator cycles through every action, picks up a real sword, swings and drops it. External rigs labelled."
 	notice.add_theme_font_size_override("font_size",12)
 	box.add_child(notice)
 	info = Label.new()
@@ -125,18 +174,34 @@ func _build_hud() -> void:
 
 func _process(delta: float) -> void:
 	fps_elapsed += delta
-	if fps_elapsed < 0.5: return
+	if using_preview_camera and is_instance_valid(preview_camera) and not performers.is_empty():
+		var target: Node3D = performers[0] as Node3D
+		if is_instance_valid(target):
+			preview_camera.look_at(target.global_position + Vector3.UP*1.25, Vector3.UP)
+	if fps_elapsed < 0.12: return
 	fps_elapsed = 0.0
-	var missing: int = 0
-	for p in performers:
-		if is_instance_valid(p): missing += p.missing_clips.size()
-	if info != null:
-		info.text = "FPS %.0f  |  NPCs %d/10  |  Unavailable authored actions %d  |  60 FPS target" % [Engine.get_frames_per_second(),performers.size(),missing]
+	if not performers.is_empty() and is_instance_valid(performers[0]) and info != null:
+		var p = performers[0]
+		info.text = p.status_text() + "\nFPS: %.0f   |   ONE performer   |   F6: %s" % [Engine.get_frames_per_second(), "return to PLAYER" if using_preview_camera else "CAMERA CLOSE-UP"]
 
 func _physics_process(_delta: float) -> void:
-	# The player simulates normally in walking.gd; NPCs are animation test actors.
 	pass
 
-func _unhandled_input(_event: InputEvent) -> void:
-	# Preserve the player controller's own independent input handling.
-	pass
+func _input(event: InputEvent) -> void:
+	if not (event is InputEventKey): return
+	var key: InputEventKey = event as InputEventKey
+	if not key.pressed or key.echo: return
+	if key.keycode == KEY_E:
+		_pickup_player_sword()
+		return
+	if performers.is_empty(): return
+	var p = performers[0]
+	match key.keycode:
+		KEY_F6:
+			using_preview_camera = not using_preview_camera
+			preview_camera.current = using_preview_camera
+			player.camera.current = not using_preview_camera
+		KEY_F7: p.next_action()
+		KEY_F8: p.previous_action()
+		KEY_F9: p.pause_action()
+		KEY_F10: p.replay_action()
