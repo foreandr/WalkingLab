@@ -32,7 +32,18 @@ try {
     # Never stash entire repository: logs can be actively held by the logger.
     # Preserve local edits and report a useful error if they prevent rebase.
     if (Test-Path "logs") {
-        Invoke-Git @("add","--","logs")
+        # GitHub rejects blobs above 100 MB. Keep substantial margin for
+        # future growth, and never commit a giant trace in the first place.
+        $maxLogBytes = 8MB
+        Get-ChildItem -LiteralPath "logs" -File -Filter "*.log" | ForEach-Object {
+            if ($_.Length -gt $maxLogBytes) {
+                Write-Host ("[LOG_SKIPPED] " + $_.Name + " bytes=" + $_.Length + " retained_locally=true")
+                # Also unstage an oversized file if another process staged it.
+                & git.exe restore --staged -- $_.FullName 2>$null
+            } else {
+                Invoke-Git @("add","--",$_.FullName)
+            }
+        }
         & git.exe diff --cached --quiet -- logs
         if ($LASTEXITCODE -eq 1) {
             Invoke-Git @("commit","-m","WalkingLab player debug run logs","--","logs")
@@ -54,7 +65,9 @@ try {
         if ([int]$ahead -eq 0) { exit 0 }
         & git.exe push origin HEAD:main
         if ($LASTEXITCODE -eq 0) { exit 0 }
-        Write-Host "Push raced another update. Retrying..."
+        Write-Host "Push failed; checking for oversized committed log objects before retry..."
+        $oversized = @(& git.exe rev-list --objects origin/main..HEAD | ForEach-Object { $_ } | Where-Object { $_ -match "logs/.*\\.log$" })
+        if ($oversized.Count -gt 0) { Write-Host "If GitHub reports GH001, run the one-time repair script. Retries cannot remove a large object already in history." }
     }
     throw "Log push failed three times; logs are retained locally."
 } catch {
