@@ -68,7 +68,7 @@ var solo_right_strafe_available: bool = false
 var strafe_left_blend: float = 0.0
 var strafe_right_blend: float = 0.0
 const STRAFE_VISUAL_YAW: float = 55.0
-const STRAFE_FORWARD_LEAN_DEGREES: float = 10.0
+const STRAFE_FORWARD_LEAN_DEGREES: float = 40.0
 const STRAFE_BLEND_RATE: float = 8.0
 const STRAFE_ACTIVATE_SPEED: float = 1.25
 # Black only: travel twice as far sideways while strafe clips play half as fast.
@@ -97,12 +97,13 @@ var squat_amount: float = 0.0
 var squat_key_down: bool = false
 var squat_hold_seconds: float = 0.0
 const SQUAT_MAX_CHARGE_SECONDS: float = 2.0
-const SQUAT_MAX_HOP_IMPULSE: float = 9.9
+# Keep the normal jump high and the fully charged jump exactly three times
+# its apex height. With unchanged gravity, h = v^2 / (2g), so the
+# charged launch impulse must be sqrt(3) times the normal impulse.
+# Roughly 4 m normal and 12 m charged at gravity = 18 m/s^2.
+const SQUAT_HOP_IMPULSE: float = 12.0
+const SQUAT_MAX_HOP_IMPULSE: float = SQUAT_HOP_IMPULSE * sqrt(3.0)
 const AIR_JUMP_TRAVEL_MULTIPLIER: float = 1.41421356
-# A normal tap jump is three times as high with unchanged gravity:
-# h = v^2 / (2g), so multiply the launch impulse by sqrt(3).
-# The existing fully charged jump remains at its previous maximum.
-const SQUAT_HOP_IMPULSE: float = 5.196152423
 const SQUAT_BLEND_SPEED: float = 1.8
 var debug_tick: float = 0.0
 var last_debug_state: String = ""
