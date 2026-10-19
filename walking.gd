@@ -55,6 +55,15 @@ var benchmark_flight_direction: Vector3 = Vector3.ZERO
 var auto_war_combat: bool = false
 var auto_war_cast_clock: float = 0.0
 var manual_launch_lock = false
+# A quick Alt tap and release followed by a held second Alt engages a dash.
+var alt_press_begin_ms: int = -100000
+var alt_last_short_release_ms: int = -100000
+var alt_dash_held: bool = false
+var flight_dash_speed: float = 0.0
+const ALT_DOUBLE_TAP_WINDOW_MS: int = 380
+const ALT_FIRST_TAP_MAX_MS: int = 280
+const DASH_GROUND_SPEED: float = 18.0
+const DASH_FLIGHT_SPEED: float = 28.0
 var manual_sprint_clock = 0.0
 var flight_acceleration_time: float = 0.0
 var flying_clip: Dictionary = {}
@@ -157,7 +166,7 @@ var options_panel: PanelContainer
 # Seconds per smooth 6 -> 8 -> 10 -> 12 m/s sprint stage.
 # Above 12 m/s, keep the final FastRun clip and gain 0.2 m/s per stage duration.
 const ENDLESS_SPRINT_GAIN = 0.2
-const SPRINT_STAGE_SECONDS = 3.0
+const SPRINT_STAGE_SECONDS = 0.7
 var manual_heading = 0.0
 var agent_rng := RandomNumberGenerator.new()
 var agent_destination: Vector3 = Vector3.ZERO
@@ -1333,10 +1342,11 @@ func _physics_process(dt):
 		if not building_sprint:
 			manual_sprint_clock = 0.0
 		else:
-			# Progress continuously through the full 6/8/10/12 m/s gait
-			# sequence while Alt+forward is held. Physics contacts must not
-			# silently lock the animation progression to the 6 m/s clip.
+			# Alt+W passes through run stages rapidly; a held second Alt tap
+			# jumps directly into the final fast sprint, without a timed delay.
 			manual_sprint_clock += step
+			if alt_dash_held:
+				manual_sprint_clock = maxf(manual_sprint_clock,SPRINT_STAGE_SECONDS*3.0)
 	if ai_mode in ["walk","sprint","fly"]:
 		signed_speed = move_toward(signed_speed,agent_preferred_speed,step*5.0)
 		blend = speed_band(SPEEDS,absf(signed_speed))
@@ -1347,7 +1357,7 @@ func _physics_process(dt):
 	elif player_controlled:
 		# Input axes remain separate: pure A/D never drives the forward gait.
 		var target_speed: float = absf(manual_target_speed())
-		var move_accel: float = step*(8.0 if manual_input.length()<0.01 else 6.0)
+		var move_accel: float = step*(8.0 if manual_input.length()<0.01 else (105.0 if alt_dash_held and manual_input.y>0.1 else 20.0))
 		signed_speed = move_toward(signed_speed,target_speed*manual_input.y,move_accel)
 		# Double sideways travel without lengthening the acceleration ramp.
 		# Forward/backward velocities and sprint progression are unchanged.
@@ -1558,12 +1568,14 @@ func _physics_process(dt):
 				if flight_direction.length_squared() > 1.0: flight_direction = flight_direction.normalized()
 				if player_controlled:
 					if flight_direction.length_squared() > 0.001:
-						flight_acceleration_time += step
+						flight_acceleration_time += step*(2.0 if Input.is_action_pressed("sprint") else 1.0)
 					else:
 						flight_acceleration_time = 0.0
-				# Every additional second of uninterrupted flight increases acceleration.
+				# A held double-Alt gives a short, powerful flight dash. Once
+				# released, smoothly fall back to ordinary flight acceleration.
 				var flight_boost: float = FLIGHT_SPEED * (pow(1.15,minf(flight_acceleration_time,45.0)/2.0)-1.0)
-				actor.velocity = flight_direction * maxf(absf(signed_speed),FLIGHT_SPEED+flight_boost)
+				flight_dash_speed = move_toward(flight_dash_speed,DASH_FLIGHT_SPEED if alt_dash_held and flight_direction.length_squared()>0.001 else 0.0,step*(100.0 if alt_dash_held else 25.0))
+				actor.velocity = flight_direction * maxf(maxf(absf(signed_speed),FLIGHT_SPEED+flight_boost),flight_dash_speed)
 				actor.velocity.y += (float(Input.is_key_pressed(KEY_SPACE))-float(Input.is_key_pressed(KEY_CTRL)))*FLIGHT_SPEED
 			if flight_launch_remaining > 0.0:
 				var launch_progress: float = 1.0-flight_launch_remaining/FLIGHT_LAUNCH_DURATION
@@ -1578,6 +1590,7 @@ func _physics_process(dt):
 	var flight_impact_speed: float = -actor.velocity.y if player_controlled and flight_enabled and actor.velocity.y < 0.0 else 0.0
 	# Lower travel speed only; physics gravity and jump impulses remain normal.
 	if player_controlled:
+		if not flight_enabled: flight_dash_speed = 0.0
 		actor.velocity.x *= 0.5
 		actor.velocity.z *= 0.5
 		if flight_enabled and actor.velocity.y > 0.0: actor.velocity.y *= 0.5
@@ -1663,6 +1676,7 @@ func manual_target_speed() -> float:
 	if manual_input.y< -0.1: return -BACK_SPEEDS[2] if sprinting else -BACK_SPEEDS[1]
 	if Input.is_action_pressed("walk"): return SPEEDS[0]
 	if not sprinting or manual_input.y<=0.1: return SPEEDS[2]
+	if alt_dash_held and not flight_enabled: return DASH_GROUND_SPEED
 	var progress = manual_sprint_clock / SPRINT_STAGE_SECONDS
 	if progress >= 3.0:
 		return SPEEDS[5] + (progress - 3.0) * ENDLESS_SPRINT_GAIN
@@ -2129,10 +2143,10 @@ func update_flight_orientation(dt: float) -> void:
 	# Head-first along camera aiming direction; physical collider remains upright.
 	var target_pitch: float = 0.0
 	if player_controlled and not flight_enabled:
-		# Pitch the mesh forward only while strafing. Existing eased blend
-		# weights give a smooth lean-in / lean-out without tilting the collider.
+		# The rig faces back-to-front (PI around Y); the prior negative X pitch
+		# made the strafe lean backwards. Positive X leans the chest FORWARD.
 		var strafe_pose: float = maxf(strafe_left_blend,strafe_right_blend)
-		target_pitch = -deg_to_rad(STRAFE_FORWARD_LEAN_DEGREES)*strafe_pose
+		target_pitch = deg_to_rad(STRAFE_FORWARD_LEAN_DEGREES)*strafe_pose
 	if flight_enabled:
 		target_pitch = deg_to_rad(20.0)
 		# Hover leans forward by 20 degrees; steering keeps head-first alignment.
@@ -2503,6 +2517,20 @@ func _unhandled_input(event):
 			squat_key_down = event.pressed
 			if event.pressed and not event.echo: squat_hold_seconds = 0.0
 			if not event.echo: debug_player("SQUAT_KEY","pressed="+str(event.pressed))
+		if event is InputEventKey and event.keycode == KEY_ALT and not event.echo:
+			var event_ms: int = Time.get_ticks_msec()
+			if event.pressed:
+				alt_press_begin_ms = event_ms
+				alt_dash_held = (event_ms-alt_last_short_release_ms <= ALT_DOUBLE_TAP_WINDOW_MS)
+				alt_last_short_release_ms = -100000
+				if alt_dash_held:
+					debug_player("ALT_DASH","second_alt_held=true mode="+("FLIGHT" if flight_enabled else "GROUND"))
+			else:
+				if not alt_dash_held and event_ms-alt_press_begin_ms <= ALT_FIRST_TAP_MAX_MS:
+					alt_last_short_release_ms = event_ms
+				else:
+					alt_last_short_release_ms = -100000
+				alt_dash_held = false
 		if event is InputEventKey and event.pressed and not event.echo:
 			debug_player("KEY_DOWN",OS.get_keycode_string(event.keycode)+" grounded="+str(actor.is_on_floor())+" flying="+str(flight_enabled)+" crouch="+str(crouch.active()))
 			if event.keycode==KEY_SPACE and not flight_enabled and (not actor.is_on_floor() or crouch.active()):
