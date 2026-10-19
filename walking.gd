@@ -364,7 +364,7 @@ func _ready():
 
 		if player_controlled: print("JAB_IK_BONES arm=",jab_left_arm," forearm=",jab_left_forearm," hand=",jab_left_hand)
 	var flight_begin_usec: int = Time.get_ticks_usec()
-	if player_controlled or ai_abilities or ai_mode == "fly" or (name == "PlayerMan" and ai_mode == "sprint") or animation_test_mode != "" or stationary_only: load_flight_clips()
+	if player_controlled or ai_abilities or ai_mode == "fly" or (name == "DemoNPC" and ai_mode == "sprint") or animation_test_mode != "" or stationary_only: load_flight_clips()
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=flight_clips ms=",snappedf(float(Time.get_ticks_usec()-flight_begin_usec)/1000.0,0.01))
 	var feet_begin_usec: int = Time.get_ticks_usec()
 	feet.setup(visual,skeleton)
@@ -564,7 +564,7 @@ func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 	return install_solo_strafe(player,"Left")
 
 func install_solo_strafe(player: AnimationPlayer, direction: String) -> bool:
-	if name != "PlayerMan" or ai_mode != "sprint": return false
+	if name != "DemoNPC" or ai_mode != "sprint": return false
 	# Prefer the newly supplied single left-strafe run clip.
 	# The run(1) attachment is not automatically in the Windows project.
 	# Select an imported clip that actually exists, and log the selection.
@@ -1249,10 +1249,10 @@ func _physics_process(dt):
 	clock += step
 	# Solo showcase: physical launch, controlled flight and gravity landing.
 	# This never touches the human-controlled forward sprint system.
-	var solo_showcase: bool = name == "PlayerMan" and ai_mode == "sprint" and not player_controlled
+	var solo_showcase: bool = name == "DemoNPC" and ai_mode == "sprint" and not player_controlled
 	var solo_flight_time: float = fmod(clock,48.0) if solo_showcase else 0.0
 	if solo_showcase:
-		var should_fly: bool = false # Solo strafe-only test: no flight or takeoff.
+		var should_fly: bool = solo_flight_time >= 32.0 and solo_flight_time < 42.0
 		if should_fly and not flight_enabled:
 			flight_enabled = true
 			vertical_jump_speed = 0.0
@@ -1347,8 +1347,21 @@ func _physics_process(dt):
 	# Solo CPU demonstration: alternate ordinary forward travel with
 	# backward and lateral movement, using the existing collision and gait tree.
 	var solo_direction_phase: int = -1
-	if name == "PlayerMan" and ai_mode == "sprint":
-		solo_direction_phase = 5 if fmod(clock,10.0) < 5.0 else 4 # Five seconds LEFT, then five RIGHT.
+	if name == "DemoNPC" and ai_mode == "sprint":
+		# Six 8-second ground phases: walk, run, sprint, backward,
+		# left strafe, right strafe; flight overrides from 32s to 42s.
+		var cycle_phase: float = fmod(clock,48.0)
+		solo_direction_phase = 5 if cycle_phase >= 24.0 and cycle_phase < 28.0 else (4 if cycle_phase >= 28.0 and cycle_phase < 32.0 else -1)
+		if cycle_phase >= 16.0 and cycle_phase < 24.0:
+			solo_direction_phase = 2
+		if solo_direction_phase == -1:
+			backward = false
+			signed_speed = 2.5 if cycle_phase < 8.0 else (6.0 if cycle_phase < 12.0 else 11.0)
+			blend = speed_band(SPEEDS,signed_speed)
+			direction_weight = 0.0
+		if cycle_phase >= 12.0 and cycle_phase < 12.1 and actor.is_on_floor():
+			vertical_jump_speed = 6.0
+			print("[MOTION_DEMO] jump")
 		if solo_direction_phase == 2 or solo_direction_phase == 3:
 			backward = true
 			signed_speed = -minf(agent_preferred_speed,BACK_SPEEDS[2])
@@ -1374,9 +1387,9 @@ func _physics_process(dt):
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
-	if solo_left_strafe_available and name == "PlayerMan" and ai_mode == "sprint":
+	if solo_left_strafe_available and name == "DemoNPC" and ai_mode == "sprint":
 		tree.set("parameters/SoloLeftBlend/blend_amount",1.0 if side_speed < -0.1 and not flight_enabled else 0.0)
-	if solo_right_strafe_available and name == "PlayerMan" and ai_mode == "sprint":
+	if solo_right_strafe_available and name == "DemoNPC" and ai_mode == "sprint":
 		tree.set("parameters/SoloRightBlend/blend_amount",1.0 if side_speed > 0.1 and not flight_enabled else 0.0)
 	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
@@ -1404,7 +1417,7 @@ func _physics_process(dt):
 				last_debug_state = state
 			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	# Calibration only: pitch the visible character down, never the collider.
-	if name == "PlayerMan" and ai_mode == "sprint" and not flight_enabled:
+	if name == "DemoNPC" and ai_mode == "sprint" and not flight_enabled:
 		visual.rotation.x = deg_to_rad(-8.0)
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
@@ -1435,7 +1448,7 @@ func _physics_process(dt):
 		# Keep facing the selected direction while moving sideways/backwards.
 		# Preserve normal agent steering during forward-running phases.
 		var showcase_facing: float = manual_heading
-		if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
+		if name == "DemoNPC" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
 			showcase_facing = deg_to_rad(35.0) if solo_direction_phase == 5 else deg_to_rad(-35.0) # Small mirrored turn, not forward walking.
 		actor.rotation.y = rotate_toward(actor.rotation.y,showcase_facing,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
@@ -1448,7 +1461,7 @@ func _physics_process(dt):
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
 	# Diagnostic: keep world travel exactly LEFT despite the 30-degree
 	# facing adjustment. Otherwise the rotation changes the movement path.
-	if name == "PlayerMan" and ai_mode == "sprint" and (solo_direction_phase == 5 or solo_direction_phase == 4):
+	if name == "DemoNPC" and ai_mode == "sprint" and (solo_direction_phase == 5 or solo_direction_phase == 4):
 		actor.velocity.x = side_speed*(0.35 if slow else 1.0)
 		actor.velocity.z = 0.0
 	var injury_system: Node = get_node_or_null("DamageSystem")
@@ -2226,7 +2239,7 @@ func choose_agent_destination() -> void:
 	agent_decision_left = agent_rng.randf_range(3.5,9.0)
 	agent_preferred_speed = (2.3 if ai_mode == "walk" else (11.0 if ai_mode == "sprint" else (8.5 if ai_mode == "fly" else 4.5))) * agent_rng.randf_range(0.82,1.17)
 	# Solo showcase covers walk, jog, run and sprint using existing gait blends.
-	if name == "PlayerMan" and ai_mode == "sprint":
+	if name == "DemoNPC" and ai_mode == "sprint":
 		agent_preferred_speed = agent_rng.randf_range(1.5,12.0)
 		print("[SOLO_GROUND_SPEED] target_mps=",snappedf(agent_preferred_speed,0.1))
 
