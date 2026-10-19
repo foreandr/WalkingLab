@@ -126,7 +126,7 @@ func _ready():
 	# Its existing camera remains the active spectator camera.
 	player.player_controlled = false
 	player.auto_war_combat = false
-	player.ai_mode = "walk"
+	player.ai_mode = "sprint"
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,155)
 	player.character_tint = Color("101114")
