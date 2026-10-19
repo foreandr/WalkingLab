@@ -139,6 +139,11 @@ var war_lod_mode: String = "full"
 # fire the same spell toward the player, without pursuit/target switching.
 var animation_lineup_mode: bool = false
 var lineup_cast_clock: float = 0.0
+# Spell-test targets: remain hittable but do not attack or hunt the player.
+# Each walker orbits a local anchor so targets remain within the test range.
+var spell_target_mode: String = ""
+var spell_target_anchor: Vector3 = Vector3.ZERO
+var spell_walker_phase: float = 0.0
 
 var war_profile_counter: int = 0
 var war_visual_accumulator: float = 0.0
@@ -1191,7 +1196,38 @@ func update_animation_lineup(dt: float) -> void:
 	adjust_jab_arm()
 	update_cast_motion(dt)
 
+func update_spell_test_target(dt: float) -> void:
+	# Static mannequins idle in place; moving mannequins walk predictable
+	# small routes without casting or turning into combat AI.
+	if spell_target_mode == "stationary":
+		actor.velocity = Vector3.ZERO
+		tree.set("parameters/StandingMove/blend_amount",0.0)
+		tree.set("parameters/Cadence/scale",0.0)
+		tree.advance(dt)
+		return
+	clock += dt
+	var cycle: float = clock*0.48+spell_walker_phase
+	var waypoint: Vector3 = spell_target_anchor+Vector3(sin(cycle)*3.2,0.0,cos(cycle)*2.2)
+	var to_waypoint: Vector3 = waypoint-actor.global_position
+	to_waypoint.y = 0.0
+	var desired: Vector3 = to_waypoint.normalized()*minf(2.7,to_waypoint.length()*1.7) if to_waypoint.length_squared()>0.01 else Vector3.ZERO
+	actor.velocity.x = move_toward(actor.velocity.x,desired.x,dt*8.0)
+	actor.velocity.z = move_toward(actor.velocity.z,desired.z,dt*8.0)
+	actor.velocity.y = -0.3
+	actor.move_and_slide()
+	var walker_speed: float = Vector2(actor.velocity.x,actor.velocity.z).length()
+	if walker_speed > 0.15:
+		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-actor.velocity.x,-actor.velocity.z),dt*4.0)
+	tree.set("parameters/Gaits/blend_position",speed_band(SPEEDS,walker_speed))
+	tree.set("parameters/Direction/blend_amount",0.0)
+	tree.set("parameters/StandingMove/blend_amount",smooth_gait(clampf(walker_speed/0.7,0.0,1.0)))
+	tree.set("parameters/Cadence/scale",maxf(0.15,walker_speed/STRIDES[0]))
+	tree.advance(dt)
+
 func war_simulation_tick(dt: float) -> void:
+	if spell_target_mode != "":
+		update_spell_test_target(dt)
+		return
 	if animation_lineup_mode:
 		update_animation_lineup(dt)
 		return
