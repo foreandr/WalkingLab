@@ -1408,7 +1408,7 @@ func _physics_process(dt):
 		# Preserve normal agent steering during forward-running phases.
 		var showcase_facing: float = manual_heading
 		if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
-			showcase_facing = 0.0
+			showcase_facing = deg_to_rad(30.0) if solo_direction_phase == 5 else 0.0
 		actor.rotation.y = rotate_toward(actor.rotation.y,showcase_facing,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
 		var travel_direction = -tangent*speed-radial.normalized()*(radial.length()-route_radius)*2.0
@@ -1418,6 +1418,11 @@ func _physics_process(dt):
 	elif not crouch_driving or crouch.state in ["brake","recover","standing"]:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-facing.x,-facing.z),step*(1.2 if crouch_driving else 2.8))
 	actor.velocity = (-actor.global_basis.z*signed_speed+actor.global_basis.x*side_speed)*(0.35 if slow else 1.0)
+	# Diagnostic: keep world travel exactly LEFT despite the 30-degree
+	# facing adjustment. Otherwise the rotation changes the movement path.
+	if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase == 5:
+		actor.velocity.x = side_speed*(0.35 if slow else 1.0)
+		actor.velocity.z = 0.0
 	var injury_system: Node = get_node_or_null("DamageSystem")
 	if injury_system != null and not flight_enabled and (float(injury_system.hp["left_leg"]) <= 20.0 or float(injury_system.hp["right_leg"]) <= 20.0):
 		actor.velocity.x = clampf(actor.velocity.x,-SPEEDS[0],SPEEDS[0])
