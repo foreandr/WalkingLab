@@ -10,6 +10,7 @@ var war_projectile_cells: Dictionary = {}
 var player
 var ai_label: Label3D
 var player_label: Label3D
+var battle_panel: PanelContainer
 var ai_wait = 0.0
 var watching_ai = false
 var battle_fireball_speed: float = 1.0
@@ -134,25 +135,37 @@ func _ready():
 	player.camera.current = true
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# Independent, continuously animated demonstrator; Black stays player-controlled.
-	ai = preload("res://walking.gd").new()
-	ai.name = "DemoNPC"
-	ai.player_controlled = false
-	ai.auto_war_combat = false
-	ai.ai_mode = "sprint"
-	ai.actor_only = true
-	ai.spawn_point = Vector3(12,0,145)
-	ai.character_tint = Color("708ac4")
-	add_child(ai)
-	ai.camera.current = false
-	ai_label = make_label(ai.actor,"MOTION DEMO",Color("c9d6ff"))
+	# DemoNPC is an optional developer tool, not an always-visible actor.
+	# It can be enabled through Settings when animation calibration is needed.
+	ai = null
 	if flight_benchmark_requested:
 		spawn_more_fighters(MAX_ACTIVE_FIGHTERS)
 	else:
 		# Spawn over multiple displayed frames; don't stall startup constructing
 		# ten full rigs at once. DemoNPC remains independent of this lineup.
 		spawn_more_fighters(SPELL_TEST_TARGET_COUNT)
-	print("[ARENA_MODE] player=BLACK controlled=true demo=DemoNPC enabled=true spell_targets=",SPELL_TEST_TARGET_COUNT," stationary=",SPELL_TEST_STATIONARY_COUNT," walking=",SPELL_TEST_TARGET_COUNT-SPELL_TEST_STATIONARY_COUNT)
+	print("[ARENA_MODE] player=BLACK controlled=true demo=DemoNPC enabled=false spell_targets=",SPELL_TEST_TARGET_COUNT," stationary=",SPELL_TEST_STATIONARY_COUNT," walking=",SPELL_TEST_TARGET_COUNT-SPELL_TEST_STATIONARY_COUNT)
+
+func set_demo_npc_enabled(enabled: bool) -> void:
+	if enabled:
+		if is_instance_valid(ai): return
+		ai = preload("res://walking.gd").new()
+		ai.name = "DemoNPC"
+		ai.player_controlled = false
+		ai.auto_war_combat = false
+		ai.ai_mode = "sprint"
+		ai.actor_only = true
+		ai.spawn_point = Vector3(12,0,145)
+		ai.character_tint = Color("708ac4")
+		add_child(ai)
+		ai.camera.current = false
+		ai_label = make_label(ai.actor,"MOTION DEMO",Color("c9d6ff"))
+	else:
+		if is_instance_valid(ai):
+			if is_instance_valid(player): player.camera_target = null
+			ai.queue_free()
+		ai = null
+		ai_label = null
 
 func clear_winner_announcement() -> void:
 	announced_winner = false
@@ -262,6 +275,7 @@ func create_performance_hud() -> void:
 	performance_label.position = Vector2(-800,72)
 	performance_label.add_theme_font_size_override("font_size",16)
 	performance_label.add_theme_color_override("font_color",Color("d9ffab"))
+	performance_label.visible = false # Diagnostics are available in Settings.
 	overlay.add_child(performance_label)
 
 func record_performance_sample(category: String, microseconds: int) -> void:
@@ -337,6 +351,8 @@ func print_performance_report() -> void:
 	profile_spatial_max_projectile_bucket = 0
 
 func _process(dt: float) -> void:
+	if battle_panel != null:
+		battle_panel.visible = Input.is_physical_key_pressed(KEY_TAB)
 	battle_feed_refresh_clock -= dt
 	if battle_feed_refresh_clock <= 0.0:
 		battle_feed_refresh_clock = 0.2
@@ -446,10 +462,12 @@ func create_battle_feed() -> void:
 	ui.name = "BattleHUD"
 	add_child(ui)
 	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	panel.position = Vector2(12,-330)
+	battle_panel = panel
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.position = Vector2(12,66)
 	panel.custom_minimum_size = Vector2(310,280)
 	panel.modulate.a = 0.88
+	panel.visible = false # Only while Tab is HELD.
 	ui.add_child(panel)
 	var column := VBoxContainer.new()
 	panel.add_child(column)
@@ -681,6 +699,4 @@ func _unhandled_input(event):
 
 		if event.keycode==KEY_0:
 			spawn_more_fighters()
-		if event.keycode==KEY_TAB:
-			watching_ai = not watching_ai
-			player.camera_target = ai.actor if watching_ai else null
+		# Tab is hold-to-view the war/damage feed; never switch the camera.
