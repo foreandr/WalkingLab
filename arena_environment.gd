@@ -67,6 +67,9 @@ func make_arena():
 		terrain.circular_mode = true
 		terrain.tile_index = randi_range(0,1000)
 		add_child(terrain)
+		var stadium = preload("res://stadium_stands.gd").new()
+		stadium.radius = world_half_extent
+		add_child(stadium)
 		print("[CIRCULAR_BIOMES] diameter=",world_half_extent*2.0," regions=8 blend=true")
 		return
 	var ground = PlaneMesh.new()
