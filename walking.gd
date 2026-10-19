@@ -38,6 +38,22 @@ var cast_elapsed: float = -1.0
 var cast_released: bool = false
 var cast_arm_name: String = ""
 var cast_element: String = "fire"
+# Slot order: 1 Ember, 2 Frost, 3 Arc, 4 Gravity, 5 Leech.
+const SPELL_NAMES: Array[String] = ["Ember","Frost","Arc","Gravity","Leech"]
+const SPELL_IDS: Array[String] = ["fire","frost","arc","gravity","leech"]
+const SPELL_COSTS: Array[float] = [15.0,20.0,24.0,30.0,25.0]
+const SPELL_COOLDOWNS: Array[float] = [2.0,5.0,6.0,9.0,8.0]
+const SPELL_COLORS: Array[Color] = [Color("ff9b4f"),Color("7de8ff"),Color("d5bbff"),Color("af83fa"),Color("80edaa")]
+var spell_remaining: Array[float] = [0.0,0.0,0.0,0.0,0.0]
+var mana: float = 100.0
+var stamina: float = 100.0
+var health: float = 100.0
+var spell_slots: Array[Label] = []
+var health_progress: ProgressBar
+var stamina_progress: ProgressBar
+var mana_progress: ProgressBar
+var resources_status: Label
+var settings_stats: Label
 var cast_last_hand: Vector3 = Vector3.ZERO
 var cast_hand_velocity: Vector3 = Vector3.ZERO
 var cursor_reticle: Control
@@ -77,7 +93,7 @@ var solo_right_strafe_available: bool = false
 var strafe_left_blend: float = 0.0
 var strafe_right_blend: float = 0.0
 const STRAFE_VISUAL_YAW: float = 55.0
-const STRAFE_FORWARD_LEAN_DEGREES: float = 40.0
+const STRAFE_FORWARD_LEAN_DEGREES: float = 28.0
 const STRAFE_BLEND_RATE: float = 8.0
 const STRAFE_ACTIVATE_SPEED: float = 1.25
 # Black only: travel twice as far sideways while strafe clips play half as fast.
@@ -445,11 +461,8 @@ func _ready():
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		reticle.add_child(dot)
 		install_options_menu(canvas)
+		install_resource_hud(canvas)
 		install_speed_streaks(canvas)
-	var controls = Label.new()
-	controls.position = Vector2(28,675)
-	controls.text = "C crouch/stand | Shift launch | V showcase | B direction | Space pause | T slow | Right-drag orbit"
-	canvas.add_child(controls)
 	if player_controlled:
 		backward = false
 		direction_weight = 0.0
@@ -457,7 +470,6 @@ func _ready():
 		actor.rotation.y = orbit
 		manual_heading = orbit
 		distance = 5.0 # Start slightly closer to BLACK; mouse wheel can still adjust zoom.
-		controls.text = ""
 	update_camera()
 	if autonomous_only: print("[FIGHTER_INIT_TOTAL] fighter=",name," duration_ms=",snappedf(float(Time.get_ticks_usec()-init_started_usec)/1000.0,0.01))
 	# War fighters are advanced by the arena's physics scheduler. Their
@@ -474,14 +486,18 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	canvas.add_child(cog)
 	options_panel = PanelContainer.new()
 	options_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	options_panel.position = Vector2(-330,66)
-	options_panel.custom_minimum_size = Vector2(310,230)
+	options_panel.position = Vector2(-352,66)
+	options_panel.custom_minimum_size = Vector2(335,230)
 	options_panel.visible = false
 	camera.far = 450.0
 	canvas.add_child(options_panel)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(326,470)
+	options_panel.add_child(scroll)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation",9)
-	options_panel.add_child(column)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(column)
 	var heading := Label.new()
 	heading.text = "SETTINGS"
 	heading.add_theme_font_size_override("font_size",19)
@@ -520,15 +536,116 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 							fighter.visual.position.y = 0.0
 		print("[PERF_POSE_TOGGLE] ground_feet_enabled=",enabled," player_and_ai=true flight_pose_enabled=true")
 	)
+	var demo_toggle := CheckButton.new()
+	demo_toggle.text = "Motion demo NPC (debug)"
+	demo_toggle.button_pressed = false
+	column.add_child(demo_toggle)
+	demo_toggle.toggled.connect(func(enabled: bool):
+		var arena: Node = get_tree().current_scene
+		if arena != null and arena.has_method("set_demo_npc_enabled"): arena.set_demo_npc_enabled(enabled)
+	)
+	var stats_toggle := Button.new()
+	stats_toggle.text = "Stats for geeks  ▾"
+	column.add_child(stats_toggle)
+	settings_stats = Label.new()
+	settings_stats.visible = false
+	settings_stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	settings_stats.custom_minimum_size.x = 305.0
+	column.add_child(settings_stats)
+	stats_toggle.pressed.connect(func(): settings_stats.visible = not settings_stats.visible)
 	var controls_heading := Button.new()
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move\nAlt + W: Sprint\nCtrl: Walk / descend in flight\nSpace: Jump / ascend in flight\nMB3 + drag: Camera rotation\nMB2: No camera action\nShift: Switch selected arm\nLeft click: Arm reach\n1: Fire | 3: Flight\nC: Crouch | F11: Fullscreen"
+	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; tap Alt twice, HOLD second: Dash\nCtrl: Walk / descend while flying\nSpace: Charged jump / ascend while flying\nMiddle-mouse drag: Rotate camera\nMouse wheel: Zoom\nShift: Switch arm; left click: Punch\n1 Ember | 2 Frost | 3 Arc | 4 Gravity | 5 Leech\nG: Toggle flight | F: Lock hovered target\nC: Crouch | Tab (hold): War / damage\n0: Spawn fighters | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
 	cog.pressed.connect(func(): options_panel.visible = not options_panel.visible)
+
+func install_resource_hud(canvas: CanvasLayer) -> void:
+	# Compact game HUD: three resource bars at lower left, spells along bottom.
+	# All controls ignore mouse input so aiming and punching work through them.
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	panel.position = Vector2(16,-207)
+	panel.custom_minimum_size = Vector2(280,186)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.modulate.a = 0.88
+	canvas.add_child(panel)
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation",5)
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(stack)
+	var name_text := Label.new()
+	name_text.text = "BLACK"
+	name_text.add_theme_font_size_override("font_size",15)
+	name_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(name_text)
+	for bar_data in [["HEALTH",Color("db4a56")],["STAMINA",Color("d8a35e")],["MANA",Color("4b8eee")]]:
+		var bar_label := Label.new()
+		bar_label.text = String(bar_data[0])
+		bar_label.add_theme_font_size_override("font_size",12)
+		bar_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack.add_child(bar_label)
+		var bar := ProgressBar.new()
+		bar.min_value = 0.0
+		bar.max_value = 100.0
+		bar.value = 100.0
+		bar.show_percentage = false
+		bar.custom_minimum_size = Vector2(267,14)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = bar_data[1]
+		fill.set_corner_radius_all(3)
+		bar.add_theme_stylebox_override("fill",fill)
+		stack.add_child(bar)
+		match String(bar_data[0]):
+			"HEALTH": health_progress = bar
+			"STAMINA": stamina_progress = bar
+			"MANA": mana_progress = bar
+	resources_status = Label.new()
+	resources_status.add_theme_font_size_override("font_size",12)
+	resources_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(resources_status)
+	var slots := HBoxContainer.new()
+	slots.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	slots.position = Vector2(312,-69)
+	slots.add_theme_constant_override("separation",8)
+	slots.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(slots)
+	for i in range(5):
+		var box := PanelContainer.new()
+		box.custom_minimum_size = Vector2(98,51)
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slots.add_child(box)
+		var label := Label.new()
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.add_theme_font_size_override("font_size",14)
+		box.add_child(label)
+		spell_slots.append(label)
+	update_resource_hud()
+
+func update_resource_hud() -> void:
+	if not player_controlled or health_progress == null: return
+	var damage: Node = get_node_or_null("DamageSystem")
+	if damage != null:
+		health = minf(float(damage.hp.get("head",100.0)),float(damage.hp.get("torso",100.0)))
+	health_progress.value = health
+	stamina_progress.value = stamina
+	mana_progress.value = mana
+	resources_status.text = "HP %d  |  STA %d  |  MP %d" % [ceili(health),ceili(stamina),ceili(mana)]
+	for i in range(5):
+		var remaining: float = spell_remaining[i]
+		var label: Label = spell_slots[i]
+		label.text = "%d  %s\n%s" % [i+1,SPELL_NAMES[i],("%.1fs" % remaining) if remaining>0.05 else ("%d MP" % int(SPELL_COSTS[i]))]
+		label.add_theme_color_override("font_color",Color("888d98") if remaining>0.05 or mana<SPELL_COSTS[i] else SPELL_COLORS[i])
+	if options_panel != null and options_panel.visible and settings_stats != null and settings_stats.visible:
+		var arena: Node = get_tree().current_scene
+		var overlay_text: String = arena.performance_label.text if arena != null and arena.get("performance_label") != null else "Performance not ready"
+		settings_stats.text = overlay_text+"\nPhysics 30 Hz | Arena fighters: "+str(arena.get("mannequins").size() if arena != null else 0)+"\nDemo NPC: "+str(arena.ai != null if arena != null else false)+"\nFlight: "+str(flight_enabled)+"\nSpeed: %.1f m/s" % actor.velocity.length()
 
 func add_setting_slider(parent: VBoxContainer, title: String, low: float, high: float, initial: float, increment: float, setting: String) -> void:
 	var label := Label.new()
