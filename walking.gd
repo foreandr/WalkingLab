@@ -319,24 +319,15 @@ func _ready():
 	graph.connect_node("Direction",1,"BackGaits")
 	# Native animation blending. The sprint/gait tree remains the base motion.
 	var gait_output: String = "Direction"
-	if strafe_names.has("Left"):
-		var left_node := AnimationNodeAnimation.new()
-		left_node.animation = "strafe/Left"
-		graph.add_node("StrafeLeftClip",left_node)
-		var left_blend := AnimationNodeBlend2.new()
-		graph.add_node("StrafeLeft",left_blend)
-		graph.connect_node("StrafeLeft",0,gait_output)
-		graph.connect_node("StrafeLeft",1,"StrafeLeftClip")
-		gait_output = "StrafeLeft"
-	if strafe_names.has("Right"):
-		var right_node := AnimationNodeAnimation.new()
-		right_node.animation = "strafe/Right"
-		graph.add_node("StrafeRightClip",right_node)
-		var right_blend := AnimationNodeBlend2.new()
-		graph.add_node("StrafeRight",right_blend)
-		graph.connect_node("StrafeRight",0,gait_output)
-		graph.connect_node("StrafeRight",1,"StrafeRightClip")
-		gait_output = "StrafeRight"
+	if strafe_names.has("Strafe"):
+		var strafe_node := AnimationNodeAnimation.new()
+		strafe_node.animation = "strafe/Strafe"
+		graph.add_node("StrafeClip",strafe_node)
+		var strafe_blend := AnimationNodeBlend2.new()
+		graph.add_node("StrafeBlend",strafe_blend)
+		graph.connect_node("StrafeBlend",0,gait_output)
+		graph.connect_node("StrafeBlend",1,"StrafeClip")
+		gait_output = "StrafeBlend"
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
 	graph.connect_node("Cadence",0,gait_output)
 	var crouch_begin_usec: int = Time.get_ticks_usec()
@@ -562,64 +553,75 @@ func draw_speed_streaks() -> void:
 func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
 func install_native_strafe_library(player: AnimationPlayer) -> Array[String]:
-	# Build once at character startup and let AnimationTree sample poses natively.
-	# Only the solo CPU needs these additional imported assets.
+	# Exactly one imported clip; Godot's native AnimationTree blends it.
+	# Never copy the FBX hips rotation, translation or scale: they can tilt
+	# the entire Mixamo rig and break world-space orientation.
 	var installed: Array[String] = []
 	if name != "PlayerMan" or ai_mode != "sprint": return installed
-	var library := AnimationLibrary.new()
-	var destination_root: NodePath = player.get_node(player.root_node).get_path_to(skeleton)
-	for direction in ["Left","Right"]:
-		var filename: String = direction + " Strafe.fbx"
-		var source_path: String = "res://assets/locomotion/" + filename
-		if not ResourceLoader.exists(source_path):
-			print("[STRAFE_SKIPPED] missing=",source_path)
-			continue
-		var resource = load(source_path)
-		if not resource is PackedScene: continue
-		var source: Node = resource.instantiate()
-		var players: Array[Node] = source.find_children("*","AnimationPlayer",true,false)
-		var rigs: Array[Node] = source.find_children("*","Skeleton3D",true,false)
-		if players.is_empty() or rigs.is_empty():
-			source.free()
-			continue
-		var source_player: AnimationPlayer = players[0] as AnimationPlayer
-		var source_rig: Skeleton3D = rigs[0] as Skeleton3D
-		var chosen: Animation = null
-		for candidate_name in source_player.get_animation_list():
-			if candidate_name == "RESET": continue
-			var candidate: Animation = source_player.get_animation(candidate_name)
-			if chosen == null or candidate.get_track_count() > chosen.get_track_count(): chosen = candidate
-		if chosen == null:
-			source.free()
-			continue
-		var clip: Animation = chosen.duplicate(true)
-		var mapped: int = 0
-		for index in range(clip.get_track_count()-1,-1,-1):
-			var track_path: NodePath = clip.track_get_path(index)
-			if track_path.get_subname_count() == 0:
-				clip.remove_track(index)
-				continue
-			var bone_name: String = String(track_path.get_subname(track_path.get_subname_count()-1))
-			var matched: int = skeleton.find_bone(bone_name)
-			if matched < 0:
-				for bi in range(skeleton.get_bone_count()):
-					if normalized_idle_bone(String(skeleton.get_bone_name(bi))) == normalized_idle_bone(bone_name):
-						matched = bi
-						break
-			if matched < 0 or clip.track_get_type(index) == Animation.TYPE_POSITION_3D:
-				clip.remove_track(index)
-				continue
-			clip.track_set_path(index,NodePath(String(destination_root)+":"+skeleton.get_bone_name(matched)))
-			mapped += 1
-		if mapped >= 12:
-			clip.loop_mode = Animation.LOOP_LINEAR
-			library.add_animation(direction,clip)
-			installed.append(direction)
-			print("[STRAFE_NATIVE] direction=",direction," tracks=",mapped)
-		else:
-			print("[STRAFE_SKIPPED] direction=",direction," tracks=",mapped)
+	var filename: String = "Left Strafe.fbx"
+	var source_path: String = "res://assets/locomotion/" + filename
+	if not ResourceLoader.exists(source_path):
+		print("[STRAFE_SKIPPED] missing=",source_path)
+		return installed
+	var packed = load(source_path)
+	if not packed is PackedScene: return installed
+	var source: Node = packed.instantiate()
+	var players: Array[Node] = source.find_children("*","AnimationPlayer",true,false)
+	var rigs: Array[Node] = source.find_children("*","Skeleton3D",true,false)
+	if players.is_empty() or rigs.is_empty():
 		source.free()
-	if not installed.is_empty(): player.add_animation_library("strafe",library)
+		return installed
+	var source_player: AnimationPlayer = players[0] as AnimationPlayer
+	var source_rig: Skeleton3D = rigs[0] as Skeleton3D
+	var chosen: Animation = null
+	for candidate_name in source_player.get_animation_list():
+		if candidate_name == "RESET": continue
+		var candidate: Animation = source_player.get_animation(candidate_name)
+		if chosen == null or candidate.get_track_count() > chosen.get_track_count():
+			chosen = candidate
+	if chosen == null:
+		source.free()
+		return installed
+	var target_root: NodePath = player.get_node(player.root_node).get_path_to(skeleton)
+	var clip := Animation.new()
+	clip.length = chosen.length
+	clip.loop_mode = Animation.LOOP_LINEAR
+	var mapped: int = 0
+	for track_idx in range(chosen.get_track_count()):
+		if chosen.track_get_type(track_idx) != Animation.TYPE_ROTATION_3D: continue
+		var track_path: NodePath = chosen.track_get_path(track_idx)
+		if track_path.get_subname_count() == 0: continue
+		var bone_label: String = normalized_idle_bone(String(track_path.get_subname(track_path.get_subname_count()-1)))
+		if bone_label == "hips": continue
+		var from_index: int = -1
+		var to_index: int = -1
+		for bi in range(source_rig.get_bone_count()):
+			if normalized_idle_bone(String(source_rig.get_bone_name(bi))) == bone_label:
+				from_index = bi
+				break
+		for bi in range(skeleton.get_bone_count()):
+			if normalized_idle_bone(String(skeleton.get_bone_name(bi))) == bone_label:
+				to_index = bi
+				break
+		if from_index < 0 or to_index < 0: continue
+		var from_rest: Quaternion = source_rig.get_bone_rest(from_index).basis.get_rotation_quaternion()
+		var to_rest: Quaternion = skeleton.get_bone_rest(to_index).basis.get_rotation_quaternion()
+		var correction: Quaternion = (to_rest.inverse()*from_rest).normalized()
+		var new_track: int = clip.add_track(Animation.TYPE_ROTATION_3D)
+		clip.track_set_path(new_track,NodePath(String(target_root)+":"+skeleton.get_bone_name(to_index)))
+		for key_index in range(chosen.track_get_key_count(track_idx)):
+			var q: Quaternion = chosen.track_get_key_value(track_idx,key_index)
+			clip.rotation_track_insert_key(new_track,chosen.track_get_key_time(track_idx,key_index),(correction*q*correction.inverse()).normalized())
+		mapped += 1
+	source.free()
+	if mapped < 12:
+		print("[STRAFE_SKIPPED] insufficient_retargeted_bones=",mapped)
+		return installed
+	var library := AnimationLibrary.new()
+	library.add_animation("Strafe",clip)
+	player.add_animation_library("strafe",library)
+	installed.append("Strafe")
+	print("[STRAFE_NATIVE] clip=",filename," retargeted_bones=",mapped," hips_ignored=true")
 	return installed
 
 func install_backwards(player: AnimationPlayer):
@@ -1355,13 +1357,10 @@ func _physics_process(dt):
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
-	# Animate strafe only when the solo demonstration actually moves sideways.
-	if name == "PlayerMan" and ai_mode == "sprint":
-		var strafe_fraction: float = clampf(absf(side_speed)/maxf(speed,0.01),0.0,1.0)
-		if tree.tree_root.has_node("StrafeLeft"):
-			tree.set("parameters/StrafeLeft/blend_amount",strafe_fraction if side_speed < -0.2 and not flight_enabled else 0.0)
-		if tree.tree_root.has_node("StrafeRight"):
-			tree.set("parameters/StrafeRight/blend_amount",strafe_fraction if side_speed > 0.2 and not flight_enabled else 0.0)
+	# One stabilized animation is used for either lateral direction.
+	if name == "PlayerMan" and ai_mode == "sprint" and tree.tree_root.has_node("StrafeBlend"):
+		var weight: float = clampf(absf(side_speed)/maxf(speed,0.01),0.0,1.0)
+		tree.set("parameters/StrafeBlend/blend_amount",weight if absf(side_speed) > 0.2 and not flight_enabled else 0.0)
 	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
