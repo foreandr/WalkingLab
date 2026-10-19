@@ -159,7 +159,8 @@ func _ready():
 	make_boundary()
 	# Always show a separate autonomous locomotion demonstrator beside Black.
 	ai = null
-	set_demo_npc_enabled(true)
+	# Motion showcase was a test fixture; never spawn it during ordinary war.
+	set_demo_npc_enabled(false)
 	if flight_benchmark_requested:
 		spawn_more_fighters(benchmark_fighters)
 	else:
@@ -241,6 +242,8 @@ func _spawn_single_fighter() -> void:
 	fighter.autonomous_only = true
 	fighter.actor_only = true
 	fighter.ai_abilities = true
+	fighter.team_battle_ai = not flight_benchmark_requested
+	fighter.equipped_spells = ["fire"]
 	fighter.animation_test_mode = "war"
 	fighter.war_pose_enabled = pose_enabled
 	var is_team_battle: bool = false
@@ -762,6 +765,8 @@ func _physics_process(_dt):
 	tick_war_fighters(_dt)
 	player_label.position.y = player.crouch.capsule.height+0.3
 	if stress_no_deaths or announced_winner or queued_fighter_spawns>0: return
+	# Team victory announcements have no meaning in the free-for-all.
+	if player.team_id == "": return
 	if flight_benchmark_requested: return
 	var blue_alive: int = 0 if player.combat_dead else 1
 	var red_alive: int = 0
