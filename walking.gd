@@ -40,7 +40,7 @@ var cast_arm_name: String = ""
 var cast_element: String = "fire"
 # Five fingers per hand. Shift changes which complete set 1-5 operates.
 # RIGHT: Ember, Frost, Homing Missile, Gravity, Ricochet.
-# LEFT: Comet, Bloom, Tempest, Venom, Flight.
+# LEFT: Grounding, Bloom, Tempest, Venom, Flight.
 const SPELL_NAMES: Array[String] = ["Ember","Frost","Homing","Gravity","Ricochet","Grounding","Bloom","Tempest","Venom","Flight"]
 const SPELL_IDS: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
 const SPELL_COSTS: Array[float] = [15.0,20.0,22.0,30.0,24.0,26.0,35.0,22.0,20.0,18.0]
@@ -1414,7 +1414,7 @@ func apply_spell_status(effect_id: String, center: Vector3) -> void:
 
 func status_description() -> String:
 	if combat_dead: return ""
-	var active: Array[String] = []
+	var active: PackedStringArray = []
 	if spell_frost_remaining>0.0: active.append("FROST %.1fs" % spell_frost_remaining)
 	if spell_grounded_remaining>0.0: active.append("GROUNDED %.1fs" % spell_grounded_remaining)
 	if spell_burn_remaining>0.0: active.append("BURN %.1fs" % spell_burn_remaining)
@@ -1739,10 +1739,10 @@ func update_pursuit_agent(dt: float) -> void:
 	if not is_escapee and is_instance_valid(escapee) and not escapee.combat_dead:
 		pursuit_cast_timer -= dt
 		if pursuit_cast_timer<=0.0 and target_distance<65.0 and cast_elapsed<0.0:
-			var choices: Array[String] = ["fire","frost","homing","gravity","ricochet","comet","tempest","venom"]
+			var choices: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","tempest","venom"]
 			var chosen: String = choices[(pursuit_spell_cursor+int(name.right(1)))%choices.size()]
 			pursuit_spell_cursor += 1
-			controlled_arm = "left" if chosen in ["comet","tempest","venom"] else "right"
+			controlled_arm = "left" if chosen in ["grounding","tempest","venom"] else "right"
 			cast_spell(chosen)
 			pursuit_cast_timer = 1.65 if pursuit_role=="hunter" else (2.3 if pursuit_role=="no_flight" else (3.3 if pursuit_role=="no_sprint" else 1.85))
 	jab_aim_strength = 1.0
