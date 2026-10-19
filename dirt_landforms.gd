@@ -2,6 +2,7 @@ extends Node3D
 # Real terrain meshes with concave static collision; no decorative solid primitives.
 var half_extent: float = 50.0
 var seed_value: int = 1001
+var grass_surface: bool = false
 var randomizer := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -76,6 +77,12 @@ func _place_landform(label: String, mountain: bool, positions: Array[Vector2]) -
  geometry.mesh = mesh
  var dirt := StandardMaterial3D.new()
  dirt.albedo_texture = load("res://assets/forest_ground_04_diff.jpg")
+ if grass_surface:
+  var grass_texture_path: String = "res://assets/external_grass/Grass001_Color.jpg"
+  if ResourceLoader.exists(grass_texture_path):
+   dirt.albedo_texture = load(grass_texture_path)
+  else:
+   dirt.albedo_color = Color("5d9c52")
  dirt.uv1_scale = Vector3(0.22,0.22,0.22)
  dirt.uv1_triplanar = true
  dirt.uv1_world_triplanar = true
