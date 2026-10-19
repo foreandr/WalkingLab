@@ -6,8 +6,8 @@ var randomizer := RandomNumberGenerator.new()
 
 func _ready() -> void:
  randomizer.randomize()
- var hills: int = randomizer.randi_range(1,3)
- var mountains: int = randomizer.randi_range(1,3)
+ var hills: int = randomizer.randi_range(8,12)
+ var mountains: int = randomizer.randi_range(5,10)
  var placements: Array[Vector2] = []
  for i in range(hills):
   _place_landform("DirtHill%d" % (i+1),false,placements)
@@ -16,8 +16,9 @@ func _ready() -> void:
  print("[DIRT_LANDFORMS] hills=",hills," mountains=",mountains," real_collision=true")
 
 func _place_landform(label: String, mountain: bool, positions: Array[Vector2]) -> void:
- var radius: float = randomizer.randf_range(11.0,15.0) if mountain else randomizer.randf_range(6.0,10.0)
- var height: float = randomizer.randf_range(17.0,27.0) if mountain else randomizer.randf_range(2.0,5.0)
+ var tier: int = randomizer.randi_range(7,10) if mountain else randomizer.randi_range(1,6)
+ var radius: float = 5.0+float(tier)*2.8
+ var height: float = 1.5+pow(float(tier),1.8)*0.65
  var center := Vector2.ZERO
  var best_distance: float = -1.0
  for attempt in range(40):
@@ -28,7 +29,7 @@ func _place_landform(label: String, mountain: bool, positions: Array[Vector2]) -
   if separation > best_distance:
    center = candidate
    best_distance = separation
-  if separation > radius+7.0: break
+  if separation > radius+5.0: break
  positions.append(center)
  var slices: int = 36
  var rings: int = 10
@@ -43,7 +44,7 @@ func _place_landform(label: String, mountain: bool, positions: Array[Vector2]) -
    var a: float = float(slice)/float(slices)*TAU
    var shape_noise: float = 1.0+0.13*sin(a*5.0+phase)+0.09*sin(a*9.0-phase)
    var r: float = radius*t*shape_noise
-   var profile: float = pow(maxf(0.0,1.0-t*t),2.0 if mountain else 1.7)
+   var profile: float = pow(maxf(0.0,1.0-t*t),1.4 if mountain else 1.8)
    var ridge: float = 1.0+(0.16*sin(a*7.0+phase+t*12.0)+0.12*cos(a*11.0-t*15.0))*(t if mountain else t*0.35)
    var y: float = maxf(0.0,height*profile*ridge)
    vertices.append(Vector3(cos(a)*r,y-0.08,sin(a)*r))
