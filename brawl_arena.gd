@@ -47,7 +47,8 @@ func _ready() -> void:
 	player.demo_immortal = true
 	player.infinite_mana = true
 	player.ignore_spell_cooldowns = true
-	player.equipped_spells = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
+	var black_spells: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
+	player.equipped_spells = black_spells
 	add_child(player)
 	player.camera.current = true
 	_add_team_label(player,"BLACK / BLUE / IMMORTAL",COLORS[0])
