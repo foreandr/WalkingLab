@@ -1,0 +1,2 @@
+# Reactive sword guarding
+Autonomous sword fighters now evaluate enemy swing telegraphs. With a short stochastic choice window they choose a timed ~0.55s authored `Sword_Block` animation or physics dodge rather than always counterattacking. Blocks mitigate damage by 80%; blocking suppresses attacks until the guard ends, and a 1.35s cooldown prevents permanent turtling. Daggers use evasions rather than pretending the AETHER punch rig has a sword-block clip. The standard actor animation blending and cooldown logic remain intact.

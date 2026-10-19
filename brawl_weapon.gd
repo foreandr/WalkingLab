@@ -16,6 +16,9 @@ var swing_cooldown: float = 0.0
 var combo_number: int = 0
 var struck: Dictionary = {}
 var blocking: bool = false
+var guard_remaining: float = 0.0
+var guard_cooldown: float = 0.0
+var guard_count: int = 0
 var dodge_remaining: float = 0.0
 var dodge_cooldown: float = 0.0
 var decision_clock: float = 0.0
@@ -124,6 +127,16 @@ func dodge() -> void:
 		visual_driver.action(options,0.54,"EVASIVE ACROBATICS")
 	print("[BRAWL_DODGE] fighter=",pilot.name," invulnerability_s=0.24")
 
+func _begin_guard() -> void:
+	if kind != "sword" or guard_cooldown > 0.0 or swing_clock > 0.0 or pilot.combat_dead: return
+	guard_remaining = 0.55
+	guard_cooldown = 1.35
+	guard_count += 1
+	blocking = true
+	if visual_driver != null and visual_driver.has_method("action"):
+		visual_driver.action(["Sword_Block","Idle_Shield","Sword_Idle"],0.52,"TIMED SWORD BLOCK")
+	print("[BRAWL_BLOCK] fighter=",pilot.name," duration=",guard_remaining)
+
 func _physics_process(dt: float) -> void:
 	if not fitted or pilot == null or not is_instance_valid(pilot.actor): return
 	if pilot.combat_dead:
@@ -133,8 +146,10 @@ func _physics_process(dt: float) -> void:
 	swing_cooldown = maxf(0.0,swing_cooldown-time)
 	dodge_cooldown = maxf(0.0,dodge_cooldown-time)
 	dodge_remaining = maxf(0.0,dodge_remaining-time)
+	guard_remaining = maxf(0.0,guard_remaining-time)
+	guard_cooldown = maxf(0.0,guard_cooldown-time)
 	pilot.brawl_dodge_iframes = maxf(0.0,pilot.brawl_dodge_iframes-time)
-	blocking = pilot.player_controlled and Input.is_key_pressed(KEY_B)
+	blocking = (pilot.player_controlled and Input.is_key_pressed(KEY_B)) or (not pilot.player_controlled and guard_remaining > 0.0)
 	var current_tip: Vector3 = weapon.to_global(Vector3(0,-0.34,0))
 	if swing_clock > 0.0:
 		var progress: float = 1.0-swing_clock/swing_length
@@ -151,9 +166,12 @@ func _physics_process(dt: float) -> void:
 	if decision_clock <= 0.0:
 		decision_clock = randf_range(0.14,0.28)
 		if gap < 3.2:
-			if not enemy.combat_dead and enemy.has_node("BrawlGear") and enemy.get_node("BrawlGear").swing_clock > 0.10 and randf() < 0.25:
-				dodge()
-			elif swing_clock <= 0.0:
+			if not enemy.combat_dead and enemy.has_node("BrawlGear") and enemy.get_node("BrawlGear").swing_clock > 0.10 and randf() < 0.57:
+				if kind == "sword" and guard_cooldown <= 0.0 and randf() < 0.48:
+					_begin_guard()
+				else:
+					dodge()
+			elif swing_clock <= 0.0 and guard_remaining <= 0.0:
 				attack()
 		elif gap < 6.0 and randf() < 0.10 and swing_clock <= 0.0:
 			dodge()
