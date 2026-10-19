@@ -2526,7 +2526,13 @@ func _physics_process(dt):
 		actor.velocity.x *= 0.5
 		actor.velocity.z *= 0.5
 		if flight_enabled and actor.velocity.y > 0.0: actor.velocity.y *= 0.5
+	# Grassland flight ceiling: stay below 60 metres even when boosting upward.
+	if player_controlled and flight_enabled and actor.global_position.y >= 59.5 and actor.velocity.y > 0.0:
+		actor.velocity.y = 0.0
 	actor.move_and_slide()
+	if player_controlled and flight_enabled and actor.global_position.y > 60.0:
+		actor.global_position.y = 60.0
+		actor.velocity.y = minf(actor.velocity.y,0.0)
 	if solo_showcase and not flight_enabled and actor.is_on_floor() and actor.position.y <= 0.1 and solo_flight_time >= 42.0:
 		if not solo_landing_logged:
 			print("[SOLO_FLIGHT] landed t=",snappedf(clock,0.1))
