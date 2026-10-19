@@ -15,6 +15,7 @@ var travel: Vector3 = Vector3.ZERO
 var fx_fired: bool = false
 var missing_clips: Array[String] = []
 var airborne: bool = false
+var double_restarted: bool = false
 
 func task(title: String, names: Array, seconds: float, velocity: Vector3 = Vector3.ZERO, height: float = 0.0, effect: String = "") -> Dictionary:
 	return {"title":title, "names":names, "seconds":seconds, "velocity":velocity, "height":height, "effect":effect}
@@ -27,6 +28,8 @@ func _ready() -> void:
 		return
 	figure = (imported as PackedScene).instantiate() as Node3D
 	add_child(figure)
+	if source_file.ends_with("aether-02.glb"):
+		figure.scale = Vector3.ONE * 0.13
 	var players: Array[Node] = figure.find_children("*", "AnimationPlayer", true, false)
 	if players.is_empty():
 		push_error("[SHOWCASE_ANIMATOR_MISSING] " + source_file)
@@ -71,9 +74,9 @@ func make_program(i: int) -> Array:
 			task("NINJA LAND", ["NinjaJump_Land"], 1.3),
 		]
 		4: return [
-			task("BACKFLIP (AUTHORED CLIP ONLY)", ["Backflip", "Back_Flip", "Flip_Back", "BackFlip"], 2.0, Vector3.ZERO, 2.3),
-			task("SIDE FLIP (AUTHORED CLIP ONLY)", ["SideFlip", "Side_Flip", "Cartwheel", "Aerial"], 2.0, Vector3.ZERO, 2.3),
-			task("FORWARD ROLL", ["Roll", "Roll_RM"], 1.7, Vector3(0,0,-1.5)),
+			task("AUTHORED BACKFLIP", ["Backflip", "Back_Flip", "Flip_Back", "BackFlip"], 3.75),
+			task("SIDE FLIP (AUTHORED ONLY)", ["SideFlip", "Side_Flip", "Cartwheel", "Aerial"], 2.0),
+			task("FORWARD ROLL", ["DodgeRoll", "Dodge_Roll", "Roll", "Roll_RM"], 1.7, Vector3(0,0,-1.5)),
 		]
 		5: return [
 			task("FLIGHT / AIR POSE", ["NinjaJump_Idle_Loop"], 3.6, Vector3(0,0,-3.0), 4.2),
@@ -119,6 +122,7 @@ func _next_step() -> void:
 	current = program[step_index]
 	elapsed = 0.0
 	fx_fired = false
+	double_restarted = false
 	travel = Vector3.ZERO
 	figure.position = Vector3.ZERO
 	var clip: String = _resolve_clip(current["names"])
@@ -127,7 +131,7 @@ func _next_step() -> void:
 		if not missing_clips.has(unavailable): missing_clips.append(unavailable)
 		print("[SHOWCASE_MISSING_CLIP] performer=", performer_index, " requested=", unavailable, " candidates=", current["names"], " file=", source_file)
 		caption.text = "%02d  %s\nNOT IN LICENSED PACK" % [performer_index + 1, unavailable]
-		var idle: String = _resolve_clip(["Idle", "Idle_Loop", "Idle_No_Loop", "A_TPose"])
+		var idle: String = _resolve_clip(["Idle", "Idle_Loop", "Idle_No_Loop", "Sentinel", "A_TPose"])
 		if not idle.is_empty(): anim.play(idle, 0.22)
 		current["resolved"] = ""
 	else:
@@ -166,8 +170,12 @@ func _process(delta: float) -> void:
 		var height: float = float(current["height"])
 		if String(current["title"]).begins_with("DOUBLE JUMP"):
 			# Two visible vertical impulses, using the imported jump motion.
-			var phase: float = t*2.0
-			position.y = home.y + height*(0.34 if phase < 1.0 else 0.55) + height*0.45*sin(PI*fmod(phase,1.0))
+			var first_arc: float = sin(PI * minf(1.0, t*2.0)) * 0.45
+			var second_arc: float = sin(PI * clampf((t-0.35)/0.65,0.0,1.0)) * 0.75
+			position.y = home.y + height*(first_arc+second_arc)
+			if t >= 0.40 and not double_restarted:
+				double_restarted = true
+				anim.play(String(current["resolved"]), 0.12)
 		elif String(current["title"]).begins_with("FLIGHT"):
 			position.y = home.y + height * smoothstep(0.0,0.20,t) * (1.0-smoothstep(0.82,1.0,t))
 		else:

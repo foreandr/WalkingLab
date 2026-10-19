@@ -11,8 +11,9 @@ What is real:
 - Spell shoot / idle / enter / exit from UAL1.
 - Fire and water particles from the existing third-party VFX scenes `assets/external_vfx/fire.tscn`, `water.tscn`.
 - Ninja jumps, sword combos, sliding and climbing where their UAL2 names exist.
+- A genuine baked **Backflip** animation on the CC0 AETHER-02 rig (a stage-scaled 14-metre mecha). Source: https://github.com/RamonLinares/atlas-09; asset explicitly CC0. Installer downloads `aether-02.glb` on launch.
 
-Do not confuse **double jump mechanics using a source Jump clip twice** with an authored acrobatic flip. If the CC0 libraries do not contain a genuine backflip, side flip, or lateral strafe, the on-screen actor displays `NOT IN LICENSED PACK` and prints `[SHOWCASE_MISSING_CLIP]`; it does **not** play a forward jog or fake limb rotations. We still need to license/download actual flip and lateral-strafe clips and validate retargeting.
+Do not confuse **double jump mechanics using a source Jump clip twice** with an authored acrobatic flip. If the CC0 libraries do not contain a genuine side flip or lateral strafe, the on-screen actor displays `NOT IN LICENSED PACK` and prints `[SHOWCASE_MISSING_CLIP]`; it does **not** play a forward jog or fake limb rotations. We still need to license/download actual flip and lateral-strafe clips and validate retargeting.
 
 This builds a visual test, not playable opponents or a measured 60-FPS guarantee. Visual motion/blending and Windows Godot runtime have not been tested in this cloud session. Inspect the newest `logs/run_*.log` and the scene itself to accept/reject the demo.
 

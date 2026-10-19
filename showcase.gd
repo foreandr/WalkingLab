@@ -1,7 +1,7 @@
 extends "res://duo.gd"
 # Isolated visual acceptance-test scene. Existing combat scene remains main.tscn.
 # Reuses the production BLACK controller so the player's normal camera/movement/spells remain usable.
-var performers: Array[Node3D] = []
+var performers: Array = []
 var info: Label
 var fps_elapsed: float = 0.0
 var actors_started: int = 0
@@ -38,19 +38,21 @@ func _ready() -> void:
 	make_label(player.actor, "YOU / FULL CONTROL", Color("fff0a5"))
 	var source1: String = "res://assets/source_original.glb"
 	var source2: String = "res://assets/showcase/UAL2_Standard.glb"
+	var acrobat: String = "res://assets/showcase/aether-02.glb"
+	var acrobat_available: bool = ResourceLoader.exists(acrobat)
 	var newer_available: bool = ResourceLoader.exists(source2)
 	for i in range(10):
-		var performer: Node3D = preload("res://showcase_performer.gd").new()
+		var performer = preload("res://showcase_performer.gd").new()
 		performer.name = "Performer%02d" % (i+1)
 		performer.performer_index = i
 		# UAL1 is already tracked; UAL2 is downloaded by RUN.bat.
-		performer.source_file = source2 if newer_available and i in [3,5,8,9] else source1
+		performer.source_file = acrobat if i == 4 and acrobat_available else (source2 if newer_available and i in [3,5,8,9] else source1)
 		performer.position = Vector3(float((i%5)-2)*6.5,0.0,-7.0-float(i/5)*14.0)
 		add_child(performer)
 		performers.append(performer)
 	actors_started = performers.size()
 	_build_hud()
-	print("[ANIMATION_SHOWCASE] count=",actors_started, " player=controlled", " ual1=",source1," ual2_available=",newer_available," fps_target=60")
+	print("[ANIMATION_SHOWCASE] count=",actors_started, " player=controlled", " ual1=",source1," ual2_available=",newer_available," aether_backflip_available=",acrobat_available," fps_target=60")
 	if not newer_available:
 		push_warning("[SHOWCASE] UAL2 is not installed: RUN.bat should download it; parkour/combo performers will report missing clips until import succeeds.")
 
