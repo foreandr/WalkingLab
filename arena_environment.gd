@@ -57,14 +57,26 @@ func make_arena():
 	fill.light_energy = 0.16
 	add_child(fill)
 	if biome == "grassland":
-		# Level one uses existing sourced ground textures, without a stone ring or ruins.
-		var grass_ground = PlaneMesh.new()
-		grass_ground.size = Vector2(world_half_extent*2.0,world_half_extent*2.0)
-		mesh_node(grass_ground,Vector3(0,-0.13,0),texture("forest_ground_04",0.18))
-		make_demo_buildings()
-		add_child(preload("res://central_tower.gd").new())
-		build_stacked_level_roofs()
-		print("[LEVEL_ENVIRONMENT] biome=grassland side_m=",world_half_extent*2.0," sky=true fog=true buildings=",building_defs.size()," border=false roof=false")
+		# Minimal construction stage: one full-size floor and one solid roof.
+		var ground := PlaneMesh.new()
+		ground.size = Vector2(world_half_extent * 2.0, world_half_extent * 2.0)
+		mesh_node(ground, Vector3(0.0,-0.13,0.0), texture("forest_ground_04",0.18))
+		var roof_body := StaticBody3D.new()
+		roof_body.name = "SolidLevelRoof"
+		roof_body.position = Vector3(0.0,12.0,0.0)
+		add_child(roof_body)
+		var roof_box := BoxShape3D.new()
+		roof_box.size = Vector3(world_half_extent * 2.0,0.8,world_half_extent * 2.0)
+		var collision := CollisionShape3D.new()
+		collision.shape = roof_box
+		roof_body.add_child(collision)
+		var roof_mesh := BoxMesh.new()
+		roof_mesh.size = roof_box.size
+		var roof_visual := MeshInstance3D.new()
+		roof_visual.mesh = roof_mesh
+		roof_visual.material_override = texture("forest_ground_04",0.18)
+		roof_body.add_child(roof_visual)
+		print("[LEVEL_ENVIRONMENT] minimal_floor_roof side_m=",world_half_extent*2.0," roof_y=12.0 tower=false buildings=false")
 		return
 	var ground = PlaneMesh.new()
 	ground.size = Vector2(100,100) # Match the compact pursuit arena boundaries.
@@ -101,75 +113,3 @@ func make_arena():
 		holder.position = Vector3(sin(i*TAU/12)*44,0,cos(i*TAU/12)*44)
 
 
-
-func make_demo_buildings() -> void:
-	for definition in building_defs:
-		var root := StaticBody3D.new()
-		root.name = String(definition.get("name","BUILDING"))
-		root.position = definition.get("position",Vector3.ZERO)
-		add_child(root)
-		var extent: Vector3 = definition.get("size",Vector3(10,6,8))
-		var walls := BoxMesh.new()
-		walls.size = extent
-		var wall_mesh := MeshInstance3D.new()
-		wall_mesh.mesh = walls
-		wall_mesh.position.y = extent.y*0.5
-		var wall_material := StandardMaterial3D.new()
-		wall_material.albedo_color = Color("ad9881")
-		wall_mesh.material_override = wall_material
-		root.add_child(wall_mesh)
-		var collider := CollisionShape3D.new()
-		var shape := BoxShape3D.new()
-		shape.size = extent
-		collider.shape = shape
-		collider.position.y = extent.y*0.5
-		root.add_child(collider)
-		var roof_mesh := MeshInstance3D.new()
-		var roof := PrismMesh.new()
-		roof.size = Vector3(extent.x+1.5,3.0,extent.z+1.5)
-		roof_mesh.mesh = roof
-		roof_mesh.position.y = extent.y+1.0
-		var roof_material := StandardMaterial3D.new()
-		roof_material.albedo_color = Color("584b41")
-		roof_mesh.material_override = roof_material
-		root.add_child(roof_mesh)
-		var label := Label3D.new()
-		label.text = String(definition.get("name","BUILDING"))
-		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		label.font_size = 64
-		label.outline_size = 12
-		label.position.y = extent.y+5.0
-		root.add_child(label)
-
-# Four solid roof slabs per transition leave a 30m hole occupied by the
-# cylindrical stair tower. They double as floors for the next level.
-func build_stacked_level_roofs() -> void:
-	var outer: float = world_half_extent
-	var aperture: float = 15.0
-	var material_roof := texture("forest_ground_04",0.18)
-	for floor_index in [1,2]:
-		var y: float = float(floor_index)*12.0
-		var strips: Array = [
-			{"size":Vector3(outer*2.0,0.8,outer-aperture),"at":Vector3(0,y, -(outer+aperture)*0.5)},
-			{"size":Vector3(outer*2.0,0.8,outer-aperture),"at":Vector3(0,y, (outer+aperture)*0.5)},
-			{"size":Vector3(outer-aperture,0.8,aperture*2.0),"at":Vector3(-(outer+aperture)*0.5,y,0)},
-			{"size":Vector3(outer-aperture,0.8,aperture*2.0),"at":Vector3((outer+aperture)*0.5,y,0)}
-		]
-		for strip_index in range(strips.size()):
-			var data: Dictionary = strips[strip_index]
-			var body := StaticBody3D.new()
-			body.name = "Level%dRoof%d" % [floor_index,strip_index]
-			body.position = data["at"] + Vector3(0.0,0.0,-60.0)
-			add_child(body)
-			var roof_shape := BoxShape3D.new()
-			roof_shape.size = data["size"]
-			var collision := CollisionShape3D.new()
-			collision.shape = roof_shape
-			body.add_child(collision)
-			var roof_mesh := BoxMesh.new()
-			roof_mesh.size = data["size"]
-			var visible := MeshInstance3D.new()
-			visible.mesh = roof_mesh
-			visible.material_override = material_roof
-			body.add_child(visible)
-	print("[LEVEL_ROOFS] count=2 solid=true aperture_diameter=30m")
