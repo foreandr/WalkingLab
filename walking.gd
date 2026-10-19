@@ -2059,6 +2059,10 @@ func choose_agent_destination() -> void:
 	agent_destination = Vector3(cos(angle)*radius,0.0,sin(angle)*radius)
 	agent_decision_left = agent_rng.randf_range(3.5,9.0)
 	agent_preferred_speed = (2.3 if ai_mode == "walk" else (11.0 if ai_mode == "sprint" else (8.5 if ai_mode == "fly" else 4.5))) * agent_rng.randf_range(0.82,1.17)
+	# Solo showcase covers walk, jog, run and sprint using existing gait blends.
+	if name == "PlayerMan" and ai_mode == "sprint":
+		agent_preferred_speed = agent_rng.randf_range(1.5,12.0)
+		print("[SOLO_GROUND_SPEED] target_mps=",snappedf(agent_preferred_speed,0.1))
 
 func update_agent_navigation(dt: float) -> void:
 	agent_decision_left -= dt
