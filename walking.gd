@@ -64,6 +64,12 @@ var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
 var solo_left_strafe_available: bool = false
 var solo_right_strafe_available: bool = false
+# Smooth, persistent crossfade weights shared by player and motion showcase.
+var strafe_left_blend: float = 0.0
+var strafe_right_blend: float = 0.0
+const STRAFE_VISUAL_YAW: float = 55.0
+const STRAFE_BLEND_RATE: float = 8.0
+const STRAFE_ACTIVATE_SPEED: float = 1.25
 # All arena combatants use the same imported rig. Share immutable retargeted
 # animation curves rather than import and retarget twenty FBX files per fighter.
 static var shared_flight_clips_ready: bool = false
@@ -326,6 +332,7 @@ func _ready():
 		solo_strafe.animation = "strafe/Left"
 		graph.add_node("SoloLeftClip",solo_strafe)
 		var solo_blend := AnimationNodeBlend2.new()
+		solo_blend.sync = true # Keep both gait clocks advancing across a transition.
 		graph.add_node("SoloLeftBlend",solo_blend)
 		graph.connect_node("SoloLeftBlend",0,"Direction")
 		graph.connect_node("SoloLeftBlend",1,"SoloLeftClip")
@@ -334,6 +341,7 @@ func _ready():
 		right_clip.animation = "strafe/Right"
 		graph.add_node("SoloRightClip",right_clip)
 		var right_blend := AnimationNodeBlend2.new()
+		right_blend.sync = true
 		graph.add_node("SoloRightBlend",right_blend)
 		graph.connect_node("SoloRightBlend",0,"SoloLeftBlend" if solo_left_strafe_available else "Direction")
 		graph.connect_node("SoloRightBlend",1,"SoloRightClip")
@@ -1332,7 +1340,9 @@ func _physics_process(dt):
 		var target_speed: float = absf(manual_target_speed())
 		var move_accel: float = step*(8.0 if manual_input.length()<0.01 else 6.0)
 		signed_speed = move_toward(signed_speed,target_speed*manual_input.y,move_accel)
-		manual_side_speed = move_toward(manual_side_speed,target_speed*manual_input.x,move_accel)
+		# Side movement reacts promptly; the animation crossfade supplies visual softness.
+		var lateral_rate: float = 22.0 if manual_input.x*manual_side_speed <= 0.0 else 16.0
+		manual_side_speed = move_toward(manual_side_speed,target_speed*manual_input.x,step*lateral_rate)
 		backward = signed_speed < -0.01
 		direction_weight = move_toward(direction_weight,1.0 if backward else 0.0,step*4.0)
 		blend = speed_band(SPEEDS,absf(signed_speed))
@@ -1410,15 +1420,30 @@ func _physics_process(dt):
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
-	# Pure sideways travel plays the full strafe clip. Diagonals blend it
-	# with the corresponding forward/back gait, never rotate into a run.
-	var strafe_weight: float = absf(side_speed)/maxf(speed,0.001) if not flight_enabled else 0.0
+	# Pure A/D is strafing. Diagonals retain a proportional forward/backward gait.
+	# The speed envelope fades the strafe out while slowing into standing idle.
+	var strafe_weight: float = 0.0
+	if not flight_enabled:
+		strafe_weight = absf(side_speed)/maxf(speed,0.001)
+		strafe_weight *= smoothstep(0.10,STRAFE_ACTIVATE_SPEED,speed)
+	var target_left: float = strafe_weight if side_speed < -0.01 and solo_left_strafe_available else 0.0
+	var target_right: float = strafe_weight if side_speed > 0.01 and solo_right_strafe_available else 0.0
+	var strafe_lerp: float = 1.0-exp(-STRAFE_BLEND_RATE*step)
+	strafe_left_blend = lerpf(strafe_left_blend,target_left,strafe_lerp)
+	strafe_right_blend = lerpf(strafe_right_blend,target_right,strafe_lerp)
 	if solo_left_strafe_available:
-		tree.set("parameters/SoloLeftBlend/blend_amount",strafe_weight if side_speed < -0.1 else 0.0)
+		tree.set("parameters/SoloLeftBlend/blend_amount",strafe_left_blend)
 	if solo_right_strafe_available:
-		tree.set("parameters/SoloRightBlend/blend_amount",strafe_weight if side_speed > 0.1 else 0.0)
-	# The source strafe cycle was demonstrated at approximately 2 m/s.
-	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else lerpf(speed/stride,speed/2.0,strafe_weight))
+		tree.set("parameters/SoloRightBlend/blend_amount",strafe_right_blend)
+	# The rig rotates more strongly INTO the strafe, but the collider and
+	# camera-relative travel remain facing forward. The same blend smoothly
+	# restores the normal facing on release and on left/right reversals.
+	if player_controlled:
+		var visible_strafe: float = strafe_right_blend-strafe_left_blend
+		visual.rotation.y = PI-deg_to_rad(STRAFE_VISUAL_YAW)*visible_strafe
+	# The imported strafe cycle was calibrated at approximately 2 m/s.
+	var active_strafe: float = maxf(strafe_left_blend,strafe_right_blend)
+	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else lerpf(speed/stride,speed/2.0,active_strafe))
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
 		var moving_now = speed > 0.12 or crouch.active()
@@ -1442,7 +1467,7 @@ func _physics_process(dt):
 			if state != last_debug_state:
 				debug_player("STATE_CHANGE",last_debug_state+" -> "+state)
 				last_debug_state = state
-			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" strafe_weight="+str(snappedf(strafe_weight,0.01))+" strafe_side_mps="+str(snappedf(side_speed,0.01))+" strafe_left_ready="+str(solo_left_strafe_available)+" strafe_right_ready="+str(solo_right_strafe_available)+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
+			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" strafe_weight="+str(snappedf(strafe_weight,0.01))+" strafe_left_blend="+str(snappedf(strafe_left_blend,0.01))+" strafe_right_blend="+str(snappedf(strafe_right_blend,0.01))+" visual_yaw="+str(snappedf(rad_to_deg(wrapf(visual.rotation.y-PI,-PI,PI)),0.1))+" strafe_side_mps="+str(snappedf(side_speed,0.01))+" strafe_left_ready="+str(solo_left_strafe_available)+" strafe_right_ready="+str(solo_right_strafe_available)+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	# Calibration only: pitch the visible character down, never the collider.
 	if name == "DemoNPC" and ai_mode == "sprint" and not flight_enabled:
 		visual.rotation.x = deg_to_rad(-8.0)
@@ -1476,7 +1501,7 @@ func _physics_process(dt):
 		# Preserve normal agent steering during forward-running phases.
 		var showcase_facing: float = manual_heading
 		if name == "DemoNPC" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
-			showcase_facing = deg_to_rad(35.0) if solo_direction_phase == 5 else deg_to_rad(-35.0) # Small mirrored turn, not forward walking.
+			showcase_facing = deg_to_rad(55.0) if solo_direction_phase == 5 else deg_to_rad(-55.0) # Stronger sideways presentation, not forward walking.
 		actor.rotation.y = rotate_toward(actor.rotation.y,showcase_facing,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
 		var travel_direction = -tangent*speed-radial.normalized()*(radial.length()-route_radius)*2.0
