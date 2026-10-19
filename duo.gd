@@ -140,9 +140,9 @@ func _ready():
 	player_label = make_label(player.actor,"YOU / BLUE",TEAM_BLUE)
 	attach_status_label(player)
 	make_boundary()
-	# DemoNPC is an optional developer tool, not an always-visible actor.
-	# It can be enabled through Settings when animation calibration is needed.
+	# Always show a separate autonomous locomotion demonstrator beside Black.
 	ai = null
+	set_demo_npc_enabled(true)
 	if flight_benchmark_requested:
 		spawn_more_fighters(MAX_ACTIVE_FIGHTERS)
 	else:
