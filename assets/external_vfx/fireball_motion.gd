@@ -108,7 +108,9 @@ func launch_visible_aoe_stream(impact: Node3D, source: GPUParticles3D, origin: V
 	trajectory.tween_callback(func() -> void:
 		if not is_instance_valid(victim): return
 		ember.emitting = false
-		var endpoint := source.duplicate() as GPUParticles3D
+		# The original projectile has already been queued for deletion;
+		# duplicate our own impact-owned trail, never that freed source node.
+		var endpoint := ember.duplicate() as GPUParticles3D
 		impact.add_child(endpoint)
 		endpoint.global_position = target_point
 		endpoint.local_coords = false
