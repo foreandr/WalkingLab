@@ -3,6 +3,10 @@ extends Node
 # visual debug spheres are optional and never participate in hit detection.
 const REGIONS = ["head","torso","left_arm","right_arm","left_leg","right_leg"]
 var hp: Dictionary = {}
+# Independent healing delay on every anatomical region; no resurrection.
+var region_regen_delays: Dictionary = {}
+const REGION_REGEN_DELAY: float = 3.0
+const REGION_REGEN_HP_PER_SECOND: float = 3.5
 var owner_actor: CharacterBody3D
 var skeleton: Skeleton3D
 var markers: Dictionary = {}
@@ -26,6 +30,7 @@ func setup(body: CharacterBody3D, rig: Skeleton3D) -> void:
 		part.material_override = shader_material
 	for region in REGIONS:
 		hp[region] = 100.0
+		region_regen_delays[region] = 0.0
 		bone_map[region] = -1
 		for i in range(skeleton.get_bone_count()):
 			if String(skeleton.get_bone_name(i)).to_lower().ends_with(String(BONES[region]).to_lower()):
@@ -67,6 +72,18 @@ func bone_position(region: String) -> Vector3:
 
 func _process(dt: float) -> void:
 	if skeleton == null or not is_instance_valid(skeleton): return
+	# Every living region recovers on its own. Hits reset only that region's
+	# delay, so the right arm can whiten while the left leg remains injured.
+	# No healing runs after fatal head/torso damage.
+	if not dead:
+		var regenerated: bool = false
+		for region in REGIONS:
+			var delay: float = maxf(0.0,float(region_regen_delays[region])-dt)
+			region_regen_delays[region] = delay
+			if delay <= 0.0 and float(hp[region]) < 100.0:
+				hp[region] = minf(100.0,float(hp[region])+REGION_REGEN_HP_PER_SECOND*dt)
+				regenerated = true
+		if regenerated: update_damage_colors()
 	# Once the dead fighter has settled, its damage colors and bone markers
 	# are static; stop all per-frame material/bone polling permanently.
 	if dead:
@@ -135,6 +152,7 @@ func receive_region_hit(region: String, world_point: Vector3, amount: float, att
 	var floor_hp: float = 1.0 if stress_immortal else 0.0
 	var previous_hp: float = float(hp[region])
 	hp[region] = maxf(floor_hp,previous_hp-amount)
+	if amount > 0.0: region_regen_delays[region] = REGION_REGEN_DELAY
 	if show_number: show_damage_number(world_point,amount,region)
 	flash_hit_region(region)
 	var remaining: float = float(hp[region])
