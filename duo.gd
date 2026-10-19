@@ -245,7 +245,8 @@ func _spawn_single_fighter() -> void:
 	fighter.actor_only = true
 	fighter.ai_abilities = true
 	fighter.team_battle_ai = not flight_benchmark_requested
-	fighter.equipped_spells = PackedStringArray(["fire", "frost"])
+	var duel_spells: Array[String] = ["fire", "frost"]
+	fighter.equipped_spells = duel_spells
 	fighter.animation_test_mode = "war"
 	fighter.war_pose_enabled = pose_enabled
 	var is_team_battle: bool = false
