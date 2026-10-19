@@ -62,6 +62,7 @@ var selected_spell_target: CharacterBody3D = null
 var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
 var solo_left_strafe_available: bool = false
+var solo_right_strafe_available: bool = false
 # All arena combatants use the same imported rig. Share immutable retargeted
 # animation curves rather than import and retarget twenty FBX files per fighter.
 static var shared_flight_clips_ready: bool = false
@@ -267,6 +268,7 @@ func _ready():
 	var backwards_begin_usec: int = Time.get_ticks_usec()
 	install_backwards(player)
 	solo_left_strafe_available = install_solo_left_strafe(player)
+	solo_right_strafe_available = install_solo_strafe(player,"Right")
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=backwards ms=",snappedf(float(Time.get_ticks_usec()-backwards_begin_usec)/1000.0,0.01))
 	if player_controlled: print("MIXAMO_CLIPS ",player.get_animation_list())
 	var white = StandardMaterial3D.new()
@@ -326,8 +328,16 @@ func _ready():
 		graph.add_node("SoloLeftBlend",solo_blend)
 		graph.connect_node("SoloLeftBlend",0,"Direction")
 		graph.connect_node("SoloLeftBlend",1,"SoloLeftClip")
+	if solo_right_strafe_available:
+		var right_clip := AnimationNodeAnimation.new()
+		right_clip.animation = "strafe/Right"
+		graph.add_node("SoloRightClip",right_clip)
+		var right_blend := AnimationNodeBlend2.new()
+		graph.add_node("SoloRightBlend",right_blend)
+		graph.connect_node("SoloRightBlend",0,"SoloLeftBlend" if solo_left_strafe_available else "Direction")
+		graph.connect_node("SoloRightBlend",1,"SoloRightClip")
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
-	graph.connect_node("Cadence",0,"SoloLeftBlend" if solo_left_strafe_available else "Direction")
+	graph.connect_node("Cadence",0,"SoloRightBlend" if solo_right_strafe_available else ("SoloLeftBlend" if solo_left_strafe_available else "Direction"))
 	var crouch_begin_usec: int = Time.get_ticks_usec()
 	crouch.setup(self,player,graph)
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=crouch ms=",snappedf(float(Time.get_ticks_usec()-crouch_begin_usec)/1000.0,0.01))
@@ -551,12 +561,15 @@ func draw_speed_streaks() -> void:
 func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
 func install_solo_left_strafe(player: AnimationPlayer) -> bool:
+	return install_solo_strafe(player,"Left")
+
+func install_solo_strafe(player: AnimationPlayer, direction: String) -> bool:
 	if name != "PlayerMan" or ai_mode != "sprint": return false
 	# Prefer the newly supplied single left-strafe run clip.
 	# The run(1) attachment is not automatically in the Windows project.
 	# Select an imported clip that actually exists, and log the selection.
 	var path: String = ""
-	for candidate_path in ["res://assets/locomotion/Left Strafe run.fbx", "res://assets/locomotion/Left Strafe.fbx", "res://assets/locomotion/left strafe.fbx"]:
+	for candidate_path in (["res://assets/locomotion/Left Strafe run.fbx", "res://assets/locomotion/Left Strafe.fbx", "res://assets/locomotion/left strafe.fbx"] if direction == "Left" else ["res://assets/locomotion/Right Strafe run.fbx","res://assets/locomotion/Right Strafe.fbx","res://assets/locomotion/right strafe.fbx"]):
 		if ResourceLoader.exists(candidate_path):
 			path = candidate_path
 			break
@@ -620,8 +633,11 @@ func install_solo_left_strafe(player: AnimationPlayer) -> bool:
 		print("[SOLO_LEFT_STRAFE] rejected tracks=",mapped)
 		return false
 	var library := AnimationLibrary.new()
-	library.add_animation("Left",clip)
-	player.add_animation_library("strafe",library)
+	library.add_animation(direction,clip)
+	if player.has_animation_library("strafe"):
+		player.get_animation_library("strafe").add_animation(direction,clip)
+	else:
+		player.add_animation_library("strafe",library)
 	print("[SOLO_LEFT_STRAFE] ready tracks=",mapped," file=",path," hips_ignored=true local_rotation=true")
 	return true
 
@@ -1359,7 +1375,9 @@ func _physics_process(dt):
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
 	if solo_left_strafe_available and name == "PlayerMan" and ai_mode == "sprint":
-		tree.set("parameters/SoloLeftBlend/blend_amount",1.0 if absf(side_speed) > 0.1 and not flight_enabled else 0.0)
+		tree.set("parameters/SoloLeftBlend/blend_amount",1.0 if side_speed < -0.1 and not flight_enabled else 0.0)
+	if solo_right_strafe_available and name == "PlayerMan" and ai_mode == "sprint":
+		tree.set("parameters/SoloRightBlend/blend_amount",1.0 if side_speed > 0.1 and not flight_enabled else 0.0)
 	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
@@ -1418,7 +1436,7 @@ func _physics_process(dt):
 		# Preserve normal agent steering during forward-running phases.
 		var showcase_facing: float = manual_heading
 		if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
-			showcase_facing = 0.0 # Lock facing; strafe is lateral translation, not turning into travel.
+			showcase_facing = deg_to_rad(25.0) if solo_direction_phase == 5 else deg_to_rad(-25.0) # Small mirrored turn, not forward walking.
 		actor.rotation.y = rotate_toward(actor.rotation.y,showcase_facing,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
 		var travel_direction = -tangent*speed-radial.normalized()*(radial.length()-route_radius)*2.0
