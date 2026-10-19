@@ -245,24 +245,13 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		if hit_regions.is_empty(): continue
 		affected_fighters += 1
 		struck[body.get_instance_id()] = true
-		# Flame physically expands to every AOE victim, and its impact is
-		# synchronized with the delayed damage callback on arrival.
-		if spell_type=="fire" and source != null:
+		# Every blast uses its coloured, imported VFX to actually reach
+		# every hurt target, and applies the damage at visible arrival.
+		if source != null:
 			launch_visible_aoe_stream(impact,source,position,damage.bone_position("torso"),fighter,hit_regions,impact_damage)
 		else:
 			damage.receive_aoe_regions(hit_regions,impact_damage,attacker_name)
 			if fighter.has_method("apply_spell_status"): fighter.apply_spell_status(spell_type,position)
-			if source != null:
-				# Other spell colours also extend outward toward their victims.
-				var matching_fire := source.duplicate() as GPUParticles3D
-				impact.add_child(matching_fire)
-				matching_fire.global_position = damage.bone_position("torso")
-				matching_fire.scale = Vector3.ONE*0.78
-				matching_fire.amount = 18
-				matching_fire.one_shot = true
-				matching_fire.lifetime = 0.50
-				matching_fire.emitting = true
-				matching_fire.restart()
 		affected_regions += hit_regions.size()
 	if spell_type == "arc":
 		# Jump to up to three extra distinct enemies outside the direct blast.
