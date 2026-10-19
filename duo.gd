@@ -188,6 +188,8 @@ func _ready():
 			spawn_more_fighters(int(current_level["enemy_count"]), true)
 	if bool(current_level.get("battle_royale_drop",false)) and not flight_benchmark_requested:
 		create_royale_loot()
+	elif not flight_benchmark_requested:
+		create_test_spell_loot()
 	print("[LEVEL_START] number=",level_number," name=",current_level["name"]," biome=",current_level["biome"]," enemies=",mannequins.size()," spells_player=",player.equipped_spells)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
@@ -927,3 +929,46 @@ func update_royale_loot() -> void:
 		entry["claimed"] = true
 		item.queue_free()
 		print("[ROYALE_PICKUP] fighter=",closest.name," item=",("speed_boots" if bool(entry.get("boots",false)) else spell))
+
+func spawn_ground_ring(spell: String, location: Vector3) -> void:
+	var display := Node3D.new()
+	display.name = "GroundRing_" + spell
+	display.position = location
+	add_child(display)
+	var mesh := MeshInstance3D.new()
+	var torus := TorusMesh.new()
+	torus.inner_radius = 0.21
+	torus.outer_radius = 0.34
+	torus.rings = 24
+	torus.ring_segments = 8
+	mesh.mesh = torus
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color("ffcd43")
+	mat.metallic = 0.75
+	mesh.material_override = mat
+	display.add_child(mesh)
+	var label := Label3D.new()
+	label.text = spell.to_upper()+" RING [E]"
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position.y = 1.0
+	label.font_size = 36
+	display.add_child(label)
+	royale_loot.append({"spell":spell,"boots":false,"node":display,"claimed":false})
+
+func create_test_spell_loot() -> void:
+	var spells: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
+	for i in range(spells.size()):
+		var a: float = float(i)*TAU/float(spells.size())
+		var origin: Vector3 = player.spawn_point + Vector3(cos(a)*3.5,0.17,sin(a)*3.5)
+		spawn_ground_ring(spells[i],origin)
+	print("[DEV_RINGS] placed=",spells.size()," around BLACK")
+
+func drop_inventory_ring(spell: String) -> void:
+	if player == null or not spell in player.equipped_spells: return
+	player.equipped_spells.erase(spell)
+	var forward: Vector3 = -player.actor.global_transform.basis.z
+	var location: Vector3 = player.actor.global_position + forward*2.0
+	location.y = 0.17
+	spawn_ground_ring(spell,location)
+	player.refresh_ring_inventory()
+	print("[RING_DROPPED] spell=",spell," at=",location)
