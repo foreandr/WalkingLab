@@ -1356,7 +1356,7 @@ func _physics_process(dt):
 			solo_direction_phase = 2
 		if solo_direction_phase == -1:
 			backward = false
-			signed_speed = 2.5 if cycle_phase < 8.0 else (6.0 if cycle_phase < 12.0 else 11.0)
+			signed_speed = 2.5 if cycle_phase < 8.0 else (6.0 if cycle_phase < 12.0 else (0.0 if cycle_phase >= 42.0 else 11.0))
 			blend = speed_band(SPEEDS,signed_speed)
 			direction_weight = 0.0
 		if cycle_phase >= 12.0 and cycle_phase < 12.1 and actor.is_on_floor():
