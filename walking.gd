@@ -102,7 +102,7 @@ const SQUAT_MAX_CHARGE_SECONDS: float = 2.0
 # charged launch impulse must be sqrt(3) times the normal impulse.
 # Roughly 4 m normal and 12 m charged at gravity = 18 m/s^2.
 const SQUAT_HOP_IMPULSE: float = 12.0
-const SQUAT_MAX_HOP_IMPULSE: float = SQUAT_HOP_IMPULSE * sqrt(3.0)
+const SQUAT_MAX_HOP_IMPULSE: float = 20.784609690826528 # 12 * sqrt(3)
 const AIR_JUMP_TRAVEL_MULTIPLIER: float = 1.41421356
 const SQUAT_BLEND_SPEED: float = 1.8
 var debug_tick: float = 0.0
