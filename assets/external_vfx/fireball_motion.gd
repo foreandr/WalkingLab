@@ -155,7 +155,7 @@ func finish_homing_impact(projectile: Node3D, hit_point: Vector3, collider: Obje
 				injury.receive_hit(hit_point,38.0,attacker_name)
 	# Fused homing impacts distribute both effects in one compact AOE.
 	# A structure still consumes the missile; no blast passes through walls.
-	if spell_components.size()==2 and collider is CharacterBody3D:
+	if spell_components.size()>1 and collider is CharacterBody3D:
 		explode(projectile,hit_point)
 	else:
 		ricochet_spark(projectile,hit_point)
@@ -265,11 +265,11 @@ func update_ricochet(projectile: Node3D, delta: float) -> void:
 				if timestamp-int(ricochet_last_hit_ms.get(key,-100000))>=RICOCHET_HIT_COOLDOWN_MS:
 					ricochet_last_hit_ms[key] = timestamp
 					var added_damage: float = 0.0
-					if spell_components.size()==2:
+					if spell_components.size()>1:
 						# Repeated bounces must not emit full AOE explosions.
 						added_damage = 7.0
 					injury.receive_hit(contact,RICOCHET_DAMAGE+added_damage,attacker_name)
-					if spell_components.size()==2 and controller.has_method("apply_spell_statuses"):
+					if spell_components.size()>1 and controller.has_method("apply_spell_statuses"):
 						controller.apply_spell_statuses(spell_components,contact)
 		var normal: Vector3 = hit["normal"]
 		if normal.length_squared()<0.1: normal = -travel_direction
@@ -381,7 +381,7 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 		"venom":
 			base_radius = 4.4
 			impact_damage = 10.0 # Long-lasting poison damage
-	if spell_components.size()==2:
+	if spell_components.size()>1:
 		# One blast, with two real status effects. Limit combined damage/radius
 		# to prevent a hybrid from being two full-cost AOEs on top of each other.
 		var largest_radius: float = 0.0
@@ -410,7 +410,7 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 					largest_radius = maxf(largest_radius,4.4)
 					combined_damage += 10.0
 		base_radius = largest_radius*0.85
-		impact_damage = combined_damage*0.65
+		impact_damage = minf(65.0,combined_damage*(0.55 if spell_components.size()>2 else 0.65))
 	var blast_radius: float = base_radius * blast_width
 	if source != null:
 		var wave := source.duplicate() as GPUParticles3D
