@@ -159,7 +159,7 @@ func _ready():
 	player.ai_mode = ""
 	player.actor_only = true
 	player.set_meta("allow_negative_terrain_y",String(current_level.get("biome","")) == "flat_dirt")
-	player.spawn_point = Vector3(-15.0,0.0,-15.0) if not flight_benchmark_requested else Vector3.ZERO
+	player.spawn_point = Vector3(0.0,2.0,0.0) if not flight_benchmark_requested else Vector3.ZERO
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	if not flight_benchmark_requested:
@@ -298,7 +298,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = Vector3(15.0,0.0,15.0) if int(current_level.get("enemy_count",0)) == 1 else random_war_spawn()
+			fighter.spawn_point = Vector3(3.5+float(index)*2.5,2.0,-2.5) if int(current_level.get("enemy_count",0)) == 2 else random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
@@ -307,7 +307,10 @@ func _spawn_single_fighter() -> void:
 		else:
 			fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
 	fighter.demo_immortal = not flight_benchmark_requested
-	if not flight_benchmark_requested: fighter.set_meta("test_dummy",true)
+	if not flight_benchmark_requested:
+		fighter.set_meta("test_dummy",index == 0)
+		fighter.ai_abilities = index != 0
+		fighter.team_battle_ai = index != 0
 	fighter.character_tint = FIGHTER_COLOR
 	add_child(fighter)
 	fighter.actor.rotation.y = atan2(player.actor.global_position.x-fighter.actor.global_position.x,player.actor.global_position.z-fighter.actor.global_position.z)+PI
