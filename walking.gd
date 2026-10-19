@@ -753,7 +753,7 @@ func update_resource_hud() -> void:
 	resources_status.text = "STA %d   |   MANA %s" % [ceili(stamina),"∞" if infinite_mana else str(ceili(mana))]
 	var hand_offset: int = 5 if controlled_arm == "left" else 0
 	if hand_indicator != null:
-		hand_indicator.text = ("LEFT HAND" if controlled_arm == "left" else "RIGHT HAND")+"  |  1-5 FINGERS (SHIFT)"
+		hand_indicator.text = ("LEFT HAND" if controlled_arm == "left" else "RIGHT HAND")+" | 1-5 (SHIFT) | 6 EARTH 7 HEAL 8 WIND 9 VENOM"
 		if fusion_feedback_remaining>0.0:
 			hand_indicator.text = fusion_feedback
 		elif cast_elapsed>=0.0 and cast_components.size()>1:
@@ -3636,7 +3636,10 @@ func release_fireball(hand_world: Vector3) -> void:
 	# A single physics projectile owns small, independent particle layers;
 	# every constituent keeps its own motion, with NO extra physics bodies.
 	if components.size()>1:
-		effect.amount = mini(effect.amount,4)
+		# Scale visual cost with the number of component motions.
+		# Keep the full combination physically authoritative even in large battles.
+		var per_layer_particles: int = 4 if components.size()<=2 else (3 if components.size()<=4 else 2)
+		effect.amount = mini(effect.amount,per_layer_particles)
 		for component in components:
 			var layer: GPUParticles3D = effect.duplicate() as GPUParticles3D
 			layer.name = component.capitalize()+"FusionMotion"
@@ -3679,7 +3682,7 @@ func release_fireball(hand_world: Vector3) -> void:
 						layer_mat.direction = Vector3(0.0,1.0,0.0)
 						layer_mat.spread = 85.0
 				layer.process_material = layer_mat
-			layer.amount = 4
+			layer.amount = per_layer_particles
 			layer.fixed_fps = 30
 			layer.emitting = true
 			layer.restart()
