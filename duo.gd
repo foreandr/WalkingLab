@@ -141,15 +141,17 @@ func _ready():
 	level_environment.world_half_extent = arena_half_extent
 	level_environment.building_defs = current_level.get("buildings",[])
 	add_child(level_environment)
-	var floor_body := StaticBody3D.new()
-	floor_body.name = "ArenaGroundCollision"
-	add_child(floor_body)
-	var floor_shape := CollisionShape3D.new()
-	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(arena_half_extent*2.0,0.2,arena_half_extent*2.0)
-	floor_shape.shape = floor_box
-	floor_shape.position.y = -0.1
-	floor_body.add_child(floor_shape)
+	# HeightMapShape3D on each biome is the sole terrain collision. A flat floor would block valleys.
+	if String(current_level.get("biome","")) != "flat_dirt":
+		var floor_body := StaticBody3D.new()
+		floor_body.name = "ArenaGroundCollision"
+		add_child(floor_body)
+		var floor_shape := CollisionShape3D.new()
+		var floor_box := BoxShape3D.new()
+		floor_box.size = Vector3(arena_half_extent*2.0,0.2,arena_half_extent*2.0)
+		floor_shape.shape = floor_box
+		floor_shape.position.y = -0.1
+		floor_body.add_child(floor_shape)
 	player = preload("res://walking.gd").new()
 	player.name = "PlayerMan"
 	player.player_controlled = true
