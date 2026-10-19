@@ -30,6 +30,8 @@ jobs:
           mkdir -p assets/showcase assets/kenney_weapons/mini-arena/Textures assets/kenney_weapons/survival/Textures assets/kenney_weapons/weapon
           curl -fLsS --retry 3 https://raw.githubusercontent.com/Barbatos6669/elderforge/main/assets/animations/universal_animation_library_2/UAL2_Standard.glb -o assets/showcase/UAL2_Standard.glb || true
           curl -fLsS --retry 3 https://raw.githubusercontent.com/RamonLinares/atlas-09/main/public/models/aether-02.glb -o assets/showcase/aether-02.glb || true
+          mkdir -p assets/external_vfx
+          curl -fLsS --retry 3 https://raw.githubusercontent.com/marinho/godot-visual-effects/main/addons/kenney_particle_pack/fire_01.png -o assets/external_vfx/fire_01.png
           for spec in \
             "mini-arena/weapon-sword.glb" \
             "mini-arena/Textures/colormap.png" \
