@@ -17,10 +17,10 @@ var battle_fireball_speed: float = 1.0
 var battle_fireball_size: float = 1.0
 var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 const MAX_ACTIVE_FIGHTERS: int = 80
-# Default spell sandbox: five stationary targets and five roaming walkers.
-# Larger combat battles remain available by manual spawning and benchmarks.
-const SPELL_TEST_TARGET_COUNT: int = 10
-const SPELL_TEST_STATIONARY_COUNT: int = 5
+# Default: one fleeing runner, three differently constrained spellcasters.
+# The previous 80-fighter stress test remains opt-in through CLI.
+const PURSUIT_FIGHTERS: int = 4
+const ARENA_HALF_EXTENT: float = 50.0
 const LINEUP_DISTANCES: Array[int] = [1,2,4,8,16,32,64,128]
 var fighter_spawn_index: int = 0
 # Queue runtime spawn requests: avoid constructing ten complete rigs in one frame.
@@ -119,7 +119,7 @@ func _ready():
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(480.0,0.2,480.0)
+	floor_box.size = Vector3(ARENA_HALF_EXTENT*2.0,0.2,ARENA_HALF_EXTENT*2.0)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -129,7 +129,7 @@ func _ready():
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,155)
+	player.spawn_point = Vector3(0,0,34)
 	player.character_tint = FIGHTER_COLOR
 	add_child(player)
 	player.camera.current = true
@@ -141,10 +141,10 @@ func _ready():
 	if flight_benchmark_requested:
 		spawn_more_fighters(MAX_ACTIVE_FIGHTERS)
 	else:
-		# Spawn over multiple displayed frames; don't stall startup constructing
-		# ten full rigs at once. DemoNPC remains independent of this lineup.
-		spawn_more_fighters(SPELL_TEST_TARGET_COUNT)
-	print("[ARENA_MODE] player=BLACK controlled=true demo=DemoNPC enabled=false spell_targets=",SPELL_TEST_TARGET_COUNT," stationary=",SPELL_TEST_STATIONARY_COUNT," walking=",SPELL_TEST_TARGET_COUNT-SPELL_TEST_STATIONARY_COUNT)
+		# One runner and three pursuers; stagger expensive rig initialization
+		# over displayed frames to avoid startup hitching.
+		spawn_more_fighters(PURSUIT_FIGHTERS)
+	print("[ARENA_MODE] player=YOU controlled=true pursuit=1_escapee+3_chasers demo=off half_extent=",ARENA_HALF_EXTENT)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
 	if enabled:
@@ -155,7 +155,7 @@ func set_demo_npc_enabled(enabled: bool) -> void:
 		ai.auto_war_combat = false
 		ai.ai_mode = "sprint"
 		ai.actor_only = true
-		ai.spawn_point = Vector3(12,0,145)
+		ai.spawn_point = Vector3(14,0,29)
 		ai.character_tint = FIGHTER_COLOR
 		add_child(ai)
 		ai.camera.current = false
@@ -201,22 +201,17 @@ func _spawn_single_fighter() -> void:
 	fighter.ai_abilities = true
 	fighter.animation_test_mode = "war"
 	fighter.war_pose_enabled = pose_enabled
-	var is_spell_target: bool = not flight_benchmark_requested and index < SPELL_TEST_TARGET_COUNT
-	# Dedicated spell-test rows sit in the player's forward field of view.
-	# Front row stays still, rear row walks small loops around fixed anchors.
+	var is_pursuit: bool = not flight_benchmark_requested and index < PURSUIT_FIGHTERS
 	var label_text: String = "FIGHTER %02d" % (index+1)
-	if is_spell_target:
-		var stationary_target: bool = index < SPELL_TEST_STATIONARY_COUNT
-		var column: int = index % SPELL_TEST_STATIONARY_COUNT
-		var column_x: float = (float(column)-2.0)*4.1
-		var row_z: float = -24.0 if stationary_target else -34.0
-		fighter.spawn_point = player.spawn_point+Vector3(column_x,0.0,row_z)
-		fighter.spell_target_anchor = fighter.spawn_point
-		fighter.spell_walker_phase = float(column)*0.9
-		fighter.spell_target_mode = "stationary" if stationary_target else "walker"
-		fighter.stationary_only = true # Install existing standing idle on the rig.
-		fighter.ai_abilities = false # No automatic fireballs or chasing.
-		label_text = ("STATIC %d" if stationary_target else "WALKER %d") % (column+1)
+	if is_pursuit:
+		var roles: Array[String] = ["escapee","hunter","no_flight","no_sprint"]
+		var labels: Array[String] = ["ESCAPEE","ALL SPELLS","NO FLIGHT","NO SPRINT"]
+		var starting_points: Array[Vector3] = [Vector3(0,0,-10),Vector3(-10,0,8),Vector3(10,0,8),Vector3(0,0,14)]
+		fighter.spawn_point = starting_points[index]
+		fighter.pursuit_role = roles[index]
+		fighter.pursuit_home = Vector3.ZERO
+		fighter.ai_abilities = true
+		label_text = labels[index]
 	else:
 		# Preserve the existing 80-fighter benchmark and manual war-spawn path.
 		var angle: float = float(index) * 2.39996323
@@ -560,7 +555,7 @@ func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	body.add_child(ring)
 	return label
 func make_boundary():
-	# Closed 96 x 96 metre arena: opaque visible walls and a solid roof.
+	# Compact 100 x 100 metre pursuit cage: opaque walls and a low roof.
 	var structure := StaticBody3D.new()
 	structure.name = "EnclosedArena"
 	add_child(structure)
@@ -572,12 +567,15 @@ func make_boundary():
 	roof_material.albedo_color = Color("34414e")
 	roof_material.roughness = 0.95
 	roof_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var side: float = ARENA_HALF_EXTENT*2.0
+	var wall_height: float = 42.0
+	var half_height: float = wall_height*0.5
 	var surfaces := [
-		{"name":"NorthWall","size":Vector3(480.0,85.0,1.5),"center":Vector3(0,42.5,-240)},
-		{"name":"SouthWall","size":Vector3(480.0,85.0,1.5),"center":Vector3(0,42.5,240)},
-		{"name":"EastWall","size":Vector3(1.5,85.0,480.0),"center":Vector3(240,42.5,0)},
-		{"name":"WestWall","size":Vector3(1.5,85.0,480.0),"center":Vector3(-240,42.5,0)},
-		{"name":"Ceiling","size":Vector3(480.0,1.5,480.0),"center":Vector3(0,85,0)}
+		{"name":"NorthWall","size":Vector3(side,wall_height,1.5),"center":Vector3(0,half_height,-ARENA_HALF_EXTENT)},
+		{"name":"SouthWall","size":Vector3(side,wall_height,1.5),"center":Vector3(0,half_height,ARENA_HALF_EXTENT)},
+		{"name":"EastWall","size":Vector3(1.5,wall_height,side),"center":Vector3(ARENA_HALF_EXTENT,half_height,0)},
+		{"name":"WestWall","size":Vector3(1.5,wall_height,side),"center":Vector3(-ARENA_HALF_EXTENT,half_height,0)},
+		{"name":"Ceiling","size":Vector3(side,1.5,side),"center":Vector3(0,wall_height,0)}
 	]
 	for item in surfaces:
 		var collider := CollisionShape3D.new()
@@ -598,7 +596,7 @@ func make_boundary():
 	# One broad unshadowed interior lamp replaces four overlapping
 	# per-object lighting passes; ambient light supplies the fill.
 	var lamp := OmniLight3D.new()
-	lamp.position = Vector3(0,48,0)
+	lamp.position = Vector3(0,30,0)
 	lamp.light_energy = 2.2
 	lamp.omni_range = 85.0
 	lamp.shadow_enabled = false
