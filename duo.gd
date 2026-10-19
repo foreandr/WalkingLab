@@ -173,8 +173,8 @@ func _ready():
 		make_boundary()
 	# Always show a separate autonomous locomotion demonstrator beside Black.
 	ai = null
-	# Motion showcase was a test fixture; never spawn it during ordinary war.
-	set_demo_npc_enabled(false)
+	# Keep Black player-controlled and spawn a separate autonomous motion showcase.
+	set_demo_npc_enabled(not flight_benchmark_requested)
 	if flight_benchmark_requested:
 		spawn_more_fighters(benchmark_fighters)
 	else:
@@ -192,11 +192,12 @@ func set_demo_npc_enabled(enabled: bool) -> void:
 		ai.auto_war_combat = false
 		ai.ai_mode = "sprint"
 		ai.actor_only = true
-		ai.spawn_point = Vector3(14,0,29)
+		ai.spawn_point = Vector3(9,0,12)
 		ai.character_tint = FIGHTER_COLOR
 		add_child(ai)
 		ai.camera.current = false
-		ai_label = make_label(ai.actor,"MOTION DEMO",Color("c9d6ff"))
+		ai_label = make_label(ai.actor,"MOTION DEMO / AUTO",Color("c9d6ff"))
+		print("[MOTION_DEMO] NPC spawned at ",ai.spawn_point," with Black under player control")
 	else:
 		if is_instance_valid(ai):
 			if is_instance_valid(player): player.camera_target = null
