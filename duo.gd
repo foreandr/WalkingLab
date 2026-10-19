@@ -19,7 +19,7 @@ var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 const MAX_ACTIVE_FIGHTERS: int = 80
 # Default: one fleeing runner, three differently constrained spellcasters.
 # The previous 80-fighter stress test remains opt-in through CLI.
-const TEAM_AI_FIGHTERS: int = 20
+const TEAM_AI_FIGHTERS: int = 1
 const TEAM_BLUE: Color = Color("317bff")
 const TEAM_RED: Color = Color("ed4451")
 var status_refresh_clock: float = 0.0
@@ -165,8 +165,8 @@ func _ready():
 		spawn_more_fighters(benchmark_fighters)
 	else:
 		# Autonomous free-for-all combatants, spawned over separate frames.
-		spawn_more_fighters(TEAM_AI_FIGHTERS)
-	print("[ARENA_MODE] free_for_all player=manual immortal=true starting_spells=1 arena_half_extent=",ARENA_HALF_EXTENT)
+		spawn_more_fighters(TEAM_AI_FIGHTERS, true)
+	print("[ARENA_MODE] duel player=manual npc=1 arena_half_extent=",ARENA_HALF_EXTENT)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
 	if enabled:
@@ -245,7 +245,7 @@ func _spawn_single_fighter() -> void:
 	fighter.actor_only = true
 	fighter.ai_abilities = true
 	fighter.team_battle_ai = not flight_benchmark_requested
-	fighter.equipped_spells = ["fire"]
+	fighter.equipped_spells = PackedStringArray(["fire", "frost"])
 	fighter.animation_test_mode = "war"
 	fighter.war_pose_enabled = pose_enabled
 	var is_team_battle: bool = false
@@ -264,7 +264,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = random_war_spawn()
+			fighter.spawn_point = Vector3(0.0, 0.0, -9.0) if TEAM_AI_FIGHTERS == 1 else random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
