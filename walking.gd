@@ -2539,10 +2539,13 @@ func _physics_process(dt):
 func update_camera():
 	var subject: CharacterBody3D = camera_target if is_instance_valid(camera_target) else actor
 	if subject==null or camera==null: return
-	var subject_controller: Node = crouch
+	# CrouchController extends RefCounted, NOT Node. Do not type it as Node:
+	# doing so prevents walking.gd from compiling and leaves the arena empty.
+	var subject_controller = crouch
 	if subject!=actor and is_instance_valid(subject.get_parent()):
 		var parent_controller: Node = subject.get_parent()
-		if parent_controller.get("crouch")!=null: subject_controller = parent_controller.get("crouch")
+		var target_crouch = parent_controller.get("crouch")
+		if target_crouch!=null: subject_controller = target_crouch
 	var focus_target: float = subject_controller.capsule.height*0.58 if subject_controller.capsule!=null else 1.05
 	camera_focus_height = lerpf(camera_focus_height,focus_target,0.18)
 	var focus: Vector3 = subject.global_position+Vector3.UP*camera_focus_height
