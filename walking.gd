@@ -1413,7 +1413,7 @@ func combat_react(region: String, amount: float, remaining: float) -> void:
 	# reaction on the visible rig rather than an invisible backup skeleton.
 	var fighter_visual: Node = actor.get_node_or_null("BrawlVisual") if actor != null else null
 	if fighter_visual != null and fighter_visual.has_method("action"):
-		var reaction_candidates: Array = ["HitHead","Knockback","HitChest"] if region=="head" else ["HitChest","Knockback","HitHead"]
+		var reaction_candidates: Array = ["HitHead","Hit_Knockback","Knockback"] if region=="head" else ["Hit_Knockback","HitChest","Knockback"]
 		fighter_visual.call("action",reaction_candidates,0.44,"WEAPON IMPACT")
 
 func combat_die(region: String) -> void:

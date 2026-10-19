@@ -15,7 +15,8 @@ var model_scale: float = 1.0
 
 func _ready() -> void:
 	if pilot == null: return
-	var candidate: String = source_file
+	var combine_quaternius: bool = source_file.ends_with("UAL2_Standard.glb")
+	var candidate: String = "res://assets/source_original.glb" if combine_quaternius else source_file
 	if not ResourceLoader.exists(candidate):
 		candidate = "res://assets/source_original.glb"
 	if not ResourceLoader.exists(candidate):
@@ -37,6 +38,8 @@ func _ready() -> void:
 	mixer.playback_default_blend_time = 0.13
 	var rigs: Array[Node] = model.find_children("*","Skeleton3D",true,false)
 	if not rigs.is_empty(): skeleton = rigs[0] as Skeleton3D
+	if combine_quaternius and ResourceLoader.exists(source_file):
+		_merge_quaternius_combat(source_file)
 	# Never hide BLACK's controllable Mixamo model. Replace only NPC visuals.
 	var mesh_count: int = model.find_children("*","MeshInstance3D",true,false).size()
 	if mesh_count == 0:
@@ -48,6 +51,49 @@ func _ready() -> void:
 	if not pilot.player_controlled: pilot.visual.visible = false
 	print("[BRAWL_RIG_LOADED] fighter=",pilot.name," path=",candidate," visible_meshes=",model.find_children("*","MeshInstance3D",true,false).size()," animations=",mixer.get_animation_list())
 	play_named(["Idle","Idle_Loop","Sentinel"],true)
+
+
+func _merge_quaternius_combat(source: String) -> void:
+	# Confirmed using scripts/probe_brawl_animations.gd:
+	# UAL1 and UAL2 have identical 61-bone rigs, AnimationPlayer.root_node,
+	# and skeleton track targets Armature/Skeleton3D:<bone>.
+	# Play both libraries on ONE visible rig, preserving native authored keys.
+	if skeleton == null or mixer == null: return
+	var source_scene: PackedScene = load(source) as PackedScene
+	if source_scene == null: return
+	var reference: Node3D = source_scene.instantiate() as Node3D
+	if reference == null: return
+	add_child(reference)
+	reference.visible = false
+	var peers: Array[Node] = reference.find_children("*","Skeleton3D",true,false)
+	var animators: Array[Node] = reference.find_children("*","AnimationPlayer",true,false)
+	var compatible: bool = not peers.is_empty() and not animators.is_empty()
+	if compatible:
+		var candidate_rig: Skeleton3D = peers[0] as Skeleton3D
+		compatible = candidate_rig.get_bone_count() == skeleton.get_bone_count()
+		if compatible:
+			for index in range(skeleton.get_bone_count()):
+				if String(candidate_rig.get_bone_name(index)) != String(skeleton.get_bone_name(index)):
+					compatible = false
+					break
+	if compatible:
+		var imported_animator: AnimationPlayer = animators[0] as AnimationPlayer
+		var combination: AnimationLibrary = AnimationLibrary.new()
+		var collected: int = 0
+		for name in imported_animator.get_animation_list():
+			var original: Animation = imported_animator.get_animation(name)
+			if original == null: continue
+			combination.add_animation(StringName(String(name)),original.duplicate(true) as Animation)
+			collected += 1
+		if collected > 0:
+			var error_code: Error = mixer.add_animation_library("ual2",combination)
+			if error_code == OK:
+				print("[BRAWL_COMBINED_ANIMATIONS] actor=",pilot.name," native_locomotion=UAL1 authored_sword_and_ninja=UAL2 clips_added=",collected)
+			else:
+				push_warning("[BRAWL_ANIMATION_MERGE_FAILED] "+pilot.name+" code="+str(error_code))
+	else:
+		push_warning("[BRAWL_RIG_INCOMPATIBLE] "+source+" cannot share UAL1 skeleton")
+	reference.queue_free()
 
 func resolve(choices: Array) -> String:
 	if mixer == null: return ""

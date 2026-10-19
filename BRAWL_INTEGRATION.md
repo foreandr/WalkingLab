@@ -40,3 +40,6 @@ Every mortal NPC uses the **existing** WalkingLab GDScript team-battle AI, anato
 - The same source pack does not guarantee side-flip clips. The engine reports missing clips instead of fabricating flips.
 - The first local run must download the optional UAL2/AETHER and Kenney GLBs if absent, then import them into Godot. If offline, model/weapon fallbacks are used where available.
 - This repo-edit environment does not expose the user's local Windows/Godot process. At present **no local graphical gameplay test** has been performed. Validate via \`.\RUN.bat\`, inspect log lines \`[BRAWL_START]\`, \`[BRAWL_RIG_LOADED]\`, \`[BRAWL_SWING]\`, \`[BRAWL_WEAPON_HIT]\`, and \`[BRAWL_METRICS]\`.
+
+## Animation corrective integration (verified in Godot CI)
+UAL2_Standard.glb has **sword moves and NinjaJump** but omits baseline Idle/Walk/Jog/Sprint. Rig probe conclusively showed UAL1 and UAL2 each have the same 61 bones, same Armature/Skeleton3D path, and matching animation paths. The runtime now plays UAL1 locomotion and UAL2 sword/ninja source clips on a **single skeleton** by copying authored Animation resources into a separate `ual2` animation library. AETHER's independent 18-bone rig remains separate for its genuine Backflip. This avoids idle-pose sliding and avoids rotating limbs procedurally.
