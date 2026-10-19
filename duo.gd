@@ -146,7 +146,7 @@ func _ready():
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(arena_half_extent*2.0,0.2,arena_half_extent)
+	floor_box.size = Vector3(arena_half_extent*2.0,0.2,arena_half_extent*2.0)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -156,7 +156,7 @@ func _ready():
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.actor_only = true
-	player.spawn_point = Vector3(-5.0,0.0,0.0) if not flight_benchmark_requested else Vector3.ZERO
+	player.spawn_point = Vector3(-15.0,0.0,-15.0) if not flight_benchmark_requested else Vector3.ZERO
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	if not flight_benchmark_requested:
@@ -292,7 +292,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = Vector3(5.0,0.0,0.0) if int(current_level.get("enemy_count",0)) == 1 else random_war_spawn()
+			fighter.spawn_point = Vector3(15.0,0.0,15.0) if int(current_level.get("enemy_count",0)) == 1 else random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
