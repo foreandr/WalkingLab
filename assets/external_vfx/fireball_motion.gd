@@ -103,29 +103,29 @@ func launch_visible_aoe_stream(impact: Node3D, source: GPUParticles3D, origin: V
 	ember.restart()
 	var distance_to_hit: float = origin.distance_to(target_point)
 	var travel_time: float = clampf(distance_to_hit/15.0,0.12,0.74)
+	# Build the endpoint effect while the projectile is still valid. Delayed
+	# callbacks belong to surviving impact/damage nodes, NOT this soon-freed
+	# projectile's script instance.
+	var endpoint := ember.duplicate() as GPUParticles3D
+	impact.add_child(endpoint)
+	endpoint.global_position = target_point
+	endpoint.local_coords = false
+	endpoint.scale = Vector3.ONE*0.92
+	endpoint.amount = 28
+	endpoint.lifetime = 0.48
+	endpoint.one_shot = true
+	endpoint.explosiveness = 1.0
+	endpoint.emitting = false
+	var damage: Node = victim.get_node_or_null("DamageSystem")
 	var trajectory := impact.create_tween()
 	trajectory.tween_property(ember,"global_position",target_point,travel_time).set_trans(Tween.TRANS_LINEAR)
-	trajectory.tween_callback(func() -> void:
-		if not is_instance_valid(victim): return
-		ember.emitting = false
-		# The original projectile has already been queued for deletion;
-		# duplicate our own impact-owned trail, never that freed source node.
-		var endpoint := ember.duplicate() as GPUParticles3D
-		impact.add_child(endpoint)
-		endpoint.global_position = target_point
-		endpoint.local_coords = false
-		endpoint.scale = Vector3.ONE*0.92
-		endpoint.amount = 28
-		endpoint.lifetime = 0.48
-		endpoint.one_shot = true
-		endpoint.explosiveness = 1.0
-		endpoint.emitting = true
-		endpoint.restart()
-		var damage: Node = victim.get_node_or_null("DamageSystem")
-		if damage != null and not damage.dead:
-			damage.receive_aoe_regions(hit_regions,damage_amount,attacker_name)
-			if victim.has_method("apply_spell_status"): victim.apply_spell_status(spell_type,origin)
-	)
+	trajectory.tween_callback(Callable(ember,"set_emitting").bind(false))
+	trajectory.tween_callback(Callable(endpoint,"set_emitting").bind(true))
+	trajectory.tween_callback(Callable(endpoint,"restart"))
+	if damage != null:
+		trajectory.tween_callback(Callable(damage,"receive_aoe_regions").bind(hit_regions.duplicate(),damage_amount,attacker_name))
+	if victim.has_method("apply_spell_status"):
+		trajectory.tween_callback(Callable(victim,"apply_spell_status").bind(spell_type,origin))
 
 func explode(projectile: Node3D, position: Vector3) -> void:
 	var scene: Node = projectile.get_tree().current_scene
