@@ -153,7 +153,7 @@ func _ready():
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,-38)
+	player.spawn_point = Vector3(0,0,0)
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	if not flight_benchmark_requested:
@@ -179,7 +179,8 @@ func _ready():
 		spawn_more_fighters(benchmark_fighters)
 	else:
 		# Autonomous free-for-all combatants, spawned over separate frames.
-		spawn_more_fighters(int(current_level["enemy_count"]), true)
+		if int(current_level.get("enemy_count",0)) > 0:
+			spawn_more_fighters(int(current_level["enemy_count"]), true)
 	print("[LEVEL_START] number=",level_number," name=",current_level["name"]," biome=",current_level["biome"]," enemies=",mannequins.size()," spells_player=",player.equipped_spells)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
