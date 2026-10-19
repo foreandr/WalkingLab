@@ -2333,6 +2333,9 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	var flight_impact_speed: float = -actor.velocity.y if player_controlled and flight_enabled and actor.velocity.y < 0.0 else 0.0
+	# Frost reduces flight movement too, not only ground running.
+	if player_controlled and spell_frost_remaining>0.0 and flight_enabled:
+		actor.velocity *= 0.12
 	# Lower travel speed only; physics gravity and jump impulses remain normal.
 	if player_controlled:
 		if not flight_enabled: flight_dash_speed = 0.0
@@ -3036,6 +3039,7 @@ func update_punch_contact(dt: float) -> void:
 	var fist: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(hand_index).origin
 	for candidate in get_tree().get_nodes_in_group("combat_fighters"):
 		if candidate == self: continue
+		if team_id!="" and String(candidate.get("team_id"))==team_id: continue
 		var damage: Node = candidate.get_node_or_null("DamageSystem")
 		if damage == null or damage.dead: continue
 		var nearest: String = ""
@@ -3379,6 +3383,7 @@ func release_fireball(hand_world: Vector3) -> void:
 		mover.travel_speed *= float(get_tree().current_scene.get("battle_fireball_speed"))
 	mover.owner_rid = actor.get_rid()
 	mover.attacker_name = name
+	mover.caster_team = team_id
 	mover.spell_type = cast_element
 	mover.spell_color = spell_color
 	if cast_element=="homing":
