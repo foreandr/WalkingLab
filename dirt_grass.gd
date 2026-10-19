@@ -4,8 +4,8 @@ extends Node3D
 var half_extent: float = 250.0
 var rng := RandomNumberGenerator.new()
 const SOURCE: String = "res://assets/external_grass/kenney_grass.glb"
-const CELL_SIZE: float = 4.0
-const CHUNK_CELLS: int = 12
+const CELL_SIZE: float = 2.0
+const CHUNK_CELLS: int = 18
 
 func _ready() -> void:
     rng.randomize()
@@ -22,10 +22,14 @@ func _ready() -> void:
         original.free()
         push_warning("[DIRT_GRASS] No mesh in imported Kenney asset")
         return
-    var coverage: float = rng.randf_range(0.40,0.90)
+    var coverage: float = rng.randf_range(0.75,0.90)
     var cells: int = int(floor(half_extent*2.0/CELL_SIZE))
     var tiles: int = int(ceil(float(cells)/float(CHUNK_CELLS)))
     var instance_total: int = 0
+    var natural_green := StandardMaterial3D.new()
+    natural_green.albedo_color = Color("477c29")
+    natural_green.roughness = 0.96
+    natural_green.cull_mode = BaseMaterial3D.CULL_DISABLED
     for tile_x in range(tiles):
         for tile_z in range(tiles):
             var transforms: Array[Transform3D] = []
@@ -38,7 +42,7 @@ func _ready() -> void:
                     if rng.randf() > coverage: continue
                     var px: float = -half_extent+(float(x)+rng.randf())*CELL_SIZE
                     var pz: float = -half_extent+(float(z)+rng.randf())*CELL_SIZE
-                    var scale_value: float = rng.randf_range(1.4,2.9)
+                    var scale_value: float = rng.randf_range(1.1,1.9)
                     var basis := Basis(Vector3.UP,rng.randf_range(0.0,TAU)).scaled(Vector3.ONE*scale_value)
                     transforms.append(Transform3D(basis,Vector3(px,-0.03,pz)))
             if transforms.is_empty(): continue
@@ -51,6 +55,7 @@ func _ready() -> void:
             var instance := MultiMeshInstance3D.new()
             instance.name = "KenneyGrass_%d_%d" % [tile_x,tile_z]
             instance.multimesh = batch
+            instance.material_override = natural_green
             instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
             instance.visibility_range_end = 125.0
             instance.visibility_range_end_margin = 12.0
