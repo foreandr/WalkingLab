@@ -1,5 +1,7 @@
 extends Node3D
 var biome: String = "arena"
+var world_half_extent: float = 2000.0
+var building_defs: Array = []
 func _ready(): make_arena()
 
 func texture(id: String, scale_value: float) -> StandardMaterial3D:
@@ -37,9 +39,9 @@ func make_arena():
 	e.ambient_light_color = Color("9aafc7")
 	e.ambient_light_energy = 0.32
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	e.fog_enabled = false
+	e.fog_enabled = biome == "grassland"
 	e.fog_light_color = Color("9ba9b3")
-	e.fog_density = 0.004
+	e.fog_density = 0.004 if biome == "grassland" else 0.004
 	env.environment = e
 	add_child(env)
 	var sun = DirectionalLight3D.new()
@@ -57,9 +59,10 @@ func make_arena():
 	if biome == "grassland":
 		# Level one uses existing sourced ground textures, without a stone ring or ruins.
 		var grass_ground = PlaneMesh.new()
-		grass_ground.size = Vector2(100,100)
+		grass_ground.size = Vector2(world_half_extent*2.0,world_half_extent*2.0)
 		mesh_node(grass_ground,Vector3(0,-0.13,0),texture("forest_ground_04",0.18))
-		print("[LEVEL_ENVIRONMENT] biome=grassland ground=100x100 ruins=false")
+		make_demo_buildings()
+		print("[LEVEL_ENVIRONMENT] biome=grassland side_m=",world_half_extent*2.0," sky=true fog=true buildings=",building_defs.size()," border=false roof=false")
 		return
 	var ground = PlaneMesh.new()
 	ground.size = Vector2(100,100) # Match the compact pursuit arena boundaries.
@@ -96,3 +99,42 @@ func make_arena():
 		holder.position = Vector3(sin(i*TAU/12)*44,0,cos(i*TAU/12)*44)
 
 
+
+func make_demo_buildings() -> void:
+	for definition in building_defs:
+		var root := StaticBody3D.new()
+		root.name = String(definition.get("name","BUILDING"))
+		root.position = definition.get("position",Vector3.ZERO)
+		add_child(root)
+		var extent: Vector3 = definition.get("size",Vector3(10,6,8))
+		var walls := BoxMesh.new()
+		walls.size = extent
+		var wall_mesh := MeshInstance3D.new()
+		wall_mesh.mesh = walls
+		wall_mesh.position.y = extent.y*0.5
+		var wall_material := StandardMaterial3D.new()
+		wall_material.albedo_color = Color("ad9881")
+		wall_mesh.material_override = wall_material
+		root.add_child(wall_mesh)
+		var collider := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = extent
+		collider.shape = shape
+		collider.position.y = extent.y*0.5
+		root.add_child(collider)
+		var roof_mesh := MeshInstance3D.new()
+		var roof := PrismMesh.new()
+		roof.size = Vector3(extent.x+1.5,3.0,extent.z+1.5)
+		roof_mesh.mesh = roof
+		roof_mesh.position.y = extent.y+1.0
+		var roof_material := StandardMaterial3D.new()
+		roof_material.albedo_color = Color("584b41")
+		roof_mesh.material_override = roof_material
+		root.add_child(roof_mesh)
+		var label := Label3D.new()
+		label.text = String(definition.get("name","BUILDING"))
+		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		label.font_size = 64
+		label.outline_size = 12
+		label.position.y = extent.y+5.0
+		root.add_child(label)
