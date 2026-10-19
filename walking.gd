@@ -1393,7 +1393,7 @@ func combat_die(region: String) -> void:
 	flight_enabled = false
 	flight_windup_remaining = 0.0
 	var clips: Array[String] = ["Dying.fbx","Dying (1).fbx","Dying (2).fbx","Dying (3).fbx"]
-	start_movement_clip(clips[randi_range(0,clips.size()-1)] if region == "head" else "Stunned.fbx")
+	start_movement_clip(clips[randi_range(0,clips.size()-1)]) # Every death ends in a genuine falling pose.
 
 func update_combat_fall(dt: float) -> void:
 	combat_death_time += dt
@@ -1419,16 +1419,20 @@ func update_combat_fall(dt: float) -> void:
 	# Once settled, compute floor clearance from animated bones rather
 	# than raising the entire body by a guessed constant.
 	visual.rotation.x = lerpf(combat_initial_pitch,-PI*0.5,smoothstep(0.0,0.95,combat_death_time))
-	if actor.is_on_floor() and combat_death_time >= 0.95:
+	if combat_death_time >= 0.95:
+		# The capsule's upright center is not a corpse floor-contact point.
+		# Adjust the visual rig until its lowest animated joint sits at floor height.
 		skeleton.force_update_all_bone_transforms()
 		var lowest: float = INF
 		for bone_index in range(skeleton.get_bone_count()):
 			var bone_world: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(bone_index).origin
 			lowest = minf(lowest,bone_world.y)
 		if lowest < INF:
-			var floor_height: float = actor.global_position.y
-			var correction: float = floor_height+0.09-lowest
-			visual.position.y += clampf(correction,-dt*0.7,dt*0.7)
+			var floor_height: float = maxf(0.0,actor.global_position.y)
+			var correction: float = floor_height+0.04-lowest
+			visual.position.y += clampf(correction,-dt*2.5,dt*2.5)
+		# Do not let a death pose retain the previous aerial-flight pitch.
+		visual.rotation.z = 0.0
 
 func update_sky_target(dt: float) -> void:
 	tree.advance(dt)
