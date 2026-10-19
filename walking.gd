@@ -2538,6 +2538,16 @@ func update_camera():
 	var focus_target: float = subject_controller.capsule.height*0.58 if subject_controller.capsule!=null else 1.05
 	camera_focus_height = lerpf(camera_focus_height,focus_target,0.18)
 	var focus: Vector3 = subject.global_position+Vector3.UP*camera_focus_height
+	if player_controlled and combat_dead and subject==actor and skeleton!=null:
+		# Follow the actual animated body (not only its upright physics capsule).
+		# It may still be airborne, pitching forward, or lying prone after death.
+		skeleton.force_update_all_bone_transforms()
+		var torso_index: int = skeleton.find_bone("Spine2")
+		if torso_index<0: torso_index = skeleton.find_bone("Spine")
+		if torso_index>=0:
+			var torso_center: Vector3 = skeleton.global_transform*skeleton.get_bone_global_pose(torso_index).origin
+			if torso_center.distance_to(subject.global_position)<3.5:
+				focus = torso_center
 	# World-space follow is mandatory when grounding pulls a flying fighter
 	# down. Avoid root-local offsets and never smooth the actor's world Y.
 	camera.global_position = focus+Vector3(sin(orbit)*cos(elevation),-sin(elevation),cos(orbit)*cos(elevation))*distance
@@ -3605,6 +3615,57 @@ func release_fireball(hand_world: Vector3) -> void:
 	effect.fixed_fps = 30
 	effect.emitting = true
 	effect.restart()
+	# Fuse the actual imported spell VFX motions, not just their colour.
+	# A single physics projectile owns small, independent particle layers;
+	# every constituent keeps its own motion, with NO extra physics bodies.
+	if components.size()>1:
+		effect.amount = mini(effect.amount,4)
+		for component in components:
+			var layer: GPUParticles3D = effect.duplicate() as GPUParticles3D
+			layer.name = component.capitalize()+"FusionMotion"
+			projectile.add_child(layer)
+			var layer_mat: ParticleProcessMaterial = layer.process_material.duplicate(true) as ParticleProcessMaterial
+			if layer_mat!=null:
+				var color: Color = SPELL_COLORS[SPELL_IDS.find(component)]
+				var ramp := Gradient.new()
+				ramp.set_color(0,color)
+				ramp.set_color(1,Color(color.r,color.g,color.b,0.0))
+				var texture := GradientTexture1D.new()
+				texture.gradient = ramp
+				layer_mat.color_ramp = texture
+				layer_mat.color = Color.WHITE
+				match component:
+					"fire":
+						layer_mat.direction = Vector3(0.0,1.0,0.0)
+						layer_mat.spread = 55.0
+					"frost":
+						layer_mat.direction = Vector3(0.0,0.0,-1.0)
+						layer_mat.spread = 15.0
+						layer_mat.gravity = Vector3.ZERO
+					"homing":
+						layer_mat.direction = Vector3(0.0,0.0,1.0)
+						layer_mat.spread = 12.0
+					"gravity":
+						layer_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+						layer_mat.emission_sphere_radius = 0.7
+						layer_mat.direction = Vector3(0.0,-1.0,0.0)
+						layer_mat.spread = 165.0
+					"ricochet":
+						layer_mat.spread = 180.0
+					"grounding":
+						layer_mat.direction = Vector3(0.0,-1.0,0.0)
+						layer_mat.spread = 30.0
+					"tempest":
+						layer_mat.direction = Vector3(1.0,0.0,0.0)
+						layer_mat.spread = 130.0
+					"venom":
+						layer_mat.direction = Vector3(0.0,1.0,0.0)
+						layer_mat.spread = 85.0
+				layer.process_material = layer_mat
+			layer.amount = 4
+			layer.fixed_fps = 30
+			layer.emitting = true
+			layer.restart()
 	var script_path: String = "res://assets/external_vfx/" + "fireball_motion.gd"
 	var mover = load(script_path).new()
 	mover.name = "Motion"
