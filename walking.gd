@@ -1539,7 +1539,7 @@ func status_description() -> String:
 	return "  |  ".join(active)
 
 func team_is_enemy(other: Node) -> bool:
-	return other != null and is_instance_valid(other) and other != self and not other.combat_dead and team_id != "" and String(other.get("team_id")) != "" and String(other.get("team_id")) != team_id
+	return other != null and is_instance_valid(other) and other != self and not other.combat_dead and (team_id == "" or (String(other.get("team_id")) != "" and String(other.get("team_id")) != team_id))
 
 func heal_from_bloom(amount: float) -> void:
 	var damage: Node = get_node_or_null("DamageSystem")
@@ -1984,7 +1984,7 @@ func update_team_battle_agent(dt: float) -> void:
 		var want_flight: bool = target_valid and spell_grounded_remaining<=0.0 and (war_target.flight_enabled or offset.y>3.5 or (critical and agent_rng.randf()<0.40))
 		if want_flight and not flight_enabled:
 			var flight_slot: int = SPELL_IDS.find("flight")
-			if spell_is_ready(flight_slot):
+			if "flight" in equipped_spells and spell_is_ready(flight_slot):
 				spend_spell(flight_slot)
 				flight_enabled = true
 		elif not want_flight:
@@ -2059,7 +2059,7 @@ func update_team_battle_agent(dt: float) -> void:
 			for i in range(attacks.size()):
 				preferences.append(attacks[(seed_index+i)%attacks.size()])
 			for candidate_spell in preferences:
-				if spell_is_ready(SPELL_IDS.find(candidate_spell)):
+				if candidate_spell in equipped_spells and spell_is_ready(SPELL_IDS.find(candidate_spell)):
 					chosen = candidate_spell
 					break
 		if chosen!="":
@@ -2067,7 +2067,7 @@ func update_team_battle_agent(dt: float) -> void:
 			if spell_is_ready(spell_slot):
 				controlled_arm = "left" if spell_slot>=5 else "right"
 				var fused: bool = false
-				if target_valid and FUSION_PROJECTILES.has(chosen) and agent_rng.randf()<0.45:
+				if target_valid and FUSION_PROJECTILES.has(chosen) and equipped_spells.size()>1 and agent_rng.randf()<0.45:
 					var combo: Array[String] = [chosen]
 					var candidates: Array[String] = []
 					if spell_slot<5:
@@ -2082,7 +2082,7 @@ func update_team_battle_agent(dt: float) -> void:
 						if combo.has(candidate): continue
 						var proposed: Array[String] = combo.duplicate()
 						proposed.append(candidate)
-						if spell_combo_is_ready(proposed) and agent_rng.randf()<0.75: combo = proposed
+						if candidate in equipped_spells and spell_combo_is_ready(proposed) and agent_rng.randf()<0.75: combo = proposed
 					if combo.size()>1: fused = begin_projectile_cast(combo)
 				if not fused: cast_spell(chosen)
 		# Fire the next shot promptly when there is something ready to cast.
