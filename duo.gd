@@ -163,7 +163,7 @@ func _ready():
 		var level_player_spells: Array[String] = []
 		level_player_spells.assign(current_level["player_spells"])
 		player.equipped_spells = level_player_spells
-	player.demo_immortal = true
+	player.demo_immortal = not bool(current_level.get("battle_royale_drop",false))
 	# Black must not inherit any scripted AI/benchmark movement in normal play.
 	player.benchmark_flight_active = false
 	player.benchmark_flight_axis = Vector2.ZERO
@@ -812,8 +812,23 @@ func _physics_process(_dt):
 	tick_war_fighters(_dt)
 	player_label.position.y = player.crouch.capsule.height+0.3
 	if stress_no_deaths or announced_winner or queued_fighter_spawns>0: return
-	# Team victory announcements have no meaning in the free-for-all.
-	if player.team_id == "": return
+	# A solo survivor wins the free-for-all, including if BLACK was eliminated.
+	if player.team_id == "":
+		var survivors: Array = []
+		if not player.combat_dead: survivors.append(player.name)
+		for rival in mannequins:
+			if is_instance_valid(rival) and not rival.combat_dead: survivors.append(rival.name)
+		if bool(current_level.get("battle_royale_drop",false)) and survivors.size() <= 1 and mannequins.size() >= int(current_level.get("enemy_count",0)):
+			announced_winner = true
+			var name_winner: String = survivors[0] if survivors.size() == 1 else "NOBODY"
+			print("[BATTLE_ROYALE_WINNER] ",name_winner)
+			var victory := Label3D.new()
+			victory.text = name_winner + " WINS"
+			victory.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+			victory.font_size = 80
+			victory.position = Vector3(0,12,0)
+			add_child(victory)
+		return
 	if flight_benchmark_requested: return
 	var blue_alive: int = 0 if player.combat_dead else 1
 	var red_alive: int = 0
