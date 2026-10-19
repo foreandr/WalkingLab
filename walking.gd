@@ -1405,7 +1405,7 @@ func _physics_process(dt):
 			debug_player("TELEMETRY","state="+state+" input="+str(manual_input)+" velocity="+str(actor.velocity)+" grounded="+str(actor.is_on_floor())+" squat="+str(snappedf(squat_amount,0.01))+" key="+str(squat_key_down)+" visual_y="+str(snappedf(visual.position.y,0.01))+" visual_scale_y="+str(snappedf(visual.scale.y,0.01))+" animation=pelvis_only"+" flight_idle="+str(snappedf(flight_idle_weight,0.01))+" cam_yaw="+str(snappedf(orbit,0.01))+" cam_pitch="+str(snappedf(elevation,0.01)))
 	# Calibration only: pitch the visible character down, never the collider.
 	if name == "PlayerMan" and ai_mode == "sprint" and not flight_enabled:
-		visual.rotation.x = 0.0
+		visual.rotation.x = deg_to_rad(-8.0)
 	if player_controlled or ai_abilities:
 		adjust_jab_arm()
 		update_cast_motion(step)
@@ -1436,7 +1436,7 @@ func _physics_process(dt):
 		# Preserve normal agent steering during forward-running phases.
 		var showcase_facing: float = manual_heading
 		if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
-			showcase_facing = deg_to_rad(25.0) if solo_direction_phase == 5 else deg_to_rad(-25.0) # Small mirrored turn, not forward walking.
+			showcase_facing = deg_to_rad(35.0) if solo_direction_phase == 5 else deg_to_rad(-35.0) # Small mirrored turn, not forward walking.
 		actor.rotation.y = rotate_toward(actor.rotation.y,showcase_facing,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
 		var travel_direction = -tangent*speed-radial.normalized()*(radial.length()-route_radius)*2.0
