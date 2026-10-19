@@ -39,10 +39,10 @@ var flight_benchmark_unfocused_frames: int = 0
 var flight_benchmark_low_draw_frames: int = 0
 var flight_benchmark_origin: Vector3 = Vector3.ZERO
 
-const FIGHTER_COLORS: Array[String] = ["7962cb","21c8d6","cb668d","87be4a","e3a452","597bc5","a7945c","d46cad","6bb3a8","b4c46c"]
-# Temporary sustained-load benchmark: every combatant remains alive.
-# Damage, impact reactions, AI, flight, collision and projectiles stay enabled.
-var stress_no_deaths: bool = true
+# Uniform white base makes anatomical damage visible on each fighter.
+# Health, limb injury and deaths are authoritative; test targets are mortal.
+const FIGHTER_COLOR: Color = Color.WHITE
+var stress_no_deaths: bool = false
 # Controlled A/B switch. Default restores Cycle 4 anatomical shader writes.
 var batch_aoe_shader: bool = false
 var announced_winner: bool = false
@@ -130,10 +130,10 @@ func _ready():
 	player.ai_mode = ""
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,155)
-	player.character_tint = Color("101114")
+	player.character_tint = FIGHTER_COLOR
 	add_child(player)
 	player.camera.current = true
-	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
+	player_label = make_label(player.actor,"YOU",FIGHTER_COLOR)
 	make_boundary()
 	# DemoNPC is an optional developer tool, not an always-visible actor.
 	# It can be enabled through Settings when animation calibration is needed.
@@ -156,7 +156,7 @@ func set_demo_npc_enabled(enabled: bool) -> void:
 		ai.ai_mode = "sprint"
 		ai.actor_only = true
 		ai.spawn_point = Vector3(12,0,145)
-		ai.character_tint = Color("708ac4")
+		ai.character_tint = FIGHTER_COLOR
 		add_child(ai)
 		ai.camera.current = false
 		ai_label = make_label(ai.actor,"MOTION DEMO",Color("c9d6ff"))
@@ -228,7 +228,7 @@ func _spawn_single_fighter() -> void:
 			label_text = "%d m" % LINEUP_DISTANCES[index]
 		else:
 			fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
-	fighter.character_tint = Color(FIGHTER_COLORS[index % FIGHTER_COLORS.size()])
+	fighter.character_tint = FIGHTER_COLOR
 	add_child(fighter)
 	fighter.actor.rotation.y = atan2(player.actor.global_position.x-fighter.actor.global_position.x,player.actor.global_position.z-fighter.actor.global_position.z)+PI
 	make_label(fighter.actor,label_text,fighter.character_tint)
