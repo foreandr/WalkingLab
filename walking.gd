@@ -2414,19 +2414,24 @@ func _process(_dt):
 		get_tree().quit(0 if max_lift<0.15 and min_sole>=0.0059 and min_body>=0.0 else 1)
 func manual_target_speed() -> float:
 	if manual_input.length()<0.01: return 0.0
+	var desired_speed: float = 0.0
 	var injury: Node = get_node_or_null("DamageSystem")
 	if injury != null and (float(injury.hp["left_leg"]) <= 20.0 or float(injury.hp["right_leg"]) <= 20.0):
-		return -BACK_SPEEDS[0] if manual_input.y < -0.1 else SPEEDS[0]
-	var sprinting = (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not manual_launch_lock and not sprint_exhausted
-	if manual_input.y< -0.1: return -BACK_SPEEDS[2] if sprinting else -BACK_SPEEDS[1]
-	if Input.is_action_pressed("walk"): return SPEEDS[0]
-	if not sprinting or manual_input.y<=0.1: return SPEEDS[2]
-	if alt_dash_held and not flight_enabled: return DASH_GROUND_SPEED
-	var progress = manual_sprint_clock / SPRINT_STAGE_SECONDS
-	if progress >= 3.0:
-		return SPEEDS[5] + (progress - 3.0) * ENDLESS_SPRINT_GAIN
-	var stage = mini(int(progress),2)
-	return lerp(float(SPEEDS[2+stage]),float(SPEEDS[3+stage]),smooth_gait(progress-stage))
+		desired_speed = -BACK_SPEEDS[0] if manual_input.y < -0.1 else SPEEDS[0]
+	else:
+		var sprinting: bool = (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not manual_launch_lock and not sprint_exhausted
+		if manual_input.y< -0.1: desired_speed = -BACK_SPEEDS[2] if sprinting else -BACK_SPEEDS[1]
+		elif Input.is_action_pressed("walk"): desired_speed = SPEEDS[0]
+		elif not sprinting or manual_input.y<=0.1: desired_speed = SPEEDS[2]
+		elif alt_dash_held and not flight_enabled: desired_speed = DASH_GROUND_SPEED
+		else:
+			var progress: float = manual_sprint_clock / SPRINT_STAGE_SECONDS
+			if progress>=3.0: desired_speed = SPEEDS[5]+(progress-3.0)*ENDLESS_SPRINT_GAIN
+			else:
+				var stage: int = mini(int(progress),2)
+				desired_speed = lerp(float(SPEEDS[2+stage]),float(SPEEDS[3+stage]),smooth_gait(progress-stage))
+	# Frost truly slows Black's movement, not only the autonomous fighters.
+	return desired_speed*(0.12 if spell_frost_remaining>0.0 else 1.0)
 func speed_band(values: Array, value: float) -> float:
 	for index in range(values.size()-1):
 		if value<=values[index+1]: return clamp(float(index)+(value-values[index])/(values[index+1]-values[index]),0.0,float(values.size()-1))
@@ -3174,7 +3179,7 @@ func acquire_homing_target() -> CharacterBody3D:
 	if is_instance_valid(selected_spell_target):
 		var locked_owner: Node = selected_spell_target.get_parent()
 		var locked_damage: Node = locked_owner.get_node_or_null("DamageSystem") if locked_owner != null else null
-		if locked_damage != null and not locked_damage.dead and selected_spell_target != actor:
+		if locked_damage != null and not locked_damage.dead and selected_spell_target != actor and (team_id=="" or String(locked_owner.get("team_id"))!=team_id):
 			return selected_spell_target
 	if not player_controlled:
 		if is_instance_valid(war_target) and not war_target.combat_dead:
@@ -3189,6 +3194,7 @@ func acquire_homing_target() -> CharacterBody3D:
 	var best_score: float = INF
 	for opponent in get_tree().get_nodes_in_group("combat_fighters"):
 		if opponent == self or not is_instance_valid(opponent) or opponent.combat_dead: continue
+		if team_id!="" and String(opponent.get("team_id"))==team_id: continue
 		var victim_body: CharacterBody3D = opponent.get("actor") as CharacterBody3D
 		if victim_body == null: continue
 		var victim_position: Vector3 = victim_body.global_position+Vector3.UP*1.0
@@ -3213,6 +3219,8 @@ func spend_spell(slot: int) -> void:
 	update_resource_hud()
 
 func toggle_flight_spell() -> void:
+	# Grounding prevents flight recast for the full debuff duration.
+	if spell_grounded_remaining>0.0: return
 	# Left-hand pinky: flight toggles off freely, even mid-cooldown.
 	if flight_enabled or flight_windup_remaining>0.0:
 		flight_enabled = false
@@ -3243,6 +3251,7 @@ func toggle_flight_spell() -> void:
 func cast_spell(element: String) -> void:
 	# Player controls five independent fingers per selected hand.
 	var slot: int = SPELL_IDS.find(element)
+	if slot<0: return
 	if player_controlled:
 		if slot<0: return
 		if (slot<5 and controlled_arm!="right") or (slot>=5 and controlled_arm!="left"): return
@@ -3253,10 +3262,14 @@ func cast_spell(element: String) -> void:
 	if element=="ricochet" and get_tree().get_nodes_in_group("persistent_ricochets").size()>=MAX_ACTIVE_RICOCHETS:
 		if player_controlled: debug_player("RICOCHET_LIMIT","active orbs capped at "+str(MAX_ACTIVE_RICOCHETS))
 		return
-	if player_controlled and not spell_is_ready(slot): return
+	if not spell_is_ready(slot): return
 	var arm_health: Node = get_node_or_null("DamageSystem")
 	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"])<=0.0:
 		if player_controlled: debug_player("SPELL_BLOCKED","disabled "+controlled_arm+" arm")
+		return
+	if element=="bloom":
+		spend_spell(slot)
+		cast_bloom_pulse()
 		return
 	# Existing imported VFX/rig animation; no home-built substitute.
 	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return
@@ -3265,11 +3278,7 @@ func cast_spell(element: String) -> void:
 	cast_aim_point = ai_target_position() if ai_abilities else selected_target_aim_point()
 	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
 	if hand_id<0: return
-	if player_controlled and slot>=0:
-		spend_spell(slot)
-		if element=="bloom":
-			spell_regen_remaining = 6.0
-			spell_regen_tick = 0.0
+	spend_spell(slot)
 	skeleton.force_update_all_bone_transforms()
 	cast_last_hand = skeleton.global_transform*skeleton.get_bone_global_pose(hand_id).origin
 	cast_hand_velocity = Vector3.ZERO
