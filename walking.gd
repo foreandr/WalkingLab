@@ -172,6 +172,10 @@ var spell_burn_tick: float = 0.0
 var spell_frost_remaining: float = 0.0
 var spell_gravity_remaining: float = 0.0
 var spell_gravity_origin: Vector3 = Vector3.ZERO
+var spell_venom_remaining: float = 0.0
+var spell_venom_tick: float = 0.0
+var spell_tempest_remaining: float = 0.0
+var spell_tempest_direction: Vector3 = Vector3.ZERO
 
 var war_profile_counter: int = 0
 var war_visual_accumulator: float = 0.0
@@ -1370,6 +1374,17 @@ func apply_spell_status(effect_id: String, center: Vector3) -> void:
 		"gravity":
 			spell_gravity_remaining = maxf(spell_gravity_remaining,2.6)
 			spell_gravity_origin = center
+		"venom":
+			spell_venom_remaining = maxf(spell_venom_remaining,7.0)
+			spell_venom_tick = 0.0
+		"tempest":
+			spell_tempest_remaining = maxf(spell_tempest_remaining,0.75)
+			spell_tempest_direction = actor.global_position-center
+			spell_tempest_direction.y = 0.0
+			if spell_tempest_direction.length_squared()>0.01:
+				spell_tempest_direction = spell_tempest_direction.normalized()
+			else:
+				spell_tempest_direction = Vector3.FORWARD
 
 func update_spell_test_target(dt: float) -> void:
 	# Spell effects stay active even on completely passive mannequins.
@@ -1381,8 +1396,23 @@ func update_spell_test_target(dt: float) -> void:
 			var hurt: Node = get_node_or_null("DamageSystem")
 			if hurt != null and not hurt.dead:
 				hurt.receive_region_hit("torso",actor.global_position+Vector3.UP,4.5,"BURN",false)
+	if spell_venom_remaining > 0.0:
+		spell_venom_remaining = maxf(0.0,spell_venom_remaining-dt)
+		spell_venom_tick += dt
+		if spell_venom_tick >= 0.8:
+			spell_venom_tick = 0.0
+			var poison_hurt: Node = get_node_or_null("DamageSystem")
+			if poison_hurt != null and not poison_hurt.dead:
+				poison_hurt.receive_region_hit("torso",actor.global_position+Vector3.UP,5.0,"VENOM",false)
 	spell_frost_remaining = maxf(0.0,spell_frost_remaining-dt)
 	spell_gravity_remaining = maxf(0.0,spell_gravity_remaining-dt)
+	spell_tempest_remaining = maxf(0.0,spell_tempest_remaining-dt)
+	if spell_tempest_remaining > 0.0:
+		actor.velocity = spell_tempest_direction * (21.0*spell_tempest_remaining/0.75)
+		actor.velocity.y = -0.3
+		actor.move_and_slide()
+		tree.advance(dt)
+		return
 	if spell_gravity_remaining > 0.0:
 		var toward: Vector3 = spell_gravity_origin-actor.global_position
 		toward.y = 0.0
@@ -1495,7 +1525,13 @@ func _physics_process(dt):
 	if player_controlled:
 		for i in range(spell_remaining.size()):
 			spell_remaining[i] = maxf(0.0,spell_remaining[i]-dt)
-		mana = minf(100.0,mana+7.0*dt)
+		mana = 100.0 if infinite_mana else minf(100.0,mana+7.0*dt)
+		if spell_regen_remaining > 0.0:
+			spell_regen_remaining = maxf(0.0,spell_regen_remaining-dt)
+			spell_regen_tick += dt
+			if spell_regen_tick >= 0.5:
+				spell_regen_tick = 0.0
+				heal_from_spell(3.0)
 		var spending_stamina: bool = (alt_dash_held or Input.is_action_pressed("sprint")) and manual_input.length_squared()>0.02 and not sprint_exhausted
 		stamina = clampf(stamina-(24.0 if alt_dash_held else 11.0)*dt if spending_stamina else stamina+18.0*dt,0.0,100.0)
 		if stamina <= 0.0:
@@ -2674,29 +2710,71 @@ func select_hovered_target() -> void:
 	selected_spell_target.add_child(lock_marker)
 	if player_controlled: debug_player("TARGET_LOCKED",selected_spell_target.name)
 
+func spell_is_ready(slot: int) -> bool:
+	return slot>=0 and slot<SPELL_IDS.size() and (ignore_spell_cooldowns or spell_remaining[slot]<=0.0) and (infinite_mana or mana>=SPELL_COSTS[slot])
+
+func spend_spell(slot: int) -> void:
+	if not infinite_mana: mana = maxf(0.0,mana-SPELL_COSTS[slot])
+	if not ignore_spell_cooldowns: spell_remaining[slot] = SPELL_COOLDOWNS[slot]
+	update_resource_hud()
+
+func toggle_flight_spell() -> void:
+	# Left-hand pinky: flight toggles off freely, even mid-cooldown.
+	if flight_enabled or flight_windup_remaining>0.0:
+		flight_enabled = false
+		flight_windup_remaining = 0.0
+		flight_launch_remaining = 0.0
+		update_resource_hud()
+		debug_player("FLIGHT_SPELL","off")
+		return
+	var slot: int = SPELL_IDS.find("flight")
+	if not spell_is_ready(slot) or crouch.active(): return
+	var damage: Node = get_node_or_null("DamageSystem")
+	if damage != null and float(damage.hp["left_arm"])<=0.0: return
+	spend_spell(slot)
+	if actor.is_on_floor():
+		flight_windup_remaining = FLIGHT_WINDUP_SECONDS
+		flight_acceleration_time = 0.0
+		vertical_jump_speed = 0.0
+		flight_animation_time = 0.0
+		flight_pose_weight = 0.0
+		start_movement_clip("Jumping Up.fbx")
+		debug_player("FLIGHT_SPELL","windup")
+	else:
+		flight_enabled = true
+		flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+		flight_clearance_time = 1.0
+		debug_player("FLIGHT_SPELL","air_launch")
+
 func cast_spell(element: String) -> void:
-	# Every spell uses the existing palm-origin animation and physics projectile.
-	if cast_elapsed >= 0.0 or crouch.active(): return
+	# Player controls five independent fingers per selected hand.
 	var slot: int = SPELL_IDS.find(element)
-	if player_controlled and slot >= 0:
-		if spell_remaining[slot]>0.0 or mana<SPELL_COSTS[slot]: return
+	if player_controlled:
+		if slot<0: return
+		if (slot<5 and controlled_arm!="right") or (slot>=5 and controlled_arm!="left"): return
+		if element=="flight":
+			toggle_flight_spell()
+			return
+	if cast_elapsed>=0.0 or crouch.active(): return
+	if player_controlled and not spell_is_ready(slot): return
 	var arm_health: Node = get_node_or_null("DamageSystem")
-	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"]) <= 0.0:
+	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"])<=0.0:
 		if player_controlled: debug_player("SPELL_BLOCKED","disabled "+controlled_arm+" arm")
 		return
-	# The imported fire effect supplies the particles for every colored spell.
+	# Existing imported VFX/rig animation; no home-built substitute.
 	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return
 	cast_element = element
 	cast_arm_name = controlled_arm
 	cast_aim_point = ai_target_position() if ai_abilities else selected_target_aim_point()
 	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
-	if hand_id < 0: return
-	if player_controlled and slot >= 0:
-		mana -= SPELL_COSTS[slot]
-		spell_remaining[slot] = SPELL_COOLDOWNS[slot]
-		update_resource_hud()
+	if hand_id<0: return
+	if player_controlled and slot>=0:
+		spend_spell(slot)
+		if element=="bloom":
+			spell_regen_remaining = 6.0
+			spell_regen_tick = 0.0
 	skeleton.force_update_all_bone_transforms()
-	cast_last_hand = skeleton.global_transform * skeleton.get_bone_global_pose(hand_id).origin
+	cast_last_hand = skeleton.global_transform*skeleton.get_bone_global_pose(hand_id).origin
 	cast_hand_velocity = Vector3.ZERO
 	cast_elapsed = 0.0
 	cast_released = false
@@ -2828,33 +2906,15 @@ func _unhandled_input(event):
 				crouch.toggle()
 				debug_player("CROUCH","toggle")
 
-			if event.keycode==KEY_G:
-				if flight_enabled:
-					flight_enabled = false
-					flight_windup_remaining = 0.0
-					flight_launch_remaining = 0.0
-				elif flight_windup_remaining > 0.0:
-					flight_windup_remaining = 0.0
-				elif actor.is_on_floor():
-					flight_windup_remaining = FLIGHT_WINDUP_SECONDS
-					flight_acceleration_time = 0.0
-					vertical_jump_speed = 0.0
-					flight_animation_time = 0.0
-					flight_pose_weight = 0.0
-					start_movement_clip("Jumping Up.fbx")
-					debug_player("FLIGHT_WINDUP","jump animation before launch")
-				else:
-					flight_enabled = true
-					flight_launch_remaining = FLIGHT_LAUNCH_DURATION
-					flight_clearance_time = 1.0
-				print("FLIGHT_ENABLED ",flight_enabled)
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode>=KEY_1 and event.keycode<=KEY_5:
-				cast_spell(SPELL_IDS[event.keycode-KEY_1])
+				var spell_index: int = (5 if controlled_arm=="left" else 0)+(event.keycode-KEY_1)
+				cast_spell(SPELL_IDS[spell_index])
 			if event.keycode==KEY_F: select_hovered_target()
 			if event.keycode==KEY_SHIFT:
 				if cast_elapsed < 0.0:
 					controlled_arm = "left" if controlled_arm == "right" else "right"
+					update_resource_hud()
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
 		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
