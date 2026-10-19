@@ -3408,7 +3408,10 @@ func release_fireball(hand_world: Vector3) -> void:
 			raw_direction = (initial_intercept-hand_world).normalized()
 	# Preserve the original precise palm/cursor aim for other spells.
 	var travel: Vector3 = raw_direction
-	var launch_speed: float = maxf(20.0,cast_hand_velocity.dot(travel))
+	# Quicker projectiles make moving-target spells feel immediate. The
+	# homing missile still expires after four seconds and cannot turn through
+	# structures; ordinary spells preserve cursor-precise palm release.
+	var launch_speed: float = maxf(29.0,cast_hand_velocity.dot(travel))
 	var projectile := Node3D.new()
 	projectile.name = cast_element.capitalize()+"Projectile"
 	projectile.add_to_group("battle_fireballs")
@@ -3471,11 +3474,11 @@ func release_fireball(hand_world: Vector3) -> void:
 	mover.spell_color = spell_color
 	if cast_element=="homing":
 		mover.homing_target = homing_pick
-		mover.travel_speed = maxf(mover.travel_speed,32.0)
-		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,32.0)
+		mover.travel_speed = maxf(mover.travel_speed,37.0)
+		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,37.0)
 	if cast_element=="ricochet":
-		mover.travel_speed = maxf(mover.travel_speed,23.0)
-		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,23.0)
+		mover.travel_speed = maxf(mover.travel_speed,29.0)
+		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,29.0)
 	mover.blast_width = float(arena.get("battle_fireball_size")) if arena != null else 1.0
 	projectile.add_child(mover)
 	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
