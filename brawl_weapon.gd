@@ -4,9 +4,9 @@ extends Node
 const SWORD: String = "res://assets/kenney_weapons/mini-arena/weapon-sword.glb"
 const AXE: String = "res://assets/kenney_weapons/survival/tool-axe.glb"
 const DAGGER: String = "res://assets/kenney_weapons/weapon/knife_sharp.glb"
-var pilot: Node3D
-var arena: Node3D
-var visual_driver: Node3D
+var pilot
+var arena
+var visual_driver
 var kind: String = "sword"
 var weapon: Node3D
 var hand: BoneAttachment3D
@@ -75,7 +75,7 @@ func _ready() -> void:
 	flight_clock = randf_range(1.5,4.0)
 	print("[BRAWL_GEAR] fighter=",pilot.name," type=",kind," source=",main_file," bone=",right_hand)
 
-func _get_enemy() -> Node3D:
+func _get_enemy():
 	if pilot == null or pilot.combat_dead: return null
 	if not is_instance_valid(pilot.war_target) or pilot.war_target.combat_dead: return null
 	if pilot.war_target.team_id == pilot.team_id: return null
@@ -144,7 +144,7 @@ func _physics_process(dt: float) -> void:
 		swing_clock = maxf(0.0,swing_clock-time)
 	last_tip = current_tip
 	if pilot.player_controlled: return
-	var enemy: Node3D = _get_enemy()
+	var enemy = _get_enemy()
 	if enemy == null: return
 	var gap: float = pilot.actor.global_position.distance_to(enemy.actor.global_position)
 	decision_clock -= time
@@ -185,7 +185,7 @@ func _sweep_weapon(old_tip: Vector3, tip: Vector3) -> void:
 	if is_instance_valid(arena.player) and arena.player != pilot and not arena.player.combat_dead and arena.player.team_id != pilot.team_id:
 		_strike_candidate(arena.player,base,old_tip,tip)
 
-func _strike_candidate(victim: Node3D,base: Vector3,old_tip: Vector3,tip: Vector3) -> void:
+func _strike_candidate(victim,base: Vector3,old_tip: Vector3,tip: Vector3) -> void:
 	var id: int = victim.get_instance_id()
 	if struck.has(id): return
 	var center: Vector3 = victim.actor.global_position + Vector3.UP * 1.15
@@ -196,11 +196,11 @@ func _strike_candidate(victim: Node3D,base: Vector3,old_tip: Vector3,tip: Vector
 	# Body collider radius plus sword width and frame-swept temporal margin.
 	if center.distance_squared_to(closest) > 1.15: return
 	struck[id] = true
-	var defense: Node = victim.get_node_or_null("BrawlGear")
+	var defense = victim.get_node_or_null("BrawlGear")
 	if defense != null and defense.dodge_remaining > 0.10: return
 	var guarded: bool = defense != null and defense.blocking
 	var damage: float = (14.0 if kind == "dagger" else (27.0 if kind == "axe" else 20.0)) * (0.20 if guarded else 1.0)
-	var damage_system: Node = victim.get_node_or_null("DamageSystem")
+	var damage_system = victim.get_node_or_null("DamageSystem")
 	if damage_system != null:
 		damage_system.receive_hit(closest,damage,pilot.name)
 	var push: Vector3 = (victim.actor.global_position-pilot.actor.global_position)

@@ -99,7 +99,7 @@ func _ready() -> void:
 	_update_fight_hud()
 	print("[BRAWL_START] teams=4 team_size=2 total=8 immortals=BLACK only npc_count=",mannequins.size())
 
-func _add_weapon(fighter: Node3D, weapon_kind: String, driver: Node3D) -> void:
+func _add_weapon(fighter, weapon_kind: String, driver) -> void:
 	var gear = preload("res://brawl_weapon.gd").new()
 	gear.name = "BrawlGear"
 	gear.pilot = fighter
@@ -109,7 +109,7 @@ func _add_weapon(fighter: Node3D, weapon_kind: String, driver: Node3D) -> void:
 	fighter.add_child(gear)
 	combat_tools[fighter.name] = gear
 
-func _add_team_label(fighter: Node3D,title: String,color: Color) -> void:
+func _add_team_label(fighter,title: String,color: Color) -> void:
 	var label: Label3D = Label3D.new()
 	label.text = title
 	label.modulate = color

@@ -1,7 +1,7 @@
 extends Node3D
 # Displays untouched authored Quaternius/AETHER animation tracks on a living fighter.
 # WalkingLab's existing CharacterBody3D and damage system remain authoritative.
-var pilot: Node3D
+var pilot
 var source_file: String = "res://assets/showcase/UAL2_Standard.glb"
 var model: Node3D
 var mixer: AnimationPlayer
