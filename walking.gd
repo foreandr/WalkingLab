@@ -3593,6 +3593,12 @@ func begin_projectile_cast(elements: Array[String]) -> bool:
 	cast_hand_velocity = Vector3.ZERO
 	cast_elapsed = 0.0
 	cast_released = false
+	# Match the actual emitted projectile to an authored source cast on the
+	# visible NPC rig; this does not perturb BLACK's manual arm controls.
+	if actor != null:
+		var brawl_model: Node = actor.get_node_or_null("BrawlVisual")
+		if brawl_model != null and brawl_model.has_method("action"):
+			brawl_model.call("action",["Spell_Simple_Shoot","OverhandThrow","KneelFire"],0.68,"SPELL CAST")
 	update_resource_hud()
 	if ordered.size()>1 and player_controlled: print("SPELL_FUSION ",fusion_name(ordered)," components=",ordered," mana=",total_mana)
 	return true

@@ -43,3 +43,8 @@ Every mortal NPC uses the **existing** WalkingLab GDScript team-battle AI, anato
 
 ## Animation corrective integration (verified in Godot CI)
 UAL2_Standard.glb has **sword moves and NinjaJump** but omits baseline Idle/Walk/Jog/Sprint. Rig probe conclusively showed UAL1 and UAL2 each have the same 61 bones, same Armature/Skeleton3D path, and matching animation paths. The runtime now plays UAL1 locomotion and UAL2 sword/ninja source clips on a **single skeleton** by copying authored Animation resources into a separate `ual2` animation library. AETHER's independent 18-bone rig remains separate for its genuine Backflip. This avoids idle-pose sliding and avoids rotating limbs procedurally.
+
+## Later test refinements
+- True authored spellcasting now triggers on the **visible** animation rig at the projectile's cast start, rather than only on the hidden gameplay body. AETHER uses its KneelFire take where possible.
+- Full native Quaternius Death01 animation, AETHER Collapse fallback, and a 0.33s minimum hit reaction interval prevent continuous spell/status damage from restarting impact poses every physics tick.
+- Unsupported true side/backward strafing remains a known limitation; the fallback uses real forward authored locomotion rather than an invented lateral motion. AETHER lacks directional strafe clips. Recorded movement direction may mismatch visual facing.

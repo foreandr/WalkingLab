@@ -63,6 +63,8 @@ jobs:
           if grep -Ei 'SCRIPT ERROR|Parse Error|Invalid (set|assignment|access)|FATAL' /tmp/brawl.log; then exit 1; fi
           grep -F '[BRAWL_START] teams=4 team_size=2 total=8' /tmp/brawl.log
           grep -F '[BRAWL_GEAR]' /tmp/brawl.log
+          grep -F '[BRAWL_COMBINED_ANIMATIONS]' /tmp/brawl.log
+          grep -F 'clip=ual2/Sword_Regular_' /tmp/brawl.log
           grep -F '[BRAWL_METRICS]' /tmp/brawl.log
       - name: Save reproducible logs
         if: always()

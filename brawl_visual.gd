@@ -8,6 +8,7 @@ var mixer: AnimationPlayer
 var skeleton: Skeleton3D
 var current_clip: String = ""
 var busy_for: float = 0.0
+var impact_visual_cooldown: float = 0.0
 var advertised_action: String = ""
 var dead_swapped: bool = false
 var clip_failures: Dictionary = {}
@@ -123,6 +124,11 @@ func play_named(choices: Array, looped: bool = false) -> bool:
 	return true
 
 func action(choices: Array, seconds: float, kind: String) -> bool:
+	# Continuous spell ticks must not restart the same hit animation
+	# every frame. A readable reaction should have time to finish.
+	if kind == "WEAPON IMPACT":
+		if impact_visual_cooldown > 0.0: return false
+		impact_visual_cooldown = 0.33
 	var good: bool = play_named(choices)
 	if good:
 		busy_for = seconds
@@ -132,10 +138,11 @@ func action(choices: Array, seconds: float, kind: String) -> bool:
 
 func _process(delta: float) -> void:
 	if pilot == null or model == null or mixer == null: return
+	impact_visual_cooldown = maxf(0.0,impact_visual_cooldown-delta)
 	if pilot.combat_dead:
 		if not dead_swapped:
 			dead_swapped = true
-			var death: bool = action(["Death","Dying","Collapse"],2.4,"DEATH")
+			var death: bool = action(["Death01","Collapse","Death","Dying"],2.4,"DEATH")
 			if not death:
 				model.visible = false
 				pilot.visual.visible = true
@@ -147,9 +154,9 @@ func _process(delta: float) -> void:
 	var velocity: float = horiz.length()
 	var height: float = pilot.actor.global_position.y
 	if pilot.flight_enabled:
-		desired = ["NinjaJump_Idle_Loop","Jump","Jump_Loop","Run"]
+		desired = ["NinjaJump_Idle","Jump","Jump_Loop","Sentinel","Run"]
 	elif height > 1.4 or not pilot.actor.is_on_floor():
-		desired = ["Jump","Jump_Loop","NinjaJump_Idle_Loop"]
+		desired = ["Jump","Jump_Loop","NinjaJump_Idle","Run","Sentinel"]
 	elif velocity <= 0.8:
 		desired = ["Idle","Idle_Loop","Sentinel"]
 	else:
@@ -158,11 +165,11 @@ func _process(delta: float) -> void:
 		var sidestep: float = horiz.normalized().dot(right)
 		var advance: float = horiz.normalized().dot(forward)
 		if sidestep < -0.60:
-			desired = ["Jog_Left","Jog_Left_Loop","Walk_Left","Jog_Fwd"]
+			desired = ["Jog_Left","Jog_Left_Loop","Walk_Left","Jog_Fwd","Run","Walk"]
 		elif sidestep > 0.60:
-			desired = ["Jog_Right","Jog_Right_Loop","Walk_Right","Jog_Fwd"]
+			desired = ["Jog_Right","Jog_Right_Loop","Walk_Right","Jog_Fwd","Run","Walk"]
 		elif advance < -0.40:
-			desired = ["Jog_Back","Jog_Back_Loop","Walk_Back","Walk"]
+			desired = ["Jog_Back","Jog_Back_Loop","Walk_Back","Walk","Run"]
 		elif velocity >= 11.0:
 			desired = ["Sprint","Sprint_Loop","Run","Jog_Fwd"]
 		elif velocity >= 4.0:
