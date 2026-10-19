@@ -153,7 +153,7 @@ func _ready():
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,0)
+	player.spawn_point = Vector3(0,0,-38)
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	if not flight_benchmark_requested:
@@ -283,7 +283,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = Vector3(0.0, 0.0, -float(current_level["enemy_distance"])) if int(current_level["enemy_count"]) == 1 else random_war_spawn()
+			fighter.spawn_point = Vector3(0.0, float(index)*12.0, -59.0) if String(current_level.get("biome","")) == "grassland" and index < 3 else random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
@@ -297,6 +297,15 @@ func _spawn_single_fighter() -> void:
 	make_label(fighter.actor,label_text,TEAM_BLUE if fighter.team_id=="blue" else (TEAM_RED if fighter.team_id=="red" else FIGHTER_COLOR))
 	if is_team_battle: attach_status_label(fighter)
 	mannequins.append(fighter)
+	if String(current_level.get("biome","")) == "grassland" and index < 3:
+		var tower: Node = get_node_or_null("ArenaEnvironment/CentralTower")
+		if tower == null:
+			for child in get_children():
+				if child.has_node("CentralTower"):
+					tower = child.get_node("CentralTower")
+					break
+		if tower != null and tower.has_method("register_guard"):
+			tower.register_guard(fighter)
 	# The arena drives this fighter from one central physics callback.
 	fighter.set_physics_process(false)
 	spawn_last_cost_ms = float(Time.get_ticks_usec()-spawn_begin)/1000.0
