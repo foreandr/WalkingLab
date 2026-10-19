@@ -1327,7 +1327,7 @@ func _physics_process(dt):
 	# backward and lateral movement, using the existing collision and gait tree.
 	var solo_direction_phase: int = -1
 	if name == "PlayerMan" and ai_mode == "sprint":
-		solo_direction_phase = 5 # Isolate one continuous LEFT strafe for video diagnosis.
+		solo_direction_phase = 4 # Test the same Left Strafe animation while moving RIGHT.
 		if solo_direction_phase == 2 or solo_direction_phase == 3:
 			backward = true
 			signed_speed = -minf(agent_preferred_speed,BACK_SPEEDS[2])
