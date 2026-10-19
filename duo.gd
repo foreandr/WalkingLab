@@ -126,8 +126,7 @@ func _ready():
 	# Its existing camera remains the active spectator camera.
 	player.player_controlled = false
 	player.auto_war_combat = false
-	player.ai_mode = ""
-	player.animation_test_mode = "locomotion_showcase"
+	player.ai_mode = "walk"
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,155)
 	player.character_tint = Color("101114")
@@ -137,7 +136,7 @@ func _ready():
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
 	# No opponents, queued combatants or spell targets in solo CPU mode.
-	print("[ARENA_MODE] solo_cpu_locomotion_showcase=true active_fighters=1 max_active_fighters=",MAX_ACTIVE_FIGHTERS)
+	print("[ARENA_MODE] solo_cpu=true active_fighters=1 ai_mode=",player.ai_mode)
 	ai = null
 	ai_label = null
 
