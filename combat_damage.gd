@@ -32,6 +32,10 @@ func setup(body: CharacterBody3D, rig: Skeleton3D) -> void:
 				bone_map[region] = i
 				break
 	update_damage_colors()
+	# No debug hitbox geometry for the player or regular arena combatants.
+	# Six anatomical HP pools and animated bone-space collision tests remain.
+	if bool(owner_controller.get("player_controlled")) or owner_controller.get("animation_test_mode") == "war":
+		return
 	for region in REGIONS:
 		var marker := MeshInstance3D.new()
 		marker.name = "Hitbox_" + region
@@ -46,9 +50,7 @@ func setup(body: CharacterBody3D, rig: Skeleton3D) -> void:
 		material.no_depth_test = true
 		marker.material_override = material
 		owner_actor.add_child(marker)
-		# Debug spheres are presentation only; the player's actual hit zones
-		# remain bone-based and active even when these overlays are hidden.
-		marker.visible = not bool(owner_controller.get("player_controlled")) and owner_controller.get("animation_test_mode") != "war"
+		marker.visible = true # Only opt-in standalone debug actors reach here.
 		markers[region] = marker
 
 func apply_damage_material() -> void:
@@ -84,8 +86,9 @@ func _process(dt: float) -> void:
 	for region in REGIONS:
 		var location: Vector3 = bone_position(region)
 		shader_material.set_shader_parameter(region+"_world",location)
-		if (markers[region] as MeshInstance3D).visible:
-			(markers[region] as MeshInstance3D).global_position = location
+		var marker: MeshInstance3D = markers.get(region) as MeshInstance3D
+		if marker != null and marker.visible:
+			marker.global_position = location
 	if sample_visual:
 		var arena: Node = get_tree().current_scene
 		if arena != null and arena.has_method("record_performance_sample"):
@@ -184,8 +187,8 @@ func receive_hit(world_point: Vector3, amount: float, attacker: String = "") -> 
 	receive_region_hit(region_at(world_point),world_point,amount,attacker)
 
 func flash_hit_region(region: String) -> void:
-	var marker: MeshInstance3D = markers[region]
-	if not marker.visible: return
+	var marker: MeshInstance3D = markers.get(region) as MeshInstance3D
+	if marker == null or not marker.visible: return
 	var mat: StandardMaterial3D = marker.material_override
 	mat.albedo_color = Color(1.0,0.95,0.18,0.78)
 	var flash := create_tween()
