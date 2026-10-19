@@ -42,9 +42,9 @@ func make_arena():
 	e.ambient_light_color = Color("9aafc7")
 	e.ambient_light_energy = 0.55
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	e.fog_enabled = biome == "dirt"
+	e.fog_enabled = biome == "flat_dirt"
 	e.fog_light_color = Color("bbd4df")
-	e.fog_density = 0.0018 if biome == "dirt" else 0.004
+	e.fog_density = 0.0018 if biome == "flat_dirt" else 0.004
 	env.environment = e
 	add_child(env)
 	var sun = DirectionalLight3D.new()
@@ -59,13 +59,13 @@ func make_arena():
 	fill.light_color = Color("9ab5d3")
 	fill.light_energy = 0.16
 	add_child(fill)
-	if biome == "dirt":
+	if biome == "flat_dirt":
 		# Minimal test: only the 50m x 50m textured dirt floor.
 		var ground := PlaneMesh.new()
 		ground.size = Vector2(world_half_extent * 2.0, world_half_extent * 2.0)
 		mesh_node(ground, Vector3(0.0,-0.13,0.0), texture("forest_ground_04",0.18))
 		# Biome map remains available for the next terrain-development phase.
-		print("[LEVEL_ENVIRONMENT] dirt_open_sky=true roof=false side_m=",world_half_extent*2.0)
+		print("[LEVEL_ENVIRONMENT] flat_dirt_open_sky=true roof=false side_m=",world_half_extent*2.0)
 		return
 	var ground = PlaneMesh.new()
 	ground.size = Vector2(100,100) # Match the compact pursuit arena boundaries.
