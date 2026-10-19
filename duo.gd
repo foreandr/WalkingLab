@@ -146,7 +146,7 @@ func _ready():
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(arena_half_extent*2.0,0.2,arena_half_extent*2.0)
+	floor_box.size = Vector3(arena_half_extent*2.0,0.2,arena_half_extent)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -156,7 +156,7 @@ func _ready():
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.actor_only = true
-	player.spawn_point = Vector3(spawn_rng.randf_range(-15.0,15.0),float(current_level.get("drop_height",0.0)),spawn_rng.randf_range(-15.0,15.0)) if bool(current_level.get("battle_royale_drop",false)) and not flight_benchmark_requested else Vector3.ZERO
+	player.spawn_point = Vector3(-5.0,0.0,0.0) if not flight_benchmark_requested else Vector3.ZERO
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	if not flight_benchmark_requested:
@@ -266,8 +266,8 @@ func _spawn_single_fighter() -> void:
 	fighter.name = "Fighter%02d" % (index + 1)
 	fighter.autonomous_only = true
 	fighter.actor_only = true
-	fighter.ai_abilities = true
-	fighter.team_battle_ai = not flight_benchmark_requested
+	fighter.ai_abilities = false if not flight_benchmark_requested else true
+	fighter.team_battle_ai = false if not flight_benchmark_requested else true
 	var duel_spells: Array[String] = []
 	if flight_benchmark_requested:
 		duel_spells = ["fire", "frost"]
@@ -292,7 +292,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = Vector3(spawn_rng.randf_range(-180.0,180.0),float(current_level.get("drop_height",52.0))+spawn_rng.randf_range(-3.0,3.0),spawn_rng.randf_range(-40.0,40.0)) if bool(current_level.get("battle_royale_drop",false)) else random_war_spawn()
+			fighter.spawn_point = Vector3(5.0,0.0,0.0) if int(current_level.get("enemy_count",0)) == 1 else random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
@@ -300,6 +300,8 @@ func _spawn_single_fighter() -> void:
 			label_text = "%d m" % LINEUP_DISTANCES[index]
 		else:
 			fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
+	fighter.demo_immortal = not flight_benchmark_requested
+	if not flight_benchmark_requested: fighter.set_meta("test_dummy",true)
 	fighter.character_tint = FIGHTER_COLOR
 	add_child(fighter)
 	fighter.actor.rotation.y = atan2(player.actor.global_position.x-fighter.actor.global_position.x,player.actor.global_position.z-fighter.actor.global_position.z)+PI
@@ -800,7 +802,7 @@ func tick_war_fighters(dt: float) -> void:
 			fighter.actor.velocity.z = 0.0
 			fighter.actor.velocity.y = maxf(fighter.actor.velocity.y - 18.0 * dt,-42.0)
 			fighter.actor.move_and_slide()
-		else:
+		elif not bool(fighter.get_meta("test_dummy",false)):
 			fighter.war_simulation_tick(dt)
 	record_performance_sample("war_simulation_all",Time.get_ticks_usec()-sim_start)
 	# Time the complete roster update, not just sampled per-fighter calls.
