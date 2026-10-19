@@ -160,6 +160,11 @@ var lineup_cast_clock: float = 0.0
 var spell_target_mode: String = ""
 var spell_target_anchor: Vector3 = Vector3.ZERO
 var spell_walker_phase: float = 0.0
+var spell_burn_remaining: float = 0.0
+var spell_burn_tick: float = 0.0
+var spell_frost_remaining: float = 0.0
+var spell_gravity_remaining: float = 0.0
+var spell_gravity_origin: Vector3 = Vector3.ZERO
 
 var war_profile_counter: int = 0
 var war_visual_accumulator: float = 0.0
@@ -1313,10 +1318,47 @@ func update_animation_lineup(dt: float) -> void:
 	adjust_jab_arm()
 	update_cast_motion(dt)
 
+func apply_spell_status(effect_id: String, center: Vector3) -> void:
+	match effect_id:
+		"fire":
+			spell_burn_remaining = maxf(spell_burn_remaining,3.5)
+			spell_burn_tick = 0.0
+		"frost":
+			spell_frost_remaining = maxf(spell_frost_remaining,5.0)
+		"gravity":
+			spell_gravity_remaining = maxf(spell_gravity_remaining,2.6)
+			spell_gravity_origin = center
+
 func update_spell_test_target(dt: float) -> void:
+	# Spell effects stay active even on completely passive mannequins.
+	if spell_burn_remaining > 0.0:
+		spell_burn_remaining = maxf(0.0,spell_burn_remaining-dt)
+		spell_burn_tick += dt
+		if spell_burn_tick >= 0.65:
+			spell_burn_tick = 0.0
+			var hurt: Node = get_node_or_null("DamageSystem")
+			if hurt != null and not hurt.dead:
+				hurt.receive_region_hit("torso",actor.global_position+Vector3.UP,4.5,"BURN",false)
+	spell_frost_remaining = maxf(0.0,spell_frost_remaining-dt)
+	spell_gravity_remaining = maxf(0.0,spell_gravity_remaining-dt)
+	if spell_gravity_remaining > 0.0:
+		var toward: Vector3 = spell_gravity_origin-actor.global_position
+		toward.y = 0.0
+		actor.velocity = toward.normalized()*minf(13.0,toward.length()*3.0) if toward.length_squared()>0.2 else Vector3.ZERO
+		actor.velocity.y = -0.3
+		actor.move_and_slide()
+		tree.advance(dt)
+		return
 	# Static mannequins idle in place; moving mannequins walk predictable
 	# small routes without casting or turning into combat AI.
 	if spell_target_mode == "stationary":
+		# Restore the range after being pulled by gravity.
+		var back: Vector3 = spell_target_anchor-actor.global_position
+		back.y = 0.0
+		if back.length_squared()>0.04:
+			actor.velocity = back.normalized()*minf(4.5,back.length()*2.0)
+			actor.velocity.y = -0.3
+			actor.move_and_slide()
 		actor.velocity = Vector3.ZERO
 		tree.set("parameters/StandingMove/blend_amount",0.0)
 		tree.set("parameters/Cadence/scale",0.0)
@@ -1328,6 +1370,7 @@ func update_spell_test_target(dt: float) -> void:
 	var to_waypoint: Vector3 = waypoint-actor.global_position
 	to_waypoint.y = 0.0
 	var desired: Vector3 = to_waypoint.normalized()*minf(2.7,to_waypoint.length()*1.7) if to_waypoint.length_squared()>0.01 else Vector3.ZERO
+	if spell_frost_remaining > 0.0: desired *= 0.22
 	actor.velocity.x = move_toward(actor.velocity.x,desired.x,dt*8.0)
 	actor.velocity.z = move_toward(actor.velocity.z,desired.z,dt*8.0)
 	actor.velocity.y = -0.3
@@ -1407,6 +1450,14 @@ func _physics_process(dt):
 					arena.record_player_auto_attack(closest.name)
 					if changed_target: arena.record_player_auto_target_change(closest.name)
 	if paused: return
+	if player_controlled:
+		for i in range(spell_remaining.size()):
+			spell_remaining[i] = maxf(0.0,spell_remaining[i]-dt)
+		mana = minf(100.0,mana+7.0*dt)
+		var spending_stamina: bool = alt_dash_held or (Input.is_action_pressed("sprint") and manual_input.length_squared()>0.02)
+		stamina = clampf(stamina-(24.0 if alt_dash_held else 11.0)*dt if spending_stamina else stamina+18.0*dt,0.0,100.0)
+		if stamina <= 0.0 and alt_dash_held: alt_dash_held = false
+		update_resource_hud()
 	if combat_dead:
 		update_combat_fall(dt)
 		return
@@ -2519,6 +2570,15 @@ func update_ai_abilities(dt: float) -> void:
 func cast_fireball() -> void:
 	cast_spell("fire")
 
+func heal_from_spell(amount: float) -> void:
+	var damage: Node = get_node_or_null("DamageSystem")
+	if damage != null and not damage.dead:
+		for region in ["head","torso"]:
+			damage.hp[region] = minf(100.0,float(damage.hp[region])+amount)
+		damage.update_damage_colors()
+	mana = minf(100.0,mana+amount*0.6)
+	update_resource_hud()
+
 func selected_target_aim_point() -> Vector3:
 	if selected_spell_target != null and is_instance_valid(selected_spell_target) and camera != null:
 		var target_position: Vector3 = selected_spell_target.global_position + Vector3.UP*1.1
@@ -2569,18 +2629,26 @@ func select_hovered_target() -> void:
 	if player_controlled: debug_player("TARGET_LOCKED",selected_spell_target.name)
 
 func cast_spell(element: String) -> void:
-	# Passive animation until casting; fire uses the same arm thrust.
+	# Every spell uses the existing palm-origin animation and physics projectile.
 	if cast_elapsed >= 0.0 or crouch.active(): return
+	var slot: int = SPELL_IDS.find(element)
+	if player_controlled and slot >= 0:
+		if spell_remaining[slot]>0.0 or mana<SPELL_COSTS[slot]: return
 	var arm_health: Node = get_node_or_null("DamageSystem")
 	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"]) <= 0.0:
 		if player_controlled: debug_player("SPELL_BLOCKED","disabled "+controlled_arm+" arm")
 		return
-	if not ResourceLoader.exists("res://assets/external_vfx/" + element + ".tscn"): return
+	# The imported fire effect supplies the particles for every colored spell.
+	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return
 	cast_element = element
 	cast_arm_name = controlled_arm
 	cast_aim_point = ai_target_position() if ai_abilities else selected_target_aim_point()
 	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
 	if hand_id < 0: return
+	if player_controlled and slot >= 0:
+		mana -= SPELL_COSTS[slot]
+		spell_remaining[slot] = SPELL_COOLDOWNS[slot]
+		update_resource_hud()
 	skeleton.force_update_all_bone_transforms()
 	cast_last_hand = skeleton.global_transform * skeleton.get_bone_global_pose(hand_id).origin
 	cast_hand_velocity = Vector3.ZERO
@@ -2624,10 +2692,21 @@ func release_fireball(hand_world: Vector3) -> void:
 	get_tree().current_scene.add_child(projectile)
 	projectile.global_position = hand_world + travel * 0.20
 	# Use external particles for both spell types; never hand-draw VFX.
-	var effect_path: String = "res://assets/external_vfx/" + cast_element + ".tscn"
 	var arena: Node = get_tree().current_scene
-	var effect: GPUParticles3D = arena.fireball_scene.instantiate() if cast_element == "fire" and arena != null and arena.get("fireball_scene") != null else load(effect_path).instantiate()
+	var effect: GPUParticles3D = arena.fireball_scene.instantiate() if arena != null and arena.get("fireball_scene") != null else load("res://assets/external_vfx/fire.tscn").instantiate()
 	projectile.add_child(effect)
+	var spell_index: int = SPELL_IDS.find(cast_element)
+	var spell_color: Color = SPELL_COLORS[spell_index] if spell_index >= 0 else Color("ff9b4f")
+	if spell_index >= 0 and effect.process_material is ParticleProcessMaterial:
+		var colored_particles: ParticleProcessMaterial = effect.process_material.duplicate(true) as ParticleProcessMaterial
+		colored_particles.color = spell_color
+		effect.process_material = colored_particles
+	if player_controlled:
+		var glow := OmniLight3D.new()
+		glow.light_color = spell_color
+		glow.light_energy = 1.25
+		glow.omni_range = 3.0
+		projectile.add_child(glow)
 	# Three times the size at the hand and during travel.
 	if arena != null and arena.has_method("configure_fireball_particles"):
 		arena.configure_fireball_particles(effect,float(arena.get("battle_fireball_size")))
@@ -2647,6 +2726,8 @@ func release_fireball(hand_world: Vector3) -> void:
 		mover.travel_speed *= float(get_tree().current_scene.get("battle_fireball_speed"))
 	mover.owner_rid = actor.get_rid()
 	mover.attacker_name = name
+	mover.spell_type = cast_element
+	mover.spell_color = spell_color
 	mover.blast_width = float(arena.get("battle_fireball_size")) if arena != null else 1.0
 	projectile.add_child(mover)
 	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
@@ -2692,7 +2773,7 @@ func _unhandled_input(event):
 				crouch.toggle()
 				debug_player("CROUCH","toggle")
 
-			if event.keycode==KEY_3:
+			if event.keycode==KEY_G:
 				if flight_enabled:
 					flight_enabled = false
 					flight_windup_remaining = 0.0
@@ -2713,7 +2794,8 @@ func _unhandled_input(event):
 					flight_clearance_time = 1.0
 				print("FLIGHT_ENABLED ",flight_enabled)
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
-			if event.keycode==KEY_1: cast_fireball()
+			if event.keycode>=KEY_1 and event.keycode<=KEY_5:
+				cast_spell(SPELL_IDS[event.keycode-KEY_1])
 			if event.keycode==KEY_F: select_hovered_target()
 			if event.keycode==KEY_SHIFT:
 				if cast_elapsed < 0.0:
