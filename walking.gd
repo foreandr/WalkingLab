@@ -265,7 +265,6 @@ func _ready():
 	if player.has_animation("Sprint"): player.get_animation_library("").remove_animation("Sprint")
 	var backwards_begin_usec: int = Time.get_ticks_usec()
 	install_backwards(player)
-	var strafe_names: Array[String] = install_native_strafe_library(player)
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=backwards ms=",snappedf(float(Time.get_ticks_usec()-backwards_begin_usec)/1000.0,0.01))
 	if player_controlled: print("MIXAMO_CLIPS ",player.get_animation_list())
 	var white = StandardMaterial3D.new()
@@ -317,19 +316,8 @@ func _ready():
 	graph.add_node("Direction",direction_blend)
 	graph.connect_node("Direction",0,"Gaits")
 	graph.connect_node("Direction",1,"BackGaits")
-	# Native animation blending. The sprint/gait tree remains the base motion.
-	var gait_output: String = "Direction"
-	if strafe_names.has("Strafe"):
-		var strafe_node := AnimationNodeAnimation.new()
-		strafe_node.animation = "strafe/Strafe"
-		graph.add_node("StrafeClip",strafe_node)
-		var strafe_blend := AnimationNodeBlend2.new()
-		graph.add_node("StrafeBlend",strafe_blend)
-		graph.connect_node("StrafeBlend",0,gait_output)
-		graph.connect_node("StrafeBlend",1,"StrafeClip")
-		gait_output = "StrafeBlend"
 	graph.add_node("Cadence",AnimationNodeTimeScale.new())
-	graph.connect_node("Cadence",0,gait_output)
+	graph.connect_node("Cadence",0,"Direction")
 	var crouch_begin_usec: int = Time.get_ticks_usec()
 	crouch.setup(self,player,graph)
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=crouch ms=",snappedf(float(Time.get_ticks_usec()-crouch_begin_usec)/1000.0,0.01))
@@ -552,78 +540,6 @@ func draw_speed_streaks() -> void:
 
 func smooth_gait(t: float) -> float:
 	return t*t*t*(t*(t*6.0-15.0)+10.0)
-func install_native_strafe_library(player: AnimationPlayer) -> Array[String]:
-	# Exactly one imported clip; Godot's native AnimationTree blends it.
-	# Never copy the FBX hips rotation, translation or scale: they can tilt
-	# the entire Mixamo rig and break world-space orientation.
-	var installed: Array[String] = []
-	if name != "PlayerMan" or ai_mode != "sprint": return installed
-	var filename: String = "Left Strafe.fbx"
-	var source_path: String = "res://assets/locomotion/" + filename
-	if not ResourceLoader.exists(source_path):
-		print("[STRAFE_SKIPPED] missing=",source_path)
-		return installed
-	var packed = load(source_path)
-	if not packed is PackedScene: return installed
-	var source: Node = packed.instantiate()
-	var players: Array[Node] = source.find_children("*","AnimationPlayer",true,false)
-	var rigs: Array[Node] = source.find_children("*","Skeleton3D",true,false)
-	if players.is_empty() or rigs.is_empty():
-		source.free()
-		return installed
-	var source_player: AnimationPlayer = players[0] as AnimationPlayer
-	var source_rig: Skeleton3D = rigs[0] as Skeleton3D
-	var chosen: Animation = null
-	for candidate_name in source_player.get_animation_list():
-		if candidate_name == "RESET": continue
-		var candidate: Animation = source_player.get_animation(candidate_name)
-		if chosen == null or candidate.get_track_count() > chosen.get_track_count():
-			chosen = candidate
-	if chosen == null:
-		source.free()
-		return installed
-	var target_root: NodePath = player.get_node(player.root_node).get_path_to(skeleton)
-	var clip := Animation.new()
-	clip.length = chosen.length
-	clip.loop_mode = Animation.LOOP_LINEAR
-	var mapped: int = 0
-	for track_idx in range(chosen.get_track_count()):
-		if chosen.track_get_type(track_idx) != Animation.TYPE_ROTATION_3D: continue
-		var track_path: NodePath = chosen.track_get_path(track_idx)
-		if track_path.get_subname_count() == 0: continue
-		var bone_label: String = normalized_idle_bone(String(track_path.get_subname(track_path.get_subname_count()-1)))
-		if bone_label == "hips": continue
-		var from_index: int = -1
-		var to_index: int = -1
-		for bi in range(source_rig.get_bone_count()):
-			if normalized_idle_bone(String(source_rig.get_bone_name(bi))) == bone_label:
-				from_index = bi
-				break
-		for bi in range(skeleton.get_bone_count()):
-			if normalized_idle_bone(String(skeleton.get_bone_name(bi))) == bone_label:
-				to_index = bi
-				break
-		if from_index < 0 or to_index < 0: continue
-		var from_rest: Quaternion = source_rig.get_bone_rest(from_index).basis.get_rotation_quaternion()
-		var to_rest: Quaternion = skeleton.get_bone_rest(to_index).basis.get_rotation_quaternion()
-		var correction: Quaternion = (to_rest.inverse()*from_rest).normalized()
-		var new_track: int = clip.add_track(Animation.TYPE_ROTATION_3D)
-		clip.track_set_path(new_track,NodePath(String(target_root)+":"+skeleton.get_bone_name(to_index)))
-		for key_index in range(chosen.track_get_key_count(track_idx)):
-			var q: Quaternion = chosen.track_get_key_value(track_idx,key_index)
-			clip.rotation_track_insert_key(new_track,chosen.track_get_key_time(track_idx,key_index),(correction*q*correction.inverse()).normalized())
-		mapped += 1
-	source.free()
-	if mapped < 12:
-		print("[STRAFE_SKIPPED] insufficient_retargeted_bones=",mapped)
-		return installed
-	var library := AnimationLibrary.new()
-	library.add_animation("Strafe",clip)
-	player.add_animation_library("strafe",library)
-	installed.append("Strafe")
-	print("[STRAFE_NATIVE] clip=",filename," retargeted_bones=",mapped," hips_ignored=true")
-	return installed
-
 func install_backwards(player: AnimationPlayer):
 	install_motion_library(player,"res://assets/backward_motions.glb","back",BACK_NAMES,BACK_NAMES)
 func install_motion_library(player: AnimationPlayer, resource_path: String, library_name: String, clip_names: Array, loops: Array):
@@ -1235,7 +1151,7 @@ func _physics_process(dt):
 	var solo_showcase: bool = name == "PlayerMan" and ai_mode == "sprint" and not player_controlled
 	var solo_flight_time: float = fmod(clock,48.0) if solo_showcase else 0.0
 	if solo_showcase:
-		var should_fly: bool = solo_flight_time >= 32.0 and solo_flight_time < 42.0
+		var should_fly: bool = false # Solo strafe-only test: no flight or takeoff.
 		if should_fly and not flight_enabled:
 			flight_enabled = true
 			vertical_jump_speed = 0.0
@@ -1331,7 +1247,7 @@ func _physics_process(dt):
 	# backward and lateral movement, using the existing collision and gait tree.
 	var solo_direction_phase: int = -1
 	if name == "PlayerMan" and ai_mode == "sprint":
-		solo_direction_phase = int(floor(fmod(clock,32.0)/4.0))
+		solo_direction_phase = 5 # Isolate one continuous LEFT strafe for video diagnosis.
 		if solo_direction_phase == 2 or solo_direction_phase == 3:
 			backward = true
 			signed_speed = -minf(agent_preferred_speed,BACK_SPEEDS[2])
@@ -1340,7 +1256,7 @@ func _physics_process(dt):
 			direction_weight = 1.0
 		elif solo_direction_phase == 4 or solo_direction_phase == 5:
 			# Lateral velocity uses the existing actor.move_and_slide path.
-			side_speed = agent_preferred_speed*(1.0 if solo_direction_phase == 4 else -1.0)
+			side_speed = 2.0*(1.0 if solo_direction_phase == 4 else -1.0)
 			signed_speed = 0.0
 			blend = speed_band(SPEEDS,absf(side_speed))
 			back_blend = 0.0
@@ -1357,10 +1273,6 @@ func _physics_process(dt):
 	tree.set("parameters/Gaits/blend_position",blend)
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
-	# One stabilized animation is used for either lateral direction.
-	if name == "PlayerMan" and ai_mode == "sprint" and tree.tree_root.has_node("StrafeBlend"):
-		var weight: float = clampf(absf(side_speed)/maxf(speed,0.01),0.0,1.0)
-		tree.set("parameters/StrafeBlend/blend_amount",weight if absf(side_speed) > 0.2 and not flight_enabled else 0.0)
 	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
@@ -2447,7 +2359,7 @@ func _unhandled_input(event):
 		if event.keycode==KEY_V: crouch.start_showcase()
 		if event.keycode==KEY_F11:
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
-	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
 		orbit -= event.relative.x*0.006
 		elevation = clamp(elevation-event.relative.y*0.004,-0.8,0.15)
 	if event is InputEventMouseButton and event.pressed:
