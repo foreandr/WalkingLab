@@ -30,8 +30,10 @@ var jab_right_forearm := -1
 var jab_right_hand := -1
 var controlled_arm := "right"
 var jab_aim_strength := 0.0
-const CAST_DURATION: float = 1.10
-const CAST_RELEASE: float = 0.76
+# Combat tempo: quicker arm extension / recovery, without time-scale cheats.
+# Release near full extension (0.44/0.68 ~= 65%) for readable impacts.
+const CAST_DURATION: float = 0.68
+const CAST_RELEASE: float = 0.44
 var cast_aim_point: Vector3 = Vector3.ZERO
 var cast_shot_direction: Vector3 = Vector3.FORWARD
 var cast_elapsed: float = -1.0
@@ -41,10 +43,24 @@ var cast_element: String = "fire"
 # Five fingers per hand. Shift changes which complete set 1-5 operates.
 # RIGHT: Ember, Frost, Homing Missile, Gravity, Ricochet.
 # LEFT: Grounding, Bloom, Tempest, Venom, Flight.
-const SPELL_NAMES: Array[String] = ["Ember","Frost","Homing","Gravity","Ricochet","Grounding","Bloom","Tempest","Venom","Flight"]
+const SPELL_NAMES: Array[String] = ["Cinderburst","Permafrost","Soulseeker","Voidwell","Everbound","Earthbind","Lifeweave","Galeforce","Blight","Ascension"]
+# Internal IDs intentionally stay stable; these are canonical displayed names.
+const SPELL_EFFECTS: Array[String] = [
+	"Explosive fire wave and lingering burns",
+	"Wide ice burst; 88% movement reduction for 5 seconds",
+	"A guided missile that vanishes after 4 seconds or on contact",
+	"Gravity well that draws nearby opponents inward",
+	"Persistent orb that ricochets off arena surfaces",
+	"Grounding blast; cancels flight for 6 seconds",
+	"18-metre ally-only pulse; heals all six regions and regenerates",
+	"Wind burst that launches opponents away",
+	"Poison explosion and damage over time",
+	"Toggle magical flight; stopped by Earthbind"
+]
 const SPELL_IDS: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
 const SPELL_COSTS: Array[float] = [15.0,20.0,22.0,30.0,24.0,26.0,35.0,22.0,20.0,18.0]
-const SPELL_COOLDOWNS: Array[float] = [2.0,7.0,4.0,9.0,7.0,8.0,12.0,6.0,7.0,3.0]
+# Faster exchanges; persistent Everbound retains the longer 7s gate.
+const SPELL_COOLDOWNS: Array[float] = [1.6,5.2,3.0,6.2,7.0,5.5,9.0,4.5,5.2,3.0]
 const SPELL_COLORS: Array[Color] = [Color("ff9b4f"),Color("7de8ff"),Color("f8e365"),Color("af83fa"),Color("ff5ee7"),Color("f9d474"),Color("a6f4bc"),Color("99e5e9"),Color("9cdd59"),Color("f0f0ff")]
 const MAX_ACTIVE_RICOCHETS: int = 20
 var spell_remaining: Array[float] = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
@@ -614,7 +630,18 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRight hand 1-5: Ember / Frost / Homing / Gravity / Ricochet\nLeft hand 1-5: Grounding / Bloom / Tempest / Venom / Flight\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
+	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRIGHT 1-5: Cinderburst / Permafrost / Soulseeker / Voidwell / Everbound\nLEFT 1-5: Earthbind / Lifeweave / Galeforce / Blight / Ascension\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
+	var spellbook_heading := Button.new()
+	spellbook_heading.text = "Spellbook  ▾"
+	column.add_child(spellbook_heading)
+	var spellbook := Label.new()
+	spellbook.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	spellbook.text = ""
+	for i in range(SPELL_NAMES.size()):
+		spellbook.text += "%s %d. %s — %s\n" % ["LEFT" if i>=5 else "RIGHT",(i%5)+1,SPELL_NAMES[i],SPELL_EFFECTS[i]]
+	spellbook.visible = false
+	column.add_child(spellbook)
+	spellbook_heading.pressed.connect(func(): spellbook.visible = not spellbook.visible)
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
@@ -706,6 +733,7 @@ func update_resource_hud() -> void:
 		var mana_needed: bool = not infinite_mana and mana<SPELL_COSTS[slot] and not (SPELL_IDS[slot]=="flight" and (flight_enabled or flight_windup_remaining>0.0))
 		var description: String = "OFF" if SPELL_IDS[slot]=="flight" and (flight_enabled or flight_windup_remaining>0.0) else ("%.1fs" % remaining if remaining>0.05 else ("%d MP" % int(SPELL_COSTS[slot])))
 		label.text = "%d  %s\n%s" % [i+1,SPELL_NAMES[slot],description]
+		label.tooltip_text = SPELL_EFFECTS[slot]
 		label.add_theme_color_override("font_color",Color("888d98") if remaining>0.05 or mana_needed else SPELL_COLORS[slot])
 	if options_panel != null and options_panel.visible and settings_stats != null and settings_stats.visible:
 		var arena: Node = get_tree().current_scene
@@ -1417,13 +1445,13 @@ func apply_spell_status(effect_id: String, center: Vector3) -> void:
 func status_description() -> String:
 	if combat_dead: return ""
 	var active: PackedStringArray = []
-	if spell_frost_remaining>0.0: active.append("FROST %.1fs" % spell_frost_remaining)
-	if spell_grounded_remaining>0.0: active.append("GROUNDED %.1fs" % spell_grounded_remaining)
-	if spell_burn_remaining>0.0: active.append("BURN %.1fs" % spell_burn_remaining)
-	if spell_venom_remaining>0.0: active.append("POISON %.1fs" % spell_venom_remaining)
-	if spell_gravity_remaining>0.0: active.append("PULLED %.1fs" % spell_gravity_remaining)
+	if spell_frost_remaining>0.0: active.append("PERMAFROST %.1fs" % spell_frost_remaining)
+	if spell_grounded_remaining>0.0: active.append("EARTHBOUND %.1fs" % spell_grounded_remaining)
+	if spell_burn_remaining>0.0: active.append("BURNING %.1fs" % spell_burn_remaining)
+	if spell_venom_remaining>0.0: active.append("BLIGHT %.1fs" % spell_venom_remaining)
+	if spell_gravity_remaining>0.0: active.append("VOID PULL %.1fs" % spell_gravity_remaining)
 	if spell_tempest_remaining>0.0: active.append("KNOCKBACK")
-	if spell_regen_remaining>0.0: active.append("REGEN %.1fs" % spell_regen_remaining)
+	if spell_regen_remaining>0.0: active.append("LIFEWEAVE %.1fs" % spell_regen_remaining)
 	return "  |  ".join(active)
 
 func team_is_enemy(other: Node) -> bool:
