@@ -80,7 +80,7 @@ func circular_height(nx: float, nz: float) -> float:
  var r: float = Vector2(nx,nz).length()
  if r >= 1.0: return -30.0
  var angle: float = atan2(nz,nx)
- var fade: float = smoothstep(1.0,0.83,r)
+ var fade: float = (1.0-smoothstep(0.83,1.0,r))
  var hill: float = 1.8*sin(nx*13.0+cos(nz*6.0)*1.7)*cos(nz*11.0)
  var valley: float = -2.4*exp(-((nx-0.34)*(nx-0.34)+(nz+0.3)*(nz+0.3))*35.0)
  var ridge: float = 1.2*cos(angle*8.0+sin(r*13.0))*sin(r*8.0)
