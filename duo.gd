@@ -154,7 +154,7 @@ func _ready():
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,0)
+	player.spawn_point = Vector3(spawn_rng.randf_range(-15.0,15.0),float(current_level.get("drop_height",0.0)),spawn_rng.randf_range(-15.0,15.0)) if bool(current_level.get("battle_royale_drop",false)) and not flight_benchmark_requested else Vector3.ZERO
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	if not flight_benchmark_requested:
@@ -288,7 +288,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = Vector3(0.0, float(index)*12.0, -59.0) if String(current_level.get("biome","")) == "grassland" and index < 3 else random_war_spawn()
+			fighter.spawn_point = Vector3(spawn_rng.randf_range(-40.0,40.0),float(current_level.get("drop_height",52.0))+spawn_rng.randf_range(-3.0,3.0),spawn_rng.randf_range(-40.0,40.0)) if bool(current_level.get("battle_royale_drop",false)) else random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
@@ -789,6 +789,13 @@ func tick_war_fighters(dt: float) -> void:
 		if not is_instance_valid(fighter): continue
 		if fighter.combat_dead:
 			if not fighter.combat_pose_frozen: fighter.update_combat_fall(dt)
+		elif bool(current_level.get("battle_royale_drop",false)) and not fighter.actor.is_on_floor() and fighter.actor.global_position.y > 0.1:
+			# Drop phase uses normal physics and ignores combat/flight AI until impact.
+			fighter.flight_enabled = false
+			fighter.actor.velocity.x = 0.0
+			fighter.actor.velocity.z = 0.0
+			fighter.actor.velocity.y = maxf(fighter.actor.velocity.y - 18.0 * dt,-42.0)
+			fighter.actor.move_and_slide()
 		else:
 			fighter.war_simulation_tick(dt)
 	record_performance_sample("war_simulation_all",Time.get_ticks_usec()-sim_start)
