@@ -987,6 +987,18 @@ func refresh_ring_inventory() -> void:
 		result += "  %d.  %s\n" % [i % 5 + 1,SPELL_NAMES[i] if SPELL_IDS[i] in equipped_spells else "Empty"]
 	result += "\nV: Flight movement   |   G: Immortality"
 	ring_inventory_text.text = result
+	# Each equipped finger gets a draggable control. Dropping outside I drops loot.
+	for old_control in ring_inventory_text.get_children():
+		old_control.queue_free()
+	for slot in range(SPELL_IDS.size()):
+		if not SPELL_IDS[slot] in equipped_spells: continue
+		var row := preload("res://ring_drag_label.gd").new()
+		row.owner_fighter = self
+		row.spell_id = SPELL_IDS[slot]
+		row.text = "DRAG OUT: " + SPELL_NAMES[slot]
+		row.mouse_filter = Control.MOUSE_FILTER_STOP
+		row.position = Vector2(15.0,265.0+float(slot)*23.0)
+		ring_inventory_panel.add_child(row)
 
 func install_backwards(player: AnimationPlayer):
 	install_motion_library(player,"res://assets/backward_motions.glb","back",BACK_NAMES,BACK_NAMES)
