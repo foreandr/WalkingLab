@@ -40,6 +40,12 @@ var cast_elapsed: float = -1.0
 var cast_released: bool = false
 var cast_arm_name: String = ""
 var cast_element: String = "fire"
+# Each fused cast spawns one projectile with two independent effect components.
+var cast_components: Array[String] = []
+const FUSION_INPUT_WINDOW_MS: int = 320
+var pending_spell_slots: Array[int] = []
+var pending_spell_since_ms: int = 0
+var pending_spell_arm: String = ""
 # Five fingers per hand. Shift changes which complete set 1-5 operates.
 # RIGHT: Ember, Frost, Homing Missile, Gravity, Ricochet.
 # LEFT: Grounding, Bloom, Tempest, Venom, Flight.
@@ -58,6 +64,23 @@ const SPELL_EFFECTS: Array[String] = [
 	"Toggle magical flight; stopped by Earthbind"
 ]
 const SPELL_IDS: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
+# Lifeweave and Ascension remain standalone, non-projectile abilities.
+const FUSION_PROJECTILES: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","tempest","venom"]
+const FUSION_NAMES: Dictionary = {
+	"fire+frost":"Thermal Rupture",
+	"fire+homing":"Hellseeker",
+	"fire+gravity":"Cinder Singularity",
+	"fire+ricochet":"Wildfire Orbit",
+	"frost+homing":"Winter's Pursuit",
+	"frost+gravity":"Frozen Abyss",
+	"frost+ricochet":"Glacial Rebound",
+	"homing+gravity":"Event Horizon",
+	"homing+ricochet":"Relentless Wisp",
+	"gravity+ricochet":"Orbitbreaker",
+	"grounding+tempest":"Skybreaker",
+	"grounding+venom":"Withering Earth",
+	"tempest+venom":"Plague Gale"
+}
 const SPELL_COSTS: Array[float] = [15.0,20.0,22.0,30.0,24.0,26.0,35.0,22.0,20.0,18.0]
 # Faster exchanges; persistent Everbound retains the longer 7s gate.
 const SPELL_COOLDOWNS: Array[float] = [1.6,5.2,3.0,6.2,7.0,5.5,9.0,4.5,5.2,3.0]
@@ -729,6 +752,8 @@ func update_resource_hud() -> void:
 	var hand_offset: int = 5 if controlled_arm == "left" else 0
 	if hand_indicator != null:
 		hand_indicator.text = ("LEFT HAND" if controlled_arm == "left" else "RIGHT HAND")+"  |  1-5 FINGERS (SHIFT)"
+		if cast_elapsed>=0.0 and cast_components.size()>1:
+			hand_indicator.text = "FUSION: "+fusion_name(cast_components)
 	for i in range(5):
 		var slot: int = hand_offset+i
 		var remaining: float = 0.0 if ignore_spell_cooldowns else spell_remaining[slot]
@@ -1445,6 +1470,11 @@ func apply_spell_status(effect_id: String, center: Vector3) -> void:
 			else:
 				spell_tempest_direction = Vector3.FORWARD
 
+func apply_spell_statuses(effect_ids: Array[String], center: Vector3) -> void:
+	# Deferred impact tweens outlive the shot; victims own status dispatch.
+	for effect_id in effect_ids:
+		apply_spell_status(effect_id,center)
+
 func status_description() -> String:
 	if combat_dead: return ""
 	var active: PackedStringArray = []
@@ -1776,7 +1806,9 @@ func update_pursuit_agent(dt: float) -> void:
 			var chosen: String = choices[(pursuit_spell_cursor+int(name.right(1)))%choices.size()]
 			pursuit_spell_cursor += 1
 			controlled_arm = "left" if chosen in ["grounding","tempest","venom"] else "right"
-			cast_spell(chosen)
+			var partner: String = "venom" if controlled_arm=="left" else ("homing" if chosen!="homing" else "fire")
+			if pursuit_spell_cursor%3!=0 or not cast_spell_pair(chosen,partner):
+				cast_spell(chosen)
 			pursuit_cast_timer = 1.65 if pursuit_role=="hunter" else (2.3 if pursuit_role=="no_flight" else (3.3 if pursuit_role=="no_sprint" else 1.85))
 	jab_aim_strength = 1.0
 	adjust_jab_arm()
@@ -1983,7 +2015,25 @@ func update_team_battle_agent(dt: float) -> void:
 			var spell_slot: int = SPELL_IDS.find(chosen)
 			if spell_is_ready(spell_slot):
 				controlled_arm = "left" if spell_slot>=5 else "right"
-				cast_spell(chosen)
+				var fused: bool = false
+				if target_valid and FUSION_PROJECTILES.has(chosen) and agent_rng.randf()<0.45:
+					var combo: Array[String] = [chosen]
+					var candidates: Array[String] = []
+					if spell_slot<5:
+						if distance_m>12.0: candidates.append("homing")
+						if war_target.spell_frost_remaining<0.25: candidates.append("frost")
+						if distance_m<32.0: candidates.append("gravity")
+						candidates.append_array(["fire","ricochet"])
+					else:
+						if war_target.flight_enabled: candidates.append("grounding")
+						candidates.append_array(["tempest","venom"])
+					for candidate in candidates:
+						if combo.has(candidate): continue
+						var proposed: Array[String] = combo.duplicate()
+						proposed.append(candidate)
+						if spell_combo_is_ready(proposed) and agent_rng.randf()<0.75: combo = proposed
+					if combo.size()>1: fused = begin_projectile_cast(combo)
+				if not fused: cast_spell(chosen)
 		# Fire the next shot promptly when there is something ready to cast.
 		# When every attack is on cooldown, check again instead of waiting a
 		# full second on an already-rejected spell.
@@ -2065,6 +2115,7 @@ func _physics_process(dt):
 					if changed_target: arena.record_player_auto_target_change(closest.name)
 	if paused: return
 	if player_controlled:
+		flush_pending_spell()
 		tick_live_spell_effects(dt)
 		blink_cooldown_remaining = maxf(0.0,blink_cooldown_remaining-dt)
 		for i in range(spell_remaining.size()):
@@ -2080,11 +2131,13 @@ func _physics_process(dt):
 		update_resource_hud()
 	if combat_dead:
 		update_combat_fall(dt)
+		if player_controlled: update_camera()
 		return
 	if animation_test_mode == "sky_target":
 		update_sky_target(dt)
 		return
 	if animation_test_mode == "war":
+		if player_controlled: update_camera()
 		# Arena owns updates of all war fighters. A fallback remains for isolated tests.
 		if get_tree().current_scene.has_method("tick_war_fighters"): return
 		war_simulation_tick(dt)
@@ -2479,13 +2532,26 @@ func _physics_process(dt):
 		else:
 			hud.text = "%s  |  %.1f m/s" % [name,absf(signed_speed)]
 func update_camera():
-	var subject = camera_target if is_instance_valid(camera_target) else actor
-	var subject_controller = subject.get_parent().crouch if camera_target!=null else crouch
-	var focus_target = subject_controller.capsule.height*0.58 if subject_controller.capsule!=null else 1.05
-	camera_focus_height = lerp(camera_focus_height,focus_target,0.06)
-	var focus = subject.global_position+Vector3.UP*camera_focus_height
-	camera.position = focus+Vector3(sin(orbit)*cos(elevation),-sin(elevation),cos(orbit)*cos(elevation))*distance
-	camera.look_at(focus)
+	var subject: CharacterBody3D = camera_target if is_instance_valid(camera_target) else actor
+	if subject==null or camera==null: return
+	var subject_controller: Node = subject.get_parent().crouch if subject!=actor else crouch
+	var focus_target: float = subject_controller.capsule.height*0.58 if subject_controller.capsule!=null else 1.05
+	camera_focus_height = lerpf(camera_focus_height,focus_target,0.18)
+	var focus: Vector3 = subject.global_position+Vector3.UP*camera_focus_height
+	if player_controlled and combat_dead and subject==actor and skeleton!=null:
+		# Follow the actual animated body (not only its upright physics capsule).
+		# It may still be airborne, pitching forward, or lying prone after death.
+		skeleton.force_update_all_bone_transforms()
+		var torso_index: int = skeleton.find_bone("Spine2")
+		if torso_index<0: torso_index = skeleton.find_bone("Spine")
+		if torso_index>=0:
+			var torso_center: Vector3 = skeleton.global_transform*skeleton.get_bone_global_pose(torso_index).origin
+			if torso_center.distance_to(subject.global_position)<3.5:
+				focus = torso_center
+	# World-space follow is mandatory when grounding pulls a flying fighter
+	# down. Avoid root-local offsets and never smooth the actor's world Y.
+	camera.global_position = focus+Vector3(sin(orbit)*cos(elevation),-sin(elevation),cos(orbit)*cos(elevation))*distance
+	camera.look_at(focus,Vector3.UP)
 func _process(_dt):
 	frame += 1
 	var shots = OS.get_environment("WALK_SHOTS")
@@ -3336,42 +3402,124 @@ func toggle_flight_spell() -> void:
 		flight_clearance_time = 1.0
 		debug_player("FLIGHT_SPELL","air_launch")
 
-func cast_spell(element: String) -> void:
-	# Player controls five independent fingers per selected hand.
-	var slot: int = SPELL_IDS.find(element)
-	if slot<0: return
-	if player_controlled:
-		if slot<0: return
-		if (slot<5 and controlled_arm!="right") or (slot>=5 and controlled_arm!="left"): return
-		if element=="flight":
-			toggle_flight_spell()
-			return
-	if cast_elapsed>=0.0 or crouch.active(): return
-	if element=="ricochet" and get_tree().get_nodes_in_group("persistent_ricochets").size()>=MAX_ACTIVE_RICOCHETS:
-		if player_controlled: debug_player("RICOCHET_LIMIT","active orbs capped at "+str(MAX_ACTIVE_RICOCHETS))
-		return
-	if not spell_is_ready(slot): return
+func fusion_name(elements: Array[String]) -> String:
+	if elements.is_empty(): return ""
+	if elements.size()==1: return SPELL_NAMES[SPELL_IDS.find(elements[0])]
+	if elements.size()==2:
+		var a: int = mini(SPELL_IDS.find(elements[0]),SPELL_IDS.find(elements[1]))
+		var b: int = maxi(SPELL_IDS.find(elements[0]),SPELL_IDS.find(elements[1]))
+		return String(FUSION_NAMES.get(SPELL_IDS[a]+"+"+SPELL_IDS[b],SPELL_NAMES[a]+" + "+SPELL_NAMES[b]))
+	return "Convergence (%d)" % elements.size()
+
+func spell_combo_is_ready(elements: Array[String]) -> bool:
+	if elements.is_empty() or cast_elapsed>=0.0 or crouch.active() or combat_dead: return false
+	var first_arm: String = ""
+	var total: float = 0.0
+	var seen: Dictionary = {}
+	for element in elements:
+		var slot: int = SPELL_IDS.find(element)
+		if slot<0 or seen.has(slot) or not FUSION_PROJECTILES.has(element): return false
+		if not spell_is_ready(slot): return false
+		seen[slot] = true
+		var hand: String = "left" if slot>=5 else "right"
+		# All projectile fingers can mix across hands.
+		first_arm = hand
+		total += SPELL_COSTS[slot]
+	if not infinite_mana and mana<total: return false
+	if seen.has(SPELL_IDS.find("ricochet")) and get_tree().get_nodes_in_group("persistent_ricochets").size()>=MAX_ACTIVE_RICOCHETS: return false
+	return true
+
+func spell_pair_is_ready(first_slot: int, second_slot: int) -> bool:
+	if first_slot<0 or second_slot<0 or first_slot>=SPELL_IDS.size() or second_slot>=SPELL_IDS.size(): return false
+	var pair: Array[String] = [SPELL_IDS[first_slot],SPELL_IDS[second_slot]]
+	return spell_combo_is_ready(pair)
+
+func begin_projectile_cast(elements: Array[String]) -> bool:
+	if not spell_combo_is_ready(elements): return false
+	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return false
+	var ordered: Array[String] = elements.duplicate()
+	ordered.sort_custom(func(a: String,b: String) -> bool: return SPELL_IDS.find(a)<SPELL_IDS.find(b))
+	var first_slot: int = SPELL_IDS.find(ordered[0])
+	var first_arm: String = "left" if first_slot>=5 else "right"
 	var arm_health: Node = get_node_or_null("DamageSystem")
-	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"])<=0.0:
-		if player_controlled: debug_player("SPELL_BLOCKED","disabled "+controlled_arm+" arm")
-		return
-	if element=="bloom":
-		spend_spell(slot)
-		cast_bloom_pulse()
-		return
-	# Existing imported VFX/rig animation; no home-built substitute.
-	if not ResourceLoader.exists("res://assets/external_vfx/fire.tscn"): return
-	cast_element = element
-	cast_arm_name = controlled_arm
+	if arm_health!=null and float(arm_health.hp["right_arm" if first_arm=="right" else "left_arm"])<=0.0: return false
+	var hand_id: int = jab_right_hand if first_arm=="right" else jab_left_hand
+	if hand_id<0: return false
+	var total_mana: float = 0.0
+	for element in ordered:
+		var slot: int = SPELL_IDS.find(element)
+		total_mana += SPELL_COSTS[slot]
+		if not ignore_spell_cooldowns: spell_remaining[slot] = SPELL_COOLDOWNS[slot]
+	if not infinite_mana: mana = maxf(0.0,mana-total_mana)
+	cast_element = ordered[0]
+	cast_components = ordered
+	cast_arm_name = first_arm
 	cast_aim_point = ai_target_position() if ai_abilities else selected_target_aim_point()
-	var hand_id: int = jab_right_hand if cast_arm_name == "right" else jab_left_hand
-	if hand_id<0: return
-	spend_spell(slot)
 	skeleton.force_update_all_bone_transforms()
 	cast_last_hand = skeleton.global_transform*skeleton.get_bone_global_pose(hand_id).origin
 	cast_hand_velocity = Vector3.ZERO
 	cast_elapsed = 0.0
 	cast_released = false
+	update_resource_hud()
+	if ordered.size()>1 and player_controlled: print("SPELL_FUSION ",fusion_name(ordered)," components=",ordered," mana=",total_mana)
+	return true
+
+func cast_spell_pair(first: String, second: String) -> bool:
+	var pair: Array[String] = [first,second]
+	return begin_projectile_cast(pair)
+
+func cast_spell(element: String) -> void:
+	var slot: int = SPELL_IDS.find(element)
+	if slot<0: return
+	if player_controlled:
+		if (slot<5 and controlled_arm!="right") or (slot>=5 and controlled_arm!="left"): return
+		if element=="flight":
+			toggle_flight_spell()
+			return
+	if element=="bloom":
+		if cast_elapsed>=0.0 or crouch.active() or combat_dead or not spell_is_ready(slot): return
+		var arm_health: Node = get_node_or_null("DamageSystem")
+		if arm_health!=null and float(arm_health.hp["left_arm"])<=0.0: return
+		spend_spell(slot)
+		cast_bloom_pulse()
+		return
+	var standalone: Array[String] = [element]
+	begin_projectile_cast(standalone)
+
+func flush_pending_spell(force: bool = false) -> void:
+	if pending_spell_slots.is_empty(): return
+	if not force and Time.get_ticks_msec()-pending_spell_since_ms<FUSION_INPUT_WINDOW_MS: return
+	var slots: Array[int] = pending_spell_slots.duplicate()
+	pending_spell_slots.clear()
+	pending_spell_arm = ""
+	var combo: Array[String] = []
+	for slot in slots: combo.append(SPELL_IDS[slot])
+	# An unaffordable combo casts its largest affordable ordered subset.
+	while not combo.is_empty() and not spell_combo_is_ready(combo):
+		combo.pop_back()
+	if not combo.is_empty(): begin_projectile_cast(combo)
+
+func receive_spell_key(slot: int) -> void:
+	if slot<0 or slot>=SPELL_IDS.size(): return
+	if not FUSION_PROJECTILES.has(SPELL_IDS[slot]):
+		flush_pending_spell(true)
+		if slot==SPELL_IDS.find("bloom") and controlled_arm!="left":
+			var old_arm: String = controlled_arm
+			controlled_arm = "left"
+			cast_spell(SPELL_IDS[slot])
+			controlled_arm = old_arm
+		else:
+			cast_spell(SPELL_IDS[slot])
+		return
+	var now_ms: int = Time.get_ticks_msec()
+	if not pending_spell_slots.is_empty() and now_ms-pending_spell_since_ms>FUSION_INPUT_WINDOW_MS:
+		flush_pending_spell(true)
+	if pending_spell_slots.is_empty():
+		pending_spell_since_ms = now_ms
+		pending_spell_arm = controlled_arm
+	if not pending_spell_slots.has(slot):
+		pending_spell_slots.append(slot)
+		pending_spell_slots.sort()
 
 func update_cast_motion(dt: float) -> void:
 	if cast_elapsed < 0.0: return
@@ -3399,7 +3547,11 @@ func release_fireball(hand_world: Vector3) -> void:
 	if arm_id < 0: return
 	# Aim at the SAME world target captured at cast start. This direction
 	# is measured from the palm so the projectile actually hits the cursor.
-	var homing_pick: CharacterBody3D = acquire_homing_target() if cast_element=="homing" else null
+	var components: Array[String] = cast_components.duplicate()
+	if components.is_empty(): components.append(cast_element)
+	var has_homing: bool = components.has("homing")
+	var has_ricochet: bool = components.has("ricochet")
+	var homing_pick: CharacterBody3D = acquire_homing_target() if has_homing else null
 	var raw_direction: Vector3 = (cast_aim_point-hand_world).normalized()
 	if is_instance_valid(homing_pick):
 		# Start toward the target immediately. A shot initially aimed at the
@@ -3414,9 +3566,9 @@ func release_fireball(hand_world: Vector3) -> void:
 	# structures; ordinary spells preserve cursor-precise palm release.
 	var launch_speed: float = maxf(29.0,cast_hand_velocity.dot(travel))
 	var projectile := Node3D.new()
-	projectile.name = cast_element.capitalize()+"Projectile"
+	projectile.name = (fusion_name(components) if components.size()>1 else cast_element.capitalize())+"Projectile"
 	projectile.add_to_group("battle_fireballs")
-	if cast_element=="ricochet": projectile.add_to_group("persistent_ricochets")
+	if has_ricochet: projectile.add_to_group("persistent_ricochets")
 	get_tree().current_scene.add_child(projectile)
 	projectile.global_position = hand_world + travel * 0.20
 	# Use external particles for both spell types; never hand-draw VFX.
@@ -3425,7 +3577,10 @@ func release_fireball(hand_world: Vector3) -> void:
 	projectile.add_child(effect)
 	var spell_index: int = SPELL_IDS.find(cast_element)
 	var spell_color: Color = SPELL_COLORS[spell_index] if spell_index >= 0 else Color("ff9b4f")
-	if spell_index > 0 and effect.process_material is ParticleProcessMaterial:
+	if components.size()>1:
+		spell_color = Color.BLACK
+		for component in components: spell_color += SPELL_COLORS[SPELL_IDS.find(component)]/float(components.size())
+	if (spell_index > 0 or components.size()>1) and effect.process_material is ParticleProcessMaterial:
 		# The imported fire particle asset has a red/orange color ramp;
 		# multiplying it by cyan/green would make the new spells appear dark.
 		# Replace only the ramp; keep the externally sourced motion and texture.
@@ -3438,7 +3593,7 @@ func release_fireball(hand_world: Vector3) -> void:
 		colored_particles.color = Color.WHITE
 		colored_particles.color_ramp = tint_ramp
 		effect.process_material = colored_particles
-	if player_controlled and cast_element!="ricochet":
+	if player_controlled and not has_ricochet:
 		var glow := OmniLight3D.new()
 		glow.light_color = spell_color
 		glow.light_energy = 1.25
@@ -3449,9 +3604,9 @@ func release_fireball(hand_world: Vector3) -> void:
 		arena.configure_fireball_particles(effect,float(arena.get("battle_fireball_size")))
 	else:
 		effect.scale = Vector3.ONE * 3.0
-	effect.amount = mini(effect.amount,10 if cast_element=="ricochet" else 6)
-	if cast_element=="ricochet": effect.lifetime = 0.40
-	if cast_element=="homing":
+	effect.amount = mini(effect.amount,10 if has_ricochet else 6)
+	if has_ricochet: effect.lifetime = 0.40
+	if has_homing and not has_ricochet:
 		# Particle positions stay relative to the travelling projectile so
 		# the entire imported effect grows thinner as the parent shrinks.
 		# World-space particles would otherwise leave a full-sized trail behind.
@@ -3460,6 +3615,57 @@ func release_fireball(hand_world: Vector3) -> void:
 	effect.fixed_fps = 30
 	effect.emitting = true
 	effect.restart()
+	# Fuse the actual imported spell VFX motions, not just their colour.
+	# A single physics projectile owns small, independent particle layers;
+	# every constituent keeps its own motion, with NO extra physics bodies.
+	if components.size()>1:
+		effect.amount = mini(effect.amount,4)
+		for component in components:
+			var layer: GPUParticles3D = effect.duplicate() as GPUParticles3D
+			layer.name = component.capitalize()+"FusionMotion"
+			projectile.add_child(layer)
+			var layer_mat: ParticleProcessMaterial = layer.process_material.duplicate(true) as ParticleProcessMaterial
+			if layer_mat!=null:
+				var color: Color = SPELL_COLORS[SPELL_IDS.find(component)]
+				var ramp := Gradient.new()
+				ramp.set_color(0,color)
+				ramp.set_color(1,Color(color.r,color.g,color.b,0.0))
+				var texture := GradientTexture1D.new()
+				texture.gradient = ramp
+				layer_mat.color_ramp = texture
+				layer_mat.color = Color.WHITE
+				match component:
+					"fire":
+						layer_mat.direction = Vector3(0.0,1.0,0.0)
+						layer_mat.spread = 55.0
+					"frost":
+						layer_mat.direction = Vector3(0.0,0.0,-1.0)
+						layer_mat.spread = 15.0
+						layer_mat.gravity = Vector3.ZERO
+					"homing":
+						layer_mat.direction = Vector3(0.0,0.0,1.0)
+						layer_mat.spread = 12.0
+					"gravity":
+						layer_mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+						layer_mat.emission_sphere_radius = 0.7
+						layer_mat.direction = Vector3(0.0,-1.0,0.0)
+						layer_mat.spread = 165.0
+					"ricochet":
+						layer_mat.spread = 180.0
+					"grounding":
+						layer_mat.direction = Vector3(0.0,-1.0,0.0)
+						layer_mat.spread = 30.0
+					"tempest":
+						layer_mat.direction = Vector3(1.0,0.0,0.0)
+						layer_mat.spread = 130.0
+					"venom":
+						layer_mat.direction = Vector3(0.0,1.0,0.0)
+						layer_mat.spread = 85.0
+				layer.process_material = layer_mat
+			layer.amount = 4
+			layer.fixed_fps = 30
+			layer.emitting = true
+			layer.restart()
 	var script_path: String = "res://assets/external_vfx/" + "fireball_motion.gd"
 	var mover = load(script_path).new()
 	mover.name = "Motion"
@@ -3471,18 +3677,19 @@ func release_fireball(hand_world: Vector3) -> void:
 	mover.owner_rid = actor.get_rid()
 	mover.attacker_name = name
 	mover.caster_team = team_id
-	mover.spell_type = cast_element
+	mover.spell_type = "ricochet" if has_ricochet else ("homing" if has_homing else cast_element)
+	mover.spell_components = components.duplicate()
 	mover.spell_color = spell_color
-	if cast_element=="homing":
+	if has_homing:
 		mover.homing_target = homing_pick
 		mover.travel_speed = maxf(mover.travel_speed,37.0)
 		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,37.0)
-	if cast_element=="ricochet":
+	if has_ricochet:
 		mover.travel_speed = maxf(mover.travel_speed,29.0)
 		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,29.0)
 	mover.blast_width = float(arena.get("battle_fireball_size")) if arena != null else 1.0
 	projectile.add_child(mover)
-	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
+	if player_controlled: print("SPELL_RELEASE ",fusion_name(components) if components.size()==2 else cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
 
 func choose_random_idle():
 	# Historical name retained for existing callers. Idle (3).fbx preferred for everyone; never swap.
@@ -3531,14 +3738,19 @@ func _unhandled_input(event):
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode>=KEY_1 and event.keycode<=KEY_5:
 				var spell_index: int = (5 if controlled_arm=="left" else 0)+(event.keycode-KEY_1)
-				cast_spell(SPELL_IDS[spell_index])
+				receive_spell_key(spell_index)
+			if event.keycode>=KEY_6 and event.keycode<=KEY_9:
+				receive_spell_key(5+event.keycode-KEY_6)
 			if event.keycode==KEY_F: select_hovered_target()
 			if event.keycode==KEY_SHIFT:
+				flush_pending_spell(true)
 				if cast_elapsed < 0.0:
 					controlled_arm = "left" if controlled_arm == "right" else "right"
 					update_resource_hud()
 				print("CONTROLLED_ARM ",controlled_arm)
 			if event.keycode==KEY_F11: DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if DisplayServer.window_get_mode()==DisplayServer.WINDOW_MODE_FULLSCREEN else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		# Releasing a key does NOT immediately fire: give the remaining
+		# fingers the full chord window even if the first key was tapped.
 		if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
 			orbit = wrapf(orbit-event.relative.x*0.004*camera_sensitivity,-PI,PI)
 			elevation = clampf(elevation-event.relative.y*0.004*camera_sensitivity,-1.20,1.20)
