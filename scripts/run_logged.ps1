@@ -6,41 +6,70 @@ $ErrorActionPreference = "Stop"
 $logDir = Join-Path (Get-Location) "logs"
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $stamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-$logFile = Join-Path $logDir ("run_" + $stamp + ".log")
-Write-Host ("Game running; recording to " + $logFile)
-("WalkingLab run " + (Get-Date -Format "o")) | Out-File -FilePath $logFile -Encoding utf8
-("Godot executable: " + $GodotPath) | Out-File -FilePath $logFile -Append -Encoding utf8
-try {
-    # Native Godot stderr is diagnostic output, not a terminating PowerShell exception.
-    # Keep the complete parser line in the log even when Godot exits nonzero.
-    $ErrorActionPreference = "Continue"
-    # RUN.bat quotes the raw argument string so PowerShell cannot mistake
-# --flight-benchmark for a PowerShell named parameter.
-if ($GameArgs.Count -eq 1 -and $GameArgs[0].Contains(" ")) {
-    $GameArgs = @($GameArgs[0] -split '\s+' | Where-Object { $_ -ne "" })
+$prefix = "run_" + $stamp
+$maxPartBytes = 4MB
+$part = 1
+$logFile = Join-Path $logDir ("{0}_part{1:D3}.log" -f $prefix,$part)
+$writer = $null
+$bytesWritten = 0L
+$encoder = [System.Text.UTF8Encoding]::new($false)
+function Open-Part {
+    if ($null -ne $script:writer) { $script:writer.Flush(); $script:writer.Dispose() }
+    $script:logFile = Join-Path $logDir ("{0}_part{1:D3}.log" -f $prefix,$script:part)
+    $script:writer = [System.IO.StreamWriter]::new($script:logFile,$false,$encoder)
+    $script:writer.AutoFlush = $false
+    $script:bytesWritten = 0L
 }
-if ($GameArgs.Count -gt 0) {
-        ("Godot user args: " + ($GameArgs -join " ")) | Out-File -FilePath $logFile -Append -Encoding utf8
-        & $GodotPath --path (Get-Location).Path -- @GameArgs 2>&1 | ForEach-Object { $_.ToString() | Out-File -FilePath $logFile -Append -Encoding utf8 }
-    } else {
-        & $GodotPath --path (Get-Location).Path -- @GameArgs *>> $logFile
+function Write-Log([string]$Line) {
+    if ($null -eq $Line) { $Line = "" }
+    # Split exceptionally long lines as well, so no part exceeds the cap.
+    $offset = 0
+    do {
+        $take = [Math]::Min(16384, [Math]::Max(0,$Line.Length-$offset))
+        $piece = if ($take -gt 0) { $Line.Substring($offset,$take) } else { "" }
+        $encoded = $encoder.GetByteCount($piece) + 2
+        if ($script:bytesWritten + $encoded -gt $maxPartBytes) {
+            $script:part++
+            Open-Part
+        }
+        $script:writer.WriteLine($piece)
+        $script:bytesWritten += $encoded
+        $offset += $take
+    } while ($offset -lt $Line.Length)
+}
+$status = 1
+try {
+    Open-Part
+    Write-Log ("WalkingLab run " + (Get-Date -Format "o"))
+    Write-Log ("Godot executable: " + $GodotPath)
+    if ($GameArgs.Count -eq 1 -and $GameArgs[0].Contains(" ")) {
+        $GameArgs = @($GameArgs[0] -split '\s+' | Where-Object { $_ -ne "" })
+    }
+    if ($GameArgs.Count -gt 0) { Write-Log ("Godot user args: " + ($GameArgs -join " ")) }
+    # Stream merged stdout/stderr directly into rotating logs: no buffering until exit.
+    & $GodotPath --path (Get-Location).Path -- @GameArgs 2>&1 | ForEach-Object {
+        Write-Log ($_.ToString())
     }
     $status = $LASTEXITCODE
 } catch {
-    $_ | Out-File -FilePath $logFile -Append
+    if ($null -ne $script:writer) { Write-Log ("LOGGER ERROR: " + $_.ToString()) }
     $status = 1
+} finally {
+    if ($null -ne $script:writer) {
+        Write-Log ("Run ended " + (Get-Date -Format "o") + " exit=" + $status)
+        $script:writer.Flush()
+        $script:writer.Dispose()
+        $script:writer = $null
+    }
 }
-("Run ended " + (Get-Date -Format "o") + " exit=" + $status) | Out-File -FilePath $logFile -Append -Encoding utf8
-Write-Host ("Saved console trace: " + $logFile)
+Write-Host ("Saved " + $part + " rotated log part(s) for " + $prefix)
 if ($status -ne 0) {
     Write-Host "Game exited with an error. Last 35 lines:"
-    Get-Content $logFile -Tail 35
+    Get-Content -LiteralPath $logFile -Tail 35
 }
-# The launcher exits immediately, so the logger owns the post-run upload.
-# Upload the log even when the game reports a nonzero exit code.
 try {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path (Get-Location) "scripts\\sync_logs.ps1") | Out-File -FilePath $logFile -Append -Encoding utf8
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path (Get-Location) "scripts\sync_logs.ps1")
 } catch {
-    ("Log synchronization failed: " + $_) | Out-File -FilePath $logFile -Append -Encoding utf8
+    Write-Host ("Log synchronization failed: " + $_)
 }
 exit $status
