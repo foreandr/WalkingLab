@@ -1539,16 +1539,26 @@ func update_pursuit_agent(dt: float) -> void:
 	var desired: Vector3 = Vector3.ZERO
 	if is_escapee:
 		var nearest_distance: float = 9999.0
-		var nearest_away: Vector3 = Vector3.FORWARD
+		var avoidance: Vector3 = Vector3.ZERO
 		for other in arena.mannequins:
 			if not is_instance_valid(other) or other == self or other.combat_dead: continue
 			if other.pursuit_role == "": continue
 			var offset: Vector3 = actor.global_position-other.actor.global_position
 			offset.y = 0.0
 			var separation: float = offset.length()
-			if separation < nearest_distance and separation>0.001:
-				nearest_distance = separation
-				nearest_away = offset/separation
+			if separation>0.001:
+				nearest_distance = minf(nearest_distance,separation)
+				avoidance += offset/(separation*maxf(separation,3.0))
+		# Black is also a threat if the player approaches the fleeing NPC.
+		var player_threat: Node = arena.get("player")
+		if is_instance_valid(player_threat) and not player_threat.combat_dead:
+			var player_offset: Vector3 = actor.global_position-player_threat.actor.global_position
+			player_offset.y = 0.0
+			var player_separation: float = player_offset.length()
+			if player_separation>0.001:
+				nearest_distance = minf(nearest_distance,player_separation)
+				avoidance += player_offset/(player_separation*maxf(player_separation,3.0))
+		var nearest_away: Vector3 = avoidance.normalized() if avoidance.length_squared()>0.00001 else Vector3.FORWARD
 		var bend: Vector3 = Vector3(-nearest_away.z,0.0,nearest_away.x)
 		desired = (nearest_away*1.15+bend*(0.40+0.23*sin(clock*0.58))).normalized()
 		# Alternate running and flight, taking off when badly pressured.
