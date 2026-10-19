@@ -1,0 +1,1034 @@
+﻿WalkingLab run 2026-10-19T01:16:31.8638329-04:00
+Godot executable: C:\Users\forea\Documents\Codex\2026-10-16\okay\work\godot\Godot_v4.7.2-stable_win64_console.exe
+Godot user args: --flight-benchmark --benchmark-fighters=60
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 26.8.1.260806 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon(TM) 610M
+
+[PERF_CONFIG] fps_cap=30 physics_hz=30 ground_foot_correction_default=false stress_no_deaths=false batch_aoe_shader=false
+[SOLO_LEFT_STRAFE] selected=res://assets/locomotion/Left Strafe run.fbx
+[SOLO_LEFT_STRAFE] ready tracks=51 file=res://assets/locomotion/Left Strafe run.fbx hips_ignored=true local_rotation=true
+[SOLO_LEFT_STRAFE] selected=res://assets/locomotion/Right Strafe run.fbx
+[SOLO_LEFT_STRAFE] ready tracks=51 file=res://assets/locomotion/Right Strafe run.fbx hips_ignored=true local_rotation=true
+MIXAMO_CLIPS ["EasyRun", "FastRun", "NewWalk", "PreviousWalk", "QuickRun", "Run", "StandardRun", "back/BackQuickRun", "back/BackRun", "back/BackWalk", "strafe/Left", "strafe/Right"]
+IDLE_REGISTERED Idle (3).fbx name=Idle3 tracks=52 length=2.2
+IDLE_REGISTERED Breathing Idle.fbx name=BreathingIdle tracks=52 length=9.93333333333333
+IDLE_REGISTERED Idle (2).fbx name=Idle1 tracks=42 length=4.0
+IDLE_REGISTERED Offensive Idle.fbx name=Idle2 tracks=52 length=10.5666666666667
+IDLE_REGISTERED Neutral Idle.fbx name=Idle0 tracks=52 length=8.76666666666667
+CROUCH_CLIPS ["EasyRun", "FastRun", "NewWalk", "PreviousWalk", "QuickRun", "Run", "StandardRun", "back/BackQuickRun", "back/BackRun", "back/BackWalk", "crouch/CrouchBack", "crouch/Enter", "crouch/Idle", "crouch/Launch", "crouch/SneakLeft", "crouch/Stand", "derived_crouch/Forward", "derived_crouch/Right", "manual/BreathingIdle", "manual/Idle0", "manual/Idle1", "manual/Idle2", "manual/Idle3", "strafe/Left", "strafe/Right"]
+JAB_IK_BONES arm=8 forearm=9 hand=10
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Flying (1).fbx tracks=51 seconds=2.63333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Jumping Up.fbx tracks=41 seconds=0.83333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Sitting Idle.fbx tracks=51 seconds=10.2666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Punching (1).fbx tracks=51 seconds=1.26666666666667
+[PLAYER_DEBUG] t=0.0 ASSET_MISSING | Punching(2).fbx path=res://assets/custom_idle/Punching(2).fbx
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Reaction.fbx tracks=50 seconds=1.83333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Reaction (1).fbx tracks=50 seconds=1.83333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Medium Hit To Head.fbx tracks=51 seconds=0.93333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Medium Hit To Head (1).fbx tracks=51 seconds=0.93333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Light Hit To Head.fbx tracks=51 seconds=0.76666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Light Hit To Head (1).fbx tracks=51 seconds=0.76666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Big Kidney Hit.fbx tracks=51 seconds=1.6
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Big Kidney Hit (1).fbx tracks=51 seconds=1.6
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Dying.fbx tracks=51 seconds=5.76666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Dying (1).fbx tracks=51 seconds=4.66666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Dying (2).fbx tracks=51 seconds=3.46666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Dying (3).fbx tracks=31 seconds=2.6
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Stunned.fbx tracks=51 seconds=2.13333333333333
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Injured Walk (1).fbx tracks=51 seconds=1.16666666666667
+[PLAYER_DEBUG] t=0.0 ANIMATION_LOADED | Injured Walk.fbx tracks=51 seconds=1.16666666666667
+[ANIMATION_CACHE_BUILD] duration_ms=417.18 imported_clips=19
+FLIGHT_ANIMATION_LOADED PlayerMan tracks=51
+FOOT_SURFACE_SAMPLES 1282
+[FOOT_SUPPORT_CACHE] samples=1282 all_samples=35434
+[SOLO_GROUND_SPEED] target_mps=7.7
+[SOLO_LEFT_STRAFE] selected=res://assets/locomotion/Left Strafe run.fbx
+[SOLO_LEFT_STRAFE] ready tracks=51 file=res://assets/locomotion/Left Strafe run.fbx hips_ignored=true local_rotation=true
+[SOLO_LEFT_STRAFE] selected=res://assets/locomotion/Right Strafe run.fbx
+[SOLO_LEFT_STRAFE] ready tracks=51 file=res://assets/locomotion/Right Strafe run.fbx hips_ignored=true local_rotation=true
+[SPAWN_REQUEST] queued=60 pending=60 existing=0
+[ARENA_MODE] free_for_all player=manual immortal=true starting_spells=1 arena_half_extent=50.0
+[PLAYER_DEBUG] t=0.27 STATE_CHANGE |  -> IDLE
+[PLAYER_DEBUG] t=0.27 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter01 phase=model_attach ms=1.1
+[FIGHTER_INIT_PHASE] fighter=Fighter01 phase=backwards ms=19.94
+[FIGHTER_INIT_PHASE] fighter=Fighter01 phase=crouch ms=38.48
+[FIGHTER_INIT_PHASE] fighter=Fighter01 phase=idle ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter01 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter01 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter01 duration_ms=63.88
+[SPAWN_DONE] fighters_total=1 pending=59 spawn_ms=65.07
+[PLAYER_DEBUG] t=0.53 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter02 phase=model_attach ms=0.94
+[FIGHTER_INIT_PHASE] fighter=Fighter02 phase=backwards ms=17.35
+[FIGHTER_INIT_PHASE] fighter=Fighter02 phase=crouch ms=29.52
+[FIGHTER_INIT_PHASE] fighter=Fighter02 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter02 phase=flight_clips ms=0.06
+[FIGHTER_INIT_PHASE] fighter=Fighter02 phase=feet ms=0.03
+[FIGHTER_INIT_TOTAL] fighter=Fighter02 duration_ms=52.47
+[SPAWN_DONE] fighters_total=2 pending=58 spawn_ms=53.93
+[FIGHTER_INIT_PHASE] fighter=Fighter03 phase=model_attach ms=0.5
+[FIGHTER_INIT_PHASE] fighter=Fighter03 phase=backwards ms=17.43
+[FIGHTER_INIT_PHASE] fighter=Fighter03 phase=crouch ms=35.55
+[FIGHTER_INIT_PHASE] fighter=Fighter03 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter03 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter03 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter03 duration_ms=57.08
+[SPAWN_DONE] fighters_total=3 pending=57 spawn_ms=57.76
+[FIGHTER_INIT_PHASE] fighter=Fighter04 phase=model_attach ms=0.67
+[FIGHTER_INIT_PHASE] fighter=Fighter04 phase=backwards ms=18.16
+[FIGHTER_INIT_PHASE] fighter=Fighter04 phase=crouch ms=30.75
+[FIGHTER_INIT_PHASE] fighter=Fighter04 phase=idle ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter04 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter04 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter04 duration_ms=53.04
+[SPAWN_DONE] fighters_total=4 pending=56 spawn_ms=53.77
+[PLAYER_DEBUG] t=0.8 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter05 phase=model_attach ms=1.04
+[FIGHTER_INIT_PHASE] fighter=Fighter05 phase=backwards ms=20.73
+[FIGHTER_INIT_PHASE] fighter=Fighter05 phase=crouch ms=28.12
+[FIGHTER_INIT_PHASE] fighter=Fighter05 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter05 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter05 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter05 duration_ms=53.54
+[SPAWN_DONE] fighters_total=5 pending=55 spawn_ms=54.19
+[FIGHTER_INIT_PHASE] fighter=Fighter06 phase=model_attach ms=0.66
+[FIGHTER_INIT_PHASE] fighter=Fighter06 phase=backwards ms=15.37
+[FIGHTER_INIT_PHASE] fighter=Fighter06 phase=crouch ms=28.55
+[FIGHTER_INIT_PHASE] fighter=Fighter06 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter06 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter06 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter06 duration_ms=48.05
+[SPAWN_DONE] fighters_total=6 pending=54 spawn_ms=48.76
+[PLAYER_DEBUG] t=1.07 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter07 phase=model_attach ms=0.46
+[FIGHTER_INIT_PHASE] fighter=Fighter07 phase=backwards ms=16.0
+[FIGHTER_INIT_PHASE] fighter=Fighter07 phase=crouch ms=31.3
+[FIGHTER_INIT_PHASE] fighter=Fighter07 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter07 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter07 phase=feet ms=0.03
+[FIGHTER_INIT_TOTAL] fighter=Fighter07 duration_ms=51.77
+[SPAWN_DONE] fighters_total=7 pending=53 spawn_ms=53.11
+[FIGHTER_INIT_PHASE] fighter=Fighter08 phase=model_attach ms=0.51
+[FIGHTER_INIT_PHASE] fighter=Fighter08 phase=backwards ms=21.13
+[FIGHTER_INIT_PHASE] fighter=Fighter08 phase=crouch ms=33.0
+[FIGHTER_INIT_PHASE] fighter=Fighter08 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter08 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter08 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter08 duration_ms=58.38
+[SPAWN_DONE] fighters_total=8 pending=52 spawn_ms=59.04
+[PLAYER_DEBUG] t=1.33 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter09 phase=model_attach ms=1.65
+[FIGHTER_INIT_PHASE] fighter=Fighter09 phase=backwards ms=20.44
+[FIGHTER_INIT_PHASE] fighter=Fighter09 phase=crouch ms=30.69
+[FIGHTER_INIT_PHASE] fighter=Fighter09 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter09 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter09 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter09 duration_ms=57.27
+[SPAWN_DONE] fighters_total=9 pending=51 spawn_ms=58.68
+[PLAYER_DEBUG] t=1.6 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter10 phase=model_attach ms=0.54
+[FIGHTER_INIT_PHASE] fighter=Fighter10 phase=backwards ms=15.41
+[FIGHTER_INIT_PHASE] fighter=Fighter10 phase=crouch ms=28.88
+[FIGHTER_INIT_PHASE] fighter=Fighter10 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter10 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter10 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter10 duration_ms=47.59
+[SPAWN_DONE] fighters_total=10 pending=50 spawn_ms=48.2
+[FIGHTER_INIT_PHASE] fighter=Fighter11 phase=model_attach ms=0.88
+[FIGHTER_INIT_PHASE] fighter=Fighter11 phase=backwards ms=16.04
+[FIGHTER_INIT_PHASE] fighter=Fighter11 phase=crouch ms=32.7
+[FIGHTER_INIT_PHASE] fighter=Fighter11 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter11 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter11 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter11 duration_ms=53.14
+[SPAWN_DONE] fighters_total=11 pending=49 spawn_ms=53.85
+[PLAYER_DEBUG] t=1.87 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter12 phase=model_attach ms=0.67
+[FIGHTER_INIT_PHASE] fighter=Fighter12 phase=backwards ms=21.69
+[FIGHTER_INIT_PHASE] fighter=Fighter12 phase=crouch ms=45.81
+[FIGHTER_INIT_PHASE] fighter=Fighter12 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter12 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter12 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter12 duration_ms=72.56
+[SPAWN_DONE] fighters_total=12 pending=48 spawn_ms=73.41
+[FIGHTER_INIT_PHASE] fighter=Fighter13 phase=model_attach ms=2.16
+[FIGHTER_INIT_PHASE] fighter=Fighter13 phase=backwards ms=28.4
+[FIGHTER_INIT_PHASE] fighter=Fighter13 phase=crouch ms=44.9
+[FIGHTER_INIT_PHASE] fighter=Fighter13 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter13 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter13 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter13 duration_ms=80.55
+[SPAWN_DONE] fighters_total=13 pending=47 spawn_ms=81.96
+[PLAYER_DEBUG] t=2.13 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter14 phase=model_attach ms=1.04
+[FIGHTER_INIT_PHASE] fighter=Fighter14 phase=backwards ms=28.26
+[FIGHTER_INIT_PHASE] fighter=Fighter14 phase=crouch ms=29.84
+[FIGHTER_INIT_PHASE] fighter=Fighter14 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter14 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter14 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter14 duration_ms=63.33
+[SPAWN_DONE] fighters_total=14 pending=46 spawn_ms=64.1
+[PLAYER_DEBUG] t=2.4 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter15 phase=model_attach ms=0.76
+[FIGHTER_INIT_PHASE] fighter=Fighter15 phase=backwards ms=26.43
+[FIGHTER_INIT_PHASE] fighter=Fighter15 phase=crouch ms=40.31
+[FIGHTER_INIT_PHASE] fighter=Fighter15 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter15 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter15 phase=feet ms=0.03
+[FIGHTER_INIT_TOTAL] fighter=Fighter15 duration_ms=72.07
+[SPAWN_DONE] fighters_total=15 pending=45 spawn_ms=73.22
+[FIGHTER_INIT_PHASE] fighter=Fighter16 phase=model_attach ms=1.06
+[FIGHTER_INIT_PHASE] fighter=Fighter16 phase=backwards ms=24.54
+[FIGHTER_INIT_PHASE] fighter=Fighter16 phase=crouch ms=41.89
+[FIGHTER_INIT_PHASE] fighter=Fighter16 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter16 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter16 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter16 duration_ms=71.98
+[SPAWN_DONE] fighters_total=16 pending=44 spawn_ms=72.88
+[PLAYER_DEBUG] t=2.67 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter17 phase=model_attach ms=0.65
+[FIGHTER_INIT_PHASE] fighter=Fighter17 phase=backwards ms=15.46
+[FIGHTER_INIT_PHASE] fighter=Fighter17 phase=crouch ms=26.2
+[FIGHTER_INIT_PHASE] fighter=Fighter17 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter17 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter17 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter17 duration_ms=46.31
+[SPAWN_DONE] fighters_total=17 pending=43 spawn_ms=47.27
+[PLAYER_DEBUG] t=2.93 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter18 phase=model_attach ms=0.51
+[FIGHTER_INIT_PHASE] fighter=Fighter18 phase=backwards ms=12.09
+[FIGHTER_INIT_PHASE] fighter=Fighter18 phase=crouch ms=30.67
+[FIGHTER_INIT_PHASE] fighter=Fighter18 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter18 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter18 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter18 duration_ms=46.67
+[SPAWN_DONE] fighters_total=18 pending=42 spawn_ms=47.25
+[FIGHTER_INIT_PHASE] fighter=Fighter19 phase=model_attach ms=0.44
+[FIGHTER_INIT_PHASE] fighter=Fighter19 phase=backwards ms=13.36
+[FIGHTER_INIT_PHASE] fighter=Fighter19 phase=crouch ms=21.67
+[FIGHTER_INIT_PHASE] fighter=Fighter19 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter19 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter19 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter19 duration_ms=38.22
+[SPAWN_DONE] fighters_total=19 pending=41 spawn_ms=38.73
+[PLAYER_DEBUG] t=3.2 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter20 phase=model_attach ms=0.53
+[FIGHTER_INIT_PHASE] fighter=Fighter20 phase=backwards ms=13.77
+[FIGHTER_INIT_PHASE] fighter=Fighter20 phase=crouch ms=24.1
+[FIGHTER_INIT_PHASE] fighter=Fighter20 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter20 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter20 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter20 duration_ms=41.72
+[SPAWN_DONE] fighters_total=20 pending=40 spawn_ms=42.69
+[DAMAGE] Fighter02 head -30.0 HP=70.0
+[DAMAGE] Fighter02 torso -30.0 HP=70.0
+[DAMAGE] Fighter02 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter02 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter02 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter02 right_leg -30.0 HP=70.0
+[FIGHTER_INIT_PHASE] fighter=Fighter21 phase=model_attach ms=0.64
+[FIGHTER_INIT_PHASE] fighter=Fighter21 phase=backwards ms=19.11
+[FIGHTER_INIT_PHASE] fighter=Fighter21 phase=crouch ms=26.73
+[FIGHTER_INIT_PHASE] fighter=Fighter21 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter21 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter21 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter21 duration_ms=49.99
+[SPAWN_DONE] fighters_total=21 pending=39 spawn_ms=50.54
+[DAMAGE] Fighter03 head -30.0 HP=70.0
+[DAMAGE] Fighter03 torso -30.0 HP=70.0
+[DAMAGE] Fighter03 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter03 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter03 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter03 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=3.47 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter22 phase=model_attach ms=0.74
+[FIGHTER_INIT_PHASE] fighter=Fighter22 phase=backwards ms=15.33
+[FIGHTER_INIT_PHASE] fighter=Fighter22 phase=crouch ms=24.8
+[FIGHTER_INIT_PHASE] fighter=Fighter22 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter22 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter22 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter22 duration_ms=45.3
+[SPAWN_DONE] fighters_total=22 pending=38 spawn_ms=46.12
+[DAMAGE] Fighter01 head -30.0 HP=70.0
+[DAMAGE] Fighter01 torso -30.0 HP=70.0
+[DAMAGE] Fighter01 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter01 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter01 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter01 right_leg -30.0 HP=70.0
+[DAMAGE] Fighter02 head -30.0 HP=40.0
+[DAMAGE] Fighter02 torso -30.0 HP=40.0
+[DAMAGE] Fighter02 left_arm -30.0 HP=40.0
+[DAMAGE] Fighter02 right_arm -30.0 HP=40.0
+[DAMAGE] Fighter02 left_leg -30.0 HP=40.0
+[DAMAGE] Fighter02 right_leg -30.0 HP=40.0
+[DAMAGE] Fighter01 head -30.0 HP=40.0
+[DAMAGE] Fighter01 torso -30.0 HP=40.0
+[DAMAGE] Fighter01 left_arm -30.0 HP=40.0
+[DAMAGE] Fighter01 right_arm -30.0 HP=40.0
+[DAMAGE] Fighter01 left_leg -30.0 HP=40.0
+[DAMAGE] Fighter01 right_leg -30.0 HP=40.0
+[FIGHTER_INIT_PHASE] fighter=Fighter23 phase=model_attach ms=0.52
+[FIGHTER_INIT_PHASE] fighter=Fighter23 phase=backwards ms=22.99
+[FIGHTER_INIT_PHASE] fighter=Fighter23 phase=crouch ms=22.55
+[FIGHTER_INIT_PHASE] fighter=Fighter23 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter23 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter23 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter23 duration_ms=49.73
+[SPAWN_DONE] fighters_total=23 pending=37 spawn_ms=50.43
+[DAMAGE] Fighter03 head -30.0 HP=40.0
+[DAMAGE] Fighter03 torso -30.0 HP=40.0
+[DAMAGE] Fighter03 left_arm -30.0 HP=40.0
+[DAMAGE] Fighter03 right_arm -30.0 HP=40.0
+[DAMAGE] Fighter03 left_leg -30.0 HP=40.0
+[DAMAGE] Fighter03 right_leg -30.0 HP=40.0
+[DAMAGE] Fighter03 head -30.0 HP=10.0
+[DAMAGE] Fighter03 torso -30.0 HP=10.0
+[DAMAGE] Fighter03 left_arm -30.0 HP=10.0
+[DAMAGE] Fighter03 right_arm -30.0 HP=10.0
+[DAMAGE] Fighter03 left_leg -30.0 HP=10.0
+[DAMAGE] Fighter03 right_leg -30.0 HP=10.0
+[DAMAGE] Fighter01 head -30.0 HP=10.0
+[DAMAGE] Fighter01 torso -30.0 HP=10.0
+[DAMAGE] Fighter01 left_arm -30.0 HP=10.0
+[DAMAGE] Fighter01 right_arm -30.0 HP=10.0
+[DAMAGE] Fighter01 left_leg -30.0 HP=10.0
+[DAMAGE] Fighter01 right_leg -30.0 HP=10.0
+[DAMAGE] Fighter02 head -30.0 HP=10.0
+[DAMAGE] Fighter02 torso -30.0 HP=10.0
+[DAMAGE] Fighter02 left_arm -30.0 HP=10.0
+[DAMAGE] Fighter02 right_arm -30.0 HP=10.0
+[DAMAGE] Fighter02 left_leg -30.0 HP=10.0
+[DAMAGE] Fighter02 right_leg -30.0 HP=10.0
+[PLAYER_DEBUG] t=3.73 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter24 phase=model_attach ms=0.51
+[FIGHTER_INIT_PHASE] fighter=Fighter24 phase=backwards ms=17.54
+[FIGHTER_INIT_PHASE] fighter=Fighter24 phase=crouch ms=29.26
+[FIGHTER_INIT_PHASE] fighter=Fighter24 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter24 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter24 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter24 duration_ms=50.89
+[SPAWN_DONE] fighters_total=24 pending=36 spawn_ms=51.48
+[DAMAGE] Fighter07 head -30.0 HP=70.0
+[DAMAGE] Fighter07 torso -30.0 HP=70.0
+[DAMAGE] Fighter07 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter07 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter07 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter07 right_leg -30.0 HP=70.0
+[DAMAGE] Fighter03 head -30.0 HP=0.0
+[DAMAGE] Fighter03 torso -30.0 HP=0.0
+[DAMAGE] Fighter03 left_arm -30.0 HP=0.0
+[DAMAGE] Fighter03 right_arm -30.0 HP=0.0
+[DAMAGE] Fighter03 left_leg -30.0 HP=0.0
+[DAMAGE] Fighter03 right_leg -30.0 HP=0.0
+[DEFEATED] Fighter03 head
+[PLAYER_DEBUG] t=4.0 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter25 phase=model_attach ms=1.07
+[FIGHTER_INIT_PHASE] fighter=Fighter25 phase=backwards ms=15.17
+[FIGHTER_INIT_PHASE] fighter=Fighter25 phase=crouch ms=30.16
+[FIGHTER_INIT_PHASE] fighter=Fighter25 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter25 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter25 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter25 duration_ms=50.78
+[SPAWN_DONE] fighters_total=25 pending=35 spawn_ms=52.31
+[DAMAGE] Fighter01 head -30.0 HP=0.0
+[DAMAGE] Fighter01 torso -30.0 HP=0.0
+[DAMAGE] Fighter01 left_arm -30.0 HP=0.0
+[DAMAGE] Fighter01 right_arm -30.0 HP=0.0
+[DAMAGE] Fighter01 left_leg -30.0 HP=0.0
+[DAMAGE] Fighter01 right_leg -30.0 HP=0.0
+[DEFEATED] Fighter01 head
+[DAMAGE] Fighter02 head -30.0 HP=0.0
+[DAMAGE] Fighter02 torso -30.0 HP=0.0
+[DAMAGE] Fighter02 left_arm -30.0 HP=0.0
+[DAMAGE] Fighter02 right_arm -30.0 HP=0.0
+[DAMAGE] Fighter02 left_leg -30.0 HP=0.0
+[DAMAGE] Fighter02 right_leg -30.0 HP=0.0
+[DEFEATED] Fighter02 head
+[FIGHTER_INIT_PHASE] fighter=Fighter26 phase=model_attach ms=0.96
+[FIGHTER_INIT_PHASE] fighter=Fighter26 phase=backwards ms=19.34
+[FIGHTER_INIT_PHASE] fighter=Fighter26 phase=crouch ms=21.45
+[FIGHTER_INIT_PHASE] fighter=Fighter26 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter26 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter26 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter26 duration_ms=45.22
+[SPAWN_DONE] fighters_total=26 pending=34 spawn_ms=46.09
+[DAMAGE] Fighter04 head -30.0 HP=70.0
+[DAMAGE] Fighter04 torso -30.0 HP=70.0
+[DAMAGE] Fighter04 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter04 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter04 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter04 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=4.27 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter27 phase=model_attach ms=0.75
+[FIGHTER_INIT_PHASE] fighter=Fighter27 phase=backwards ms=19.89
+[FIGHTER_INIT_PHASE] fighter=Fighter27 phase=crouch ms=35.08
+[FIGHTER_INIT_PHASE] fighter=Fighter27 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter27 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter27 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter27 duration_ms=60.73
+[SPAWN_DONE] fighters_total=27 pending=33 spawn_ms=61.72
+[PLAYER_DEBUG] t=4.53 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter28 phase=model_attach ms=1.12
+[FIGHTER_INIT_PHASE] fighter=Fighter28 phase=backwards ms=18.64
+[FIGHTER_INIT_PHASE] fighter=Fighter28 phase=crouch ms=30.53
+[FIGHTER_INIT_PHASE] fighter=Fighter28 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter28 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter28 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter28 duration_ms=54.08
+[SPAWN_DONE] fighters_total=28 pending=32 spawn_ms=54.94
+[DAMAGE] Fighter05 head -30.0 HP=70.0
+[DAMAGE] Fighter05 torso -30.0 HP=70.0
+[DAMAGE] Fighter05 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter05 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter05 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter05 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=4.8 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter29 phase=model_attach ms=0.81
+[FIGHTER_INIT_PHASE] fighter=Fighter29 phase=backwards ms=17.03
+[FIGHTER_INIT_PHASE] fighter=Fighter29 phase=crouch ms=33.99
+[FIGHTER_INIT_PHASE] fighter=Fighter29 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter29 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter29 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter29 duration_ms=57.99
+[SPAWN_DONE] fighters_total=29 pending=31 spawn_ms=58.99
+[PLAYER_DEBUG] t=5.07 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter30 phase=model_attach ms=0.83
+[FIGHTER_INIT_PHASE] fighter=Fighter30 phase=backwards ms=22.57
+[FIGHTER_INIT_PHASE] fighter=Fighter30 phase=crouch ms=36.1
+[FIGHTER_INIT_PHASE] fighter=Fighter30 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter30 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter30 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter30 duration_ms=65.75
+[SPAWN_DONE] fighters_total=30 pending=30 spawn_ms=66.76
+[PERF_DETAIL] fps_avg=5.2 cpu_frame_avg_ms=181.01 physics_frame_avg_ms=19.30 frames=32 [PERF_WINDOW] wall_ms_p50=156.64 wall_ms_p95=304.09 wall_ms_p99=440.48 wall_ms_max=440.48 cpu_ms_p95=393.23 physics_ms_p95=42.66 [SPAWN_PROFILE] queue=30 spawned_window=30 last_ms=66.76 max_ms=81.96 [WINDOW_FOCUS] focused_frames=32 unfocused_frames=0 focused_fps=5.2 unfocused_fps=0.0 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=0 living_max=26 living_avg=14.4 projectile_peak=10 fighter_grid_cells=26 projectile_grid_cells=8 max_fighter_bucket=1 max_projectile_bucket=1 fighter_spawn_one={avg_ms:56.243,max_ms:81.964,samples:30} projectile_ray={avg_ms:0.036,max_ms:0.069,samples:3} war_ai_total={avg_ms:0.747,max_ms:1.828,samples:22} war_animation_tree={avg_ms:0.437,max_ms:1.581,samples:22} war_blend_setup={avg_ms:0.009,max_ms:0.021,samples:22} war_cast_and_ik={avg_ms:0.062,max_ms:0.164,samples:22} war_collision={avg_ms:0.052,max_ms:0.145,samples:22} war_pose_and_feet={avg_ms:0.112,max_ms:1.052,samples:22} war_roster={avg_ms:0.002,max_ms:0.006,samples:22} war_scheduler_total={avg_ms:5.063,max_ms:40.918,samples:154} war_simulation_all={avg_ms:4.927,max_ms:40.835,samples:154} war_spatial_build={avg_ms:0.108,max_ms:0.415,samples:154} war_steering={avg_ms:0.004,max_ms:0.011,samples:22} war_target_selection={avg_ms:0.006,max_ms:0.041,samples:22} war_velocity_setup={avg_ms:0.010,max_ms:0.021,samples:22} draw_calls=168 objects=308 video_mem_mb=147.1 active_projectiles=7 fighters=30 fireball_size=1.00 fps_cap=30
+[DAMAGE] Fighter06 head -30.0 HP=70.0
+[DAMAGE] Fighter06 torso -30.0 HP=70.0
+[DAMAGE] Fighter06 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter06 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter06 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter06 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=5.33 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter31 phase=model_attach ms=0.93
+[FIGHTER_INIT_PHASE] fighter=Fighter31 phase=backwards ms=24.16
+[FIGHTER_INIT_PHASE] fighter=Fighter31 phase=crouch ms=44.13
+[FIGHTER_INIT_PHASE] fighter=Fighter31 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter31 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter31 phase=feet ms=0.03
+[FIGHTER_INIT_TOTAL] fighter=Fighter31 duration_ms=74.92
+[SPAWN_DONE] fighters_total=31 pending=29 spawn_ms=76.11
+[DAMAGE] Fighter10 head -30.0 HP=70.0
+[DAMAGE] Fighter10 torso -30.0 HP=70.0
+[DAMAGE] Fighter10 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter10 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter10 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter10 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=5.6 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter32 phase=model_attach ms=0.73
+[FIGHTER_INIT_PHASE] fighter=Fighter32 phase=backwards ms=18.66
+[FIGHTER_INIT_PHASE] fighter=Fighter32 phase=crouch ms=39.27
+[FIGHTER_INIT_PHASE] fighter=Fighter32 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter32 phase=flight_clips ms=0.05
+[FIGHTER_INIT_PHASE] fighter=Fighter32 phase=feet ms=0.03
+[FIGHTER_INIT_TOTAL] fighter=Fighter32 duration_ms=64.08
+[SPAWN_DONE] fighters_total=32 pending=28 spawn_ms=65.62
+[PLAYER_DEBUG] t=5.87 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.18
+[FIGHTER_INIT_PHASE] fighter=Fighter33 phase=model_attach ms=0.96
+[FIGHTER_INIT_PHASE] fighter=Fighter33 phase=backwards ms=22.28
+[FIGHTER_INIT_PHASE] fighter=Fighter33 phase=crouch ms=26.81
+[FIGHTER_INIT_PHASE] fighter=Fighter33 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter33 phase=flight_clips ms=0.06
+[FIGHTER_INIT_PHASE] fighter=Fighter33 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter33 duration_ms=54.6
+[SPAWN_DONE] fighters_total=33 pending=27 spawn_ms=55.94
+[PLAYER_DEBUG] t=5.93 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=6.13 TELEMETRY | state=IDLE input=(0.0, 0.0) velocity=(0.0, 0.0, 0.0) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.35 cam_pitch=-0.34
+[FIGHTER_INIT_PHASE] fighter=Fighter34 phase=model_attach ms=0.99
+[FIGHTER_INIT_PHASE] fighter=Fighter34 phase=backwards ms=26.72
+[FIGHTER_INIT_PHASE] fighter=Fighter34 phase=crouch ms=40.7
+[FIGHTER_INIT_PHASE] fighter=Fighter34 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter34 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter34 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter34 duration_ms=74.34
+[SPAWN_DONE] fighters_total=34 pending=26 spawn_ms=75.65
+[PLAYER_DEBUG] t=6.2 KEY_DOWN | D grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=6.4 STATE_CHANGE | IDLE -> MOVE
+[PLAYER_DEBUG] t=6.4 TELEMETRY | state=MOVE input=(1.0, 0.0) velocity=(2.686922, 0.0, -0.999113) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.04 strafe_weight=1.0 strafe_left_blend=0.0 strafe_right_blend=0.8 visual_yaw=-43.9 strafe_side_mps=6.8 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.36 cam_pitch=-0.34
+[FIGHTER_INIT_PHASE] fighter=Fighter35 phase=model_attach ms=1.66
+[FIGHTER_INIT_PHASE] fighter=Fighter35 phase=backwards ms=26.0
+[FIGHTER_INIT_PHASE] fighter=Fighter35 phase=crouch ms=41.68
+[FIGHTER_INIT_PHASE] fighter=Fighter35 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter35 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter35 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter35 duration_ms=74.42
+[SPAWN_DONE] fighters_total=35 pending=25 spawn_ms=75.75
+[DAMAGE] Fighter11 head -30.0 HP=70.0
+[DAMAGE] Fighter11 torso -30.0 HP=70.0
+[DAMAGE] Fighter11 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter11 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter11 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter11 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=6.67 TELEMETRY | state=MOVE input=(1.0, 0.0) velocity=(4.695468, 0.0, -3.735314) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.54 strafe_weight=1.0 strafe_left_blend=0.0 strafe_right_blend=0.98 visual_yaw=-53.7 strafe_side_mps=12.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.67 cam_pitch=-0.38
+[SOLO_GROUND_SPEED] target_mps=4.3
+[FIGHTER_INIT_PHASE] fighter=Fighter36 phase=model_attach ms=0.75
+[FIGHTER_INIT_PHASE] fighter=Fighter36 phase=backwards ms=26.66
+[FIGHTER_INIT_PHASE] fighter=Fighter36 phase=crouch ms=32.86
+[FIGHTER_INIT_PHASE] fighter=Fighter36 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter36 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter36 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter36 duration_ms=64.79
+[SPAWN_DONE] fighters_total=36 pending=24 spawn_ms=65.43
+[PLAYER_DEBUG] t=6.73 KEY_DOWN | S grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=6.93 TELEMETRY | state=MOVE input=(0.707107, -0.707107) velocity=(2.93366, 0.0, -2.170196) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.12 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.95 visual_yaw=-52.0 strafe_side_mps=5.94 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.06 cam_pitch=-0.43
+[FIGHTER_INIT_PHASE] fighter=Fighter37 phase=model_attach ms=0.91
+[FIGHTER_INIT_PHASE] fighter=Fighter37 phase=backwards ms=21.11
+[FIGHTER_INIT_PHASE] fighter=Fighter37 phase=crouch ms=29.61
+[FIGHTER_INIT_PHASE] fighter=Fighter37 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter37 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter37 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter37 duration_ms=55.35
+[SPAWN_DONE] fighters_total=37 pending=23 spawn_ms=56.29
+[PLAYER_DEBUG] t=7.2 TELEMETRY | state=MOVE input=(0.707107, -0.707107) velocity=(2.739776, 0.0, -1.8758) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.18 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.9 visual_yaw=-49.5 strafe_side_mps=5.94 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.06 cam_pitch=-0.43
+[FIGHTER_INIT_PHASE] fighter=Fighter38 phase=model_attach ms=0.54
+[FIGHTER_INIT_PHASE] fighter=Fighter38 phase=backwards ms=17.37
+[FIGHTER_INIT_PHASE] fighter=Fighter38 phase=crouch ms=27.64
+[FIGHTER_INIT_PHASE] fighter=Fighter38 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter38 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter38 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter38 duration_ms=50.14
+[SPAWN_DONE] fighters_total=38 pending=22 spawn_ms=50.87
+[FIGHTER_INIT_PHASE] fighter=Fighter39 phase=model_attach ms=0.65
+[FIGHTER_INIT_PHASE] fighter=Fighter39 phase=backwards ms=15.23
+[FIGHTER_INIT_PHASE] fighter=Fighter39 phase=crouch ms=29.45
+[FIGHTER_INIT_PHASE] fighter=Fighter39 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter39 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter39 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter39 duration_ms=49.23
+[SPAWN_DONE] fighters_total=39 pending=21 spawn_ms=49.97
+[PLAYER_DEBUG] t=7.47 TELEMETRY | state=MOVE input=(0.0, -1.0) velocity=(2.245974, 0.0, -1.806558) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.35 strafe_weight=0.58 strafe_left_blend=0.0 strafe_right_blend=0.8 visual_yaw=-44.0 strafe_side_mps=3.01 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.36 cam_pitch=-0.35
+[FIGHTER_INIT_PHASE] fighter=Fighter40 phase=model_attach ms=0.56
+[FIGHTER_INIT_PHASE] fighter=Fighter40 phase=backwards ms=19.45
+[FIGHTER_INIT_PHASE] fighter=Fighter40 phase=crouch ms=25.7
+[FIGHTER_INIT_PHASE] fighter=Fighter40 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter40 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter40 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter40 duration_ms=50.07
+[SPAWN_DONE] fighters_total=40 pending=20 spawn_ms=50.78
+[DAMAGE] Fighter17 head -30.0 HP=70.0
+[DAMAGE] Fighter17 torso -30.0 HP=70.0
+[DAMAGE] Fighter17 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter17 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter17 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter17 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=7.73 TELEMETRY | state=MOVE input=(0.0, -1.0) velocity=(2.05174, 0.0, 0.447612) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.06 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.11 visual_yaw=-5.9 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.36 cam_pitch=-0.24
+[FIGHTER_INIT_PHASE] fighter=Fighter41 phase=model_attach ms=0.86
+[FIGHTER_INIT_PHASE] fighter=Fighter41 phase=backwards ms=16.05
+[FIGHTER_INIT_PHASE] fighter=Fighter41 phase=crouch ms=26.38
+[FIGHTER_INIT_PHASE] fighter=Fighter41 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter41 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter41 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter41 duration_ms=47.68
+[SPAWN_DONE] fighters_total=41 pending=19 spawn_ms=48.51
+[DAMAGE] Fighter08 head -30.0 HP=70.0
+[DAMAGE] Fighter08 torso -30.0 HP=70.0
+[DAMAGE] Fighter08 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter08 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter08 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter08 right_leg -30.0 HP=70.0
+[FIGHTER_INIT_PHASE] fighter=Fighter42 phase=model_attach ms=0.79
+[FIGHTER_INIT_PHASE] fighter=Fighter42 phase=backwards ms=15.47
+[FIGHTER_INIT_PHASE] fighter=Fighter42 phase=crouch ms=27.99
+[FIGHTER_INIT_PHASE] fighter=Fighter42 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter42 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter42 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter42 duration_ms=47.53
+[SPAWN_DONE] fighters_total=42 pending=18 spawn_ms=48.18
+[PLAYER_DEBUG] t=8.0 TELEMETRY | state=MOVE input=(0.0, -1.0) velocity=(2.051739, 0.0, 0.447611) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.18 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.01 visual_yaw=-0.7 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.36 cam_pitch=-0.24
+[FIGHTER_INIT_PHASE] fighter=Fighter43 phase=model_attach ms=0.47
+[FIGHTER_INIT_PHASE] fighter=Fighter43 phase=backwards ms=15.83
+[FIGHTER_INIT_PHASE] fighter=Fighter43 phase=crouch ms=26.87
+[FIGHTER_INIT_PHASE] fighter=Fighter43 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter43 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter43 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter43 duration_ms=48.57
+[SPAWN_DONE] fighters_total=43 pending=17 spawn_ms=49.33
+[PLAYER_DEBUG] t=8.1 KEY_DOWN | Alt grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=8.27 TELEMETRY | state=MOVE input=(0.0, -1.0) velocity=(3.35443, 0.0, 0.731809) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=3.65 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=-0.1 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.36 cam_pitch=-0.24
+[FIGHTER_INIT_PHASE] fighter=Fighter44 phase=model_attach ms=0.63
+[FIGHTER_INIT_PHASE] fighter=Fighter44 phase=backwards ms=17.67
+[FIGHTER_INIT_PHASE] fighter=Fighter44 phase=crouch ms=27.73
+[FIGHTER_INIT_PHASE] fighter=Fighter44 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter44 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter44 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter44 duration_ms=49.82
+[SPAWN_DONE] fighters_total=44 pending=16 spawn_ms=51.12
+[FIGHTER_INIT_PHASE] fighter=Fighter45 phase=model_attach ms=0.74
+[FIGHTER_INIT_PHASE] fighter=Fighter45 phase=backwards ms=20.29
+[FIGHTER_INIT_PHASE] fighter=Fighter45 phase=crouch ms=26.59
+[FIGHTER_INIT_PHASE] fighter=Fighter45 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter45 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter45 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter45 duration_ms=51.97
+[SPAWN_DONE] fighters_total=45 pending=15 spawn_ms=52.71
+[DAMAGE] Fighter19 head -30.0 HP=70.0
+[DAMAGE] Fighter19 torso -30.0 HP=70.0
+[DAMAGE] Fighter19 left_arm -30.0 HP=70.0
+[DAMAGE] Fighter19 right_arm -30.0 HP=70.0
+[DAMAGE] Fighter19 left_leg -30.0 HP=70.0
+[DAMAGE] Fighter19 right_leg -30.0 HP=70.0
+[PLAYER_DEBUG] t=8.53 TELEMETRY | state=MOVE input=(0.0, -1.0) velocity=(3.419565, 0.0, 0.746019) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=3.65 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.36 cam_pitch=-0.24
+[FIGHTER_INIT_PHASE] fighter=Fighter46 phase=model_attach ms=0.62
+[FIGHTER_INIT_PHASE] fighter=Fighter46 phase=backwards ms=16.76
+[FIGHTER_INIT_PHASE] fighter=Fighter46 phase=crouch ms=23.75
+[FIGHTER_INIT_PHASE] fighter=Fighter46 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter46 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter46 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter46 duration_ms=48.7
+[SPAWN_DONE] fighters_total=46 pending=14 spawn_ms=49.31
+[PLAYER_DEBUG] t=8.8 TELEMETRY | state=MOVE input=(0.0, -1.0) velocity=(2.116874, 0.0, 0.461821) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.19 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.36 cam_pitch=-0.24
+[FIGHTER_INIT_PHASE] fighter=Fighter47 phase=model_attach ms=0.69
+[FIGHTER_INIT_PHASE] fighter=Fighter47 phase=backwards ms=15.3
+[FIGHTER_INIT_PHASE] fighter=Fighter47 phase=crouch ms=26.04
+[FIGHTER_INIT_PHASE] fighter=Fighter47 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter47 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter47 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter47 duration_ms=47.64
+[SPAWN_DONE] fighters_total=47 pending=13 spawn_ms=48.61
+[PLAYER_DEBUG] t=8.8 MOUSE_DOWN | button=3
+[FIGHTER_INIT_PHASE] fighter=Fighter48 phase=model_attach ms=0.88
+[FIGHTER_INIT_PHASE] fighter=Fighter48 phase=backwards ms=16.28
+[FIGHTER_INIT_PHASE] fighter=Fighter48 phase=crouch ms=25.57
+[FIGHTER_INIT_PHASE] fighter=Fighter48 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter48 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter48 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter48 duration_ms=46.46
+[SPAWN_DONE] fighters_total=48 pending=12 spawn_ms=47.08
+[PLAYER_DEBUG] t=9.07 TELEMETRY | state=MOVE input=(0.0, -1.0) velocity=(2.027899, 0.0, 0.545541) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.19 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.96 cam_pitch=-0.26
+[FIGHTER_INIT_PHASE] fighter=Fighter49 phase=model_attach ms=1.04
+[FIGHTER_INIT_PHASE] fighter=Fighter49 phase=backwards ms=17.69
+[FIGHTER_INIT_PHASE] fighter=Fighter49 phase=crouch ms=28.24
+[FIGHTER_INIT_PHASE] fighter=Fighter49 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter49 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter49 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter49 duration_ms=55.07
+[SPAWN_DONE] fighters_total=49 pending=11 spawn_ms=55.99
+[DAMAGE] Fighter08 head -30.0 HP=40.0
+[DAMAGE] Fighter08 torso -30.0 HP=40.0
+[DAMAGE] Fighter08 left_arm -30.0 HP=40.0
+[DAMAGE] Fighter08 right_arm -30.0 HP=40.0
+[DAMAGE] Fighter08 left_leg -30.0 HP=40.0
+[DAMAGE] Fighter08 right_leg -30.0 HP=40.0
+[PLAYER_DEBUG] t=9.33 TELEMETRY | state=MOVE input=(0.0, -1.0) velocity=(1.670761, 0.0, 1.272221) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=2.19 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.92 cam_pitch=-0.24
+[FIGHTER_INIT_PHASE] fighter=Fighter50 phase=model_attach ms=0.62
+[FIGHTER_INIT_PHASE] fighter=Fighter50 phase=backwards ms=16.92
+[FIGHTER_INIT_PHASE] fighter=Fighter50 phase=crouch ms=24.77
+[FIGHTER_INIT_PHASE] fighter=Fighter50 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter50 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter50 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter50 duration_ms=46.69
+[SPAWN_DONE] fighters_total=50 pending=10 spawn_ms=47.57
+[PLAYER_DEBUG] t=9.5 KEY_DOWN | D grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=9.6 TELEMETRY | state=MOVE input=(0.707107, -0.707107) velocity=(1.949935, 0.0, -0.084772) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.64 strafe_weight=0.77 strafe_left_blend=0.0 strafe_right_blend=0.35 visual_yaw=-19.2 strafe_side_mps=3.6 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.91 cam_pitch=-0.24
+[FIGHTER_INIT_PHASE] fighter=Fighter51 phase=model_attach ms=0.6
+[FIGHTER_INIT_PHASE] fighter=Fighter51 phase=backwards ms=21.49
+[FIGHTER_INIT_PHASE] fighter=Fighter51 phase=crouch ms=26.69
+[FIGHTER_INIT_PHASE] fighter=Fighter51 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter51 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter51 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter51 duration_ms=52.54
+[SPAWN_DONE] fighters_total=51 pending=9 spawn_ms=53.07
+[PLAYER_DEBUG] t=9.87 TELEMETRY | state=MOVE input=(0.707107, -0.707107) velocity=(3.042074, 0.0, -1.330697) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.28 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.83 visual_yaw=-45.5 strafe_side_mps=5.94 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.88 cam_pitch=-0.22
+[FIGHTER_INIT_PHASE] fighter=Fighter52 phase=model_attach ms=0.62
+[FIGHTER_INIT_PHASE] fighter=Fighter52 phase=backwards ms=20.0
+[FIGHTER_INIT_PHASE] fighter=Fighter52 phase=crouch ms=26.93
+[FIGHTER_INIT_PHASE] fighter=Fighter52 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter52 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter52 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter52 duration_ms=51.93
+[SPAWN_DONE] fighters_total=52 pending=8 spawn_ms=52.61
+[PLAYER_DEBUG] t=10.03 SQUAT_KEY | pressed=true
+[PLAYER_DEBUG] t=10.03 KEY_DOWN | Space grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=10.13 TELEMETRY | state=MOVE input=(0.707107, -0.707107) velocity=(3.042074, 0.0, -1.330697) grounded=true squat=0.0 key=true visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.2 strafe_weight=0.89 strafe_left_blend=0.0 strafe_right_blend=0.89 visual_yaw=-48.8 strafe_side_mps=5.94 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.88 cam_pitch=-0.22
+[FIGHTER_INIT_PHASE] fighter=Fighter53 phase=model_attach ms=0.56
+[FIGHTER_INIT_PHASE] fighter=Fighter53 phase=backwards ms=14.12
+[FIGHTER_INIT_PHASE] fighter=Fighter53 phase=crouch ms=28.77
+[FIGHTER_INIT_PHASE] fighter=Fighter53 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter53 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter53 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter53 duration_ms=47.24
+[SPAWN_DONE] fighters_total=53 pending=7 spawn_ms=48.04
+[PERF_DETAIL] fps_avg=4.4 cpu_frame_avg_ms=142.49 physics_frame_avg_ms=23.59 frames=23 [PERF_WINDOW] wall_ms_p50=200.81 wall_ms_p95=315.41 wall_ms_p99=326.04 wall_ms_max=326.04 cpu_ms_p95=175.99 physics_ms_p95=27.95 [SPAWN_PROFILE] queue=7 spawned_window=23 last_ms=48.04 max_ms=76.11 [WINDOW_FOCUS] focused_frames=23 unfocused_frames=0 focused_fps=4.4 unfocused_fps=0.0 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=27 living_max=49 living_avg=37.6 projectile_peak=23 fighter_grid_cells=48 projectile_grid_cells=23 max_fighter_bucket=2 max_projectile_bucket=1 damage_visual_refresh={avg_ms:0.033,max_ms:0.084,samples:20} fighter_spawn_one={avg_ms:55.417,max_ms:76.114,samples:23} projectile_ray={avg_ms:0.007,max_ms:0.032,samples:52} war_ai_total={avg_ms:0.704,max_ms:1.707,samples:101} war_animation_tree={avg_ms:0.512,max_ms:1.285,samples:101} war_blend_setup={avg_ms:0.007,max_ms:0.030,samples:101} war_cast_and_ik={avg_ms:0.038,max_ms:0.353,samples:101} war_collision={avg_ms:0.032,max_ms:0.269,samples:101} war_pose_and_feet={avg_ms:0.058,max_ms:0.967,samples:101} war_roster={avg_ms:0.002,max_ms:0.008,samples:101} war_scheduler_total={avg_ms:10.886,max_ms:25.316,samples:153} war_simulation_all={avg_ms:10.644,max_ms:25.024,samples:153} war_spatial_build={avg_ms:0.217,max_ms:0.528,samples:153} war_steering={avg_ms:0.004,max_ms:0.033,samples:101} war_target_selection={avg_ms:0.002,max_ms:0.038,samples:101} war_velocity_setup={avg_ms:0.008,max_ms:0.039,samples:101} draw_calls=141 objects=283 video_mem_mb=207.1 active_projectiles=23 fighters=53 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=10.23 MOVEMENT_CLIP | Jumping Up.fbx
+[PLAYER_DEBUG] t=10.23 SQUAT_HOP | hold=0.2 impulse=12.8784609690827
+[PLAYER_DEBUG] t=10.23 SQUAT_KEY | pressed=false
+[PLAYER_DEBUG] t=10.4 STATE_CHANGE | MOVE -> JUMP
+[PLAYER_DEBUG] t=10.4 TELEMETRY | state=JUMP input=(1.0, 0.0) velocity=(4.785204, 10.47846, -5.406715) grounded=false squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.48 strafe_weight=1.0 strafe_left_blend=0.0 strafe_right_blend=0.96 visual_yaw=-53.0 strafe_side_mps=11.27 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.88 cam_pitch=-0.22
+[FIGHTER_INIT_PHASE] fighter=Fighter54 phase=model_attach ms=0.85
+[FIGHTER_INIT_PHASE] fighter=Fighter54 phase=backwards ms=13.96
+[FIGHTER_INIT_PHASE] fighter=Fighter54 phase=crouch ms=25.21
+[FIGHTER_INIT_PHASE] fighter=Fighter54 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter54 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter54 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter54 duration_ms=45.35
+[SPAWN_DONE] fighters_total=54 pending=6 spawn_ms=46.2
+[FIGHTER_INIT_PHASE] fighter=Fighter55 phase=model_attach ms=0.66
+[FIGHTER_INIT_PHASE] fighter=Fighter55 phase=backwards ms=15.74
+[FIGHTER_INIT_PHASE] fighter=Fighter55 phase=crouch ms=33.22
+[FIGHTER_INIT_PHASE] fighter=Fighter55 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter55 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter55 phase=feet ms=0.03
+[FIGHTER_INIT_TOTAL] fighter=Fighter55 duration_ms=55.1
+[SPAWN_DONE] fighters_total=55 pending=5 spawn_ms=56.06
+[PLAYER_DEBUG] t=10.67 TELEMETRY | state=JUMP input=(0.0, 0.0) velocity=(1.448671, 5.678461, -1.7382) grounded=false squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.22 strafe_weight=1.0 strafe_left_blend=0.0 strafe_right_blend=1.0 visual_yaw=-54.8 strafe_side_mps=1.73 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.88 cam_pitch=-0.22
+[SOLO_GROUND_SPEED] target_mps=5.9
+[FIGHTER_INIT_PHASE] fighter=Fighter56 phase=model_attach ms=0.93
+[FIGHTER_INIT_PHASE] fighter=Fighter56 phase=backwards ms=16.81
+[FIGHTER_INIT_PHASE] fighter=Fighter56 phase=crouch ms=24.25
+[FIGHTER_INIT_PHASE] fighter=Fighter56 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter56 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter56 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter56 duration_ms=46.12
+[SPAWN_DONE] fighters_total=56 pending=4 spawn_ms=46.86
+[PLAYER_DEBUG] t=10.93 TELEMETRY | state=JUMP input=(0.0, 0.0) velocity=(0.0, 0.878461, 0.0) grounded=false squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.12 visual_yaw=-6.6 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.88 cam_pitch=-0.22
+[FIGHTER_INIT_PHASE] fighter=Fighter57 phase=model_attach ms=0.91
+[FIGHTER_INIT_PHASE] fighter=Fighter57 phase=backwards ms=14.82
+[FIGHTER_INIT_PHASE] fighter=Fighter57 phase=crouch ms=25.91
+[FIGHTER_INIT_PHASE] fighter=Fighter57 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter57 phase=flight_clips ms=0.03
+[FIGHTER_INIT_PHASE] fighter=Fighter57 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter57 duration_ms=45.64
+[SPAWN_DONE] fighters_total=57 pending=3 spawn_ms=46.36
+[PLAYER_DEBUG] t=11.2 TELEMETRY | state=JUMP input=(0.0, 0.0) velocity=(0.0, -3.921539, 0.0) grounded=false squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.01 visual_yaw=-0.8 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.88 cam_pitch=-0.22
+[FIGHTER_INIT_PHASE] fighter=Fighter58 phase=model_attach ms=1.11
+[FIGHTER_INIT_PHASE] fighter=Fighter58 phase=backwards ms=16.75
+[FIGHTER_INIT_PHASE] fighter=Fighter58 phase=crouch ms=26.05
+[FIGHTER_INIT_PHASE] fighter=Fighter58 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter58 phase=flight_clips ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter58 phase=feet ms=0.01
+[FIGHTER_INIT_TOTAL] fighter=Fighter58 duration_ms=48.76
+[SPAWN_DONE] fighters_total=58 pending=2 spawn_ms=49.41
+[PLAYER_DEBUG] t=11.2 MOUSE_DOWN | button=3
+[FIGHTER_INIT_PHASE] fighter=Fighter59 phase=model_attach ms=1.49
+[FIGHTER_INIT_PHASE] fighter=Fighter59 phase=backwards ms=23.53
+[FIGHTER_INIT_PHASE] fighter=Fighter59 phase=crouch ms=36.26
+[FIGHTER_INIT_PHASE] fighter=Fighter59 phase=idle ms=0.01
+[FIGHTER_INIT_PHASE] fighter=Fighter59 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter59 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter59 duration_ms=67.69
+[SPAWN_DONE] fighters_total=59 pending=1 spawn_ms=68.93
+[PLAYER_DEBUG] t=11.47 TELEMETRY | state=JUMP input=(0.0, 0.0) velocity=(0.0, -8.721539, 0.0) grounded=false squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.0 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=-0.1 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.89 cam_pitch=-0.22
+[FIGHTER_INIT_PHASE] fighter=Fighter60 phase=model_attach ms=0.59
+[FIGHTER_INIT_PHASE] fighter=Fighter60 phase=backwards ms=15.38
+[FIGHTER_INIT_PHASE] fighter=Fighter60 phase=crouch ms=22.43
+[FIGHTER_INIT_PHASE] fighter=Fighter60 phase=idle ms=0.02
+[FIGHTER_INIT_PHASE] fighter=Fighter60 phase=flight_clips ms=0.04
+[FIGHTER_INIT_PHASE] fighter=Fighter60 phase=feet ms=0.02
+[FIGHTER_INIT_TOTAL] fighter=Fighter60 duration_ms=43.16
+[SPAWN_DONE] fighters_total=60 pending=0 spawn_ms=44.12
+[PLAYER_DEBUG] t=11.63 KEY_DOWN | D grounded=true flying=false crouch=false
+[PLAYER_DEBUG] t=11.73 STATE_CHANGE | JUMP -> MOVE
+[PLAYER_DEBUG] t=11.73 TELEMETRY | state=MOVE input=(1.0, 0.0) velocity=(0.799221, 0.0, -0.982693) grounded=true squat=0.0 key=false visual_y=0.0 visual_scale_y=1.0 animation=pelvis_only animation_cadence=0.68 strafe_weight=1.0 strafe_left_blend=0.0 strafe_right_blend=0.55 visual_yaw=-30.3 strafe_side_mps=3.6 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.89 cam_pitch=-0.22
+[FLIGHT_BENCHMARK_START] duration_s=60 fighters=60 position=(0.0, 8.0, 13.0)
+[FLIGHT_BENCHMARK_POSITION] t_s=0 xyz=(0.0, 8.0, 13.0) velocity=(0.0, 0.0, 0.0) living=57 fps=5.0
+[PLAYER_DEBUG] t=12.0 STATE_CHANGE | MOVE -> FLIGHT
+[PLAYER_DEBUG] t=12.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.000049, 0.074695, -1.941583) grounded=false squat=0.0 key=false visual_y=0.77 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.5 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.21 visual_yaw=-11.6 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.16
+[MOTION_DEMO] jump
+[PLAYER_DEBUG] t=12.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.086633, 0.107189, -1.924561) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.67 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.02 visual_yaw=-1.4 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.16
+[PLAYER_DEBUG] t=12.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.207831, 0.152896, -1.912161) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=-0.2 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.0 cam_pitch=-0.16
+[PLAYER_DEBUG] t=12.53 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=12.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.37784, 0.215807, -1.879785) grounded=false squat=0.0 key=false visual_y=0.93 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.18 cam_pitch=-0.21
+[PLAYER_DEBUG] t=12.8 KEY_DOWN | D grounded=false flying=true crouch=false
+[SOLO_GROUND_SPEED] target_mps=9.1
+[PLAYER_DEBUG] t=13.03 KEY_DOWN | S grounded=false flying=true crouch=false
+[PLAYER_DEBUG] t=13.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.569351, 0.285053, -1.82617) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.04 cam_pitch=-0.17
+[PLAYER_DEBUG] t=13.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.824498, 0.373701, -1.70396) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.06 cam_pitch=-0.17
+[PLAYER_DEBUG] t=13.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.093478, 0.462915, -1.520837) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.07 cam_pitch=-0.16
+[PLAYER_DEBUG] t=13.77 KEY_DOWN | W grounded=false flying=true crouch=false
+[PLAYER_DEBUG] t=13.8 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=13.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.424703, 0.563949, -1.172651) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.11 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=2 xyz=(1.203725, 8.587376, 9.353843) velocity=(1.534065, 0.593772, -1.008469) living=57 fps=25.0
+[PLAYER_DEBUG] t=14.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.674405, 0.626722, -0.725614) grounded=false squat=0.0 key=false visual_y=0.93 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.06 cam_pitch=-0.17
+[PLAYER_DEBUG] t=14.13 KEY_DOWN | D grounded=false flying=true crouch=false
+[SOLO_GROUND_SPEED] target_mps=6.8
+[PLAYER_DEBUG] t=14.33 KEY_DOWN | D grounded=false flying=true crouch=false
+[PLAYER_DEBUG] t=14.37 KEY_DOWN | W grounded=false flying=true crouch=false
+[PLAYER_DEBUG] t=14.4 TELEMETRY | state=FLIGHT input=(0.0, 0.529229) velocity=(1.733444, 0.615276, -0.239487) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.64 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.21 cam_pitch=-0.16
+[PLAYER_DEBUG] t=14.57 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=14.67 TELEMETRY | state=FLIGHT input=(0.0, 0.530879) velocity=(1.764703, 0.59304, 0.159712) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.64 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.26 cam_pitch=-0.16
+[PLAYER_DEBUG] t=14.93 TELEMETRY | state=FLIGHT input=(0.0, 0.542105) velocity=(1.757869, 0.562046, 0.416848) grounded=false squat=0.0 key=false visual_y=0.93 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.67 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.38 cam_pitch=-0.19
+[PLAYER_DEBUG] t=15.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.754205, 0.531587, 0.594218) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.34 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=19.5 cpu_frame_avg_ms=63.35 physics_frame_avg_ms=21.21 frames=101 [PERF_WINDOW] wall_ms_p50=33.49 wall_ms_p95=181.39 wall_ms_p99=237.37 wall_ms_max=255.21 cpu_ms_p95=156.71 physics_ms_p95=25.52 [SPAWN_PROFILE] queue=0 spawned_window=7 last_ms=44.12 max_ms=68.93 [WINDOW_FOCUS] focused_frames=101 unfocused_frames=0 focused_fps=19.5 unfocused_fps=0.0 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=50 living_max=57 living_avg=55.9 projectile_peak=35 fighter_grid_cells=56 projectile_grid_cells=34 max_fighter_bucket=2 max_projectile_bucket=2 damage_visual_refresh={avg_ms:0.028,max_ms:0.067,samples:53} fighter_spawn_one={avg_ms:51.135,max_ms:68.932,samples:7} projectile_ray={avg_ms:0.006,max_ms:0.050,samples:139} war_ai_total={avg_ms:0.423,max_ms:1.778,samples:156} war_animation_tree={avg_ms:0.264,max_ms:1.132,samples:156} war_blend_setup={avg_ms:0.005,max_ms:0.046,samples:156} war_cast_and_ik={avg_ms:0.018,max_ms:0.207,samples:156} war_collision={avg_ms:0.021,max_ms:0.230,samples:156} war_pose_and_feet={avg_ms:0.058,max_ms:1.079,samples:156} war_roster={avg_ms:0.001,max_ms:0.008,samples:156} war_scheduler_total={avg_ms:6.483,max_ms:21.464,samples:150} war_simulation_all={avg_ms:6.167,max_ms:21.053,samples:150} war_spatial_build={avg_ms:0.294,max_ms:0.744,samples:150} war_steering={avg_ms:0.003,max_ms:0.051,samples:156} war_target_selection={avg_ms:0.004,max_ms:0.134,samples:156} war_velocity_setup={avg_ms:0.008,max_ms:0.331,samples:156} draw_calls=87 objects=230 video_mem_mb=238.4 active_projectiles=34 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=15.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.733747, 0.495821, 0.686449) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.38 cam_pitch=-0.16
+[PLAYER_DEBUG] t=15.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.732295, 0.462081, 0.713136) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.42 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=4 xyz=(4.723206, 9.698559, 9.862929) velocity=(1.689693, 0.426287, 0.667715) living=57 fps=30.0
+[PLAYER_DEBUG] t=16.0 TELEMETRY | state=FLIGHT input=(0.0, 0.532935) velocity=(1.689693, 0.426287, 0.667715) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.65 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.45 cam_pitch=-0.16
+[PLAYER_DEBUG] t=16.1 KEY_DOWN | Alt grounded=false flying=true crouch=false
+[PLAYER_DEBUG] t=16.27 TELEMETRY | state=FLIGHT input=(0.0, 0.509853) velocity=(1.663973, 0.388315, 0.573938) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.63 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.48 cam_pitch=-0.16
+[PLAYER_DEBUG] t=16.53 TELEMETRY | state=FLIGHT input=(0.0, 0.490838) velocity=(1.644943, 0.347523, 0.418915) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.54 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.5 cam_pitch=-0.16
+[PLAYER_DEBUG] t=16.63 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=16.77 SQUAT_KEY | pressed=true
+[PLAYER_DEBUG] t=16.77 KEY_DOWN | Space grounded=false flying=true crouch=false
+[PLAYER_DEBUG] t=16.8 TELEMETRY | state=FLIGHT input=(0.0, 0.465259) velocity=(1.596916, 0.303449, 0.230239) grounded=false squat=0.0 key=true visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.48 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.53 cam_pitch=-0.16
+[PLAYER_DEBUG] t=16.9 SQUAT_KEY | pressed=false
+[PLAYER_DEBUG] t=17.07 TELEMETRY | state=FLIGHT input=(0.0, 0.438059) velocity=(1.544522, 0.007999, 0.008131) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.41 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.56 cam_pitch=-0.16
+[PLAYER_DEBUG] t=17.33 TELEMETRY | state=FLIGHT input=(0.0, 0.428744) velocity=(1.486078, -0.005146, -0.238609) grounded=false squat=0.0 key=false visual_y=0.93 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.38 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.65 cam_pitch=-0.25
+[PLAYER_DEBUG] t=17.6 TELEMETRY | state=FLIGHT input=(0.0, 0.431908) velocity=(1.425712, -0.037103, -0.510793) grounded=false squat=0.0 key=false visual_y=0.92 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.39 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.65 cam_pitch=-0.28
+[PLAYER_DEBUG] t=17.87 TELEMETRY | state=FLIGHT input=(0.0, 0.449931) velocity=(1.355835, -0.073681, -0.785144) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.44 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.65 cam_pitch=-0.24
+[FLIGHT_BENCHMARK_POSITION] t_s=6 xyz=(7.75703, 10.45433, 9.870439) velocity=(1.330194, -0.089111, -0.894604) living=57 fps=30.0
+[PLAYER_DEBUG] t=18.13 TELEMETRY | state=FLIGHT input=(0.0, 0.480704) velocity=(1.283598, -0.114562, -1.07031) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.52 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.69 cam_pitch=-0.16
+[PLAYER_DEBUG] t=18.17 MOUSE_DOWN | button=3
+[PLAYER_DEBUG] t=18.4 TELEMETRY | state=FLIGHT input=(0.0, 0.53016) velocity=(1.208642, -0.158711, -1.363545) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.64 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.53 cam_pitch=-0.14
+[PLAYER_DEBUG] t=18.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.087546, -0.196188, -1.59077) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.76 cam_pitch=-0.16
+[PLAYER_DEBUG] t=18.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.936872, -0.214514, -1.683358) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.8 cam_pitch=-0.12
+[PLAYER_DEBUG] t=19.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.793348, -0.235025, -1.754913) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.85 cam_pitch=-0.16
+[PLAYER_DEBUG] t=19.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.650176, -0.262059, -1.811914) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.89 cam_pitch=-0.16
+[PLAYER_DEBUG] t=19.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.55889, -0.278515, -1.84623) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.93 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=8 xyz=(9.591875, 10.01886, 6.607336) velocity=(0.477331, -0.291146, -1.868496) living=57 fps=26.0
+[PLAYER_DEBUG] t=20.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.477331, -0.291146, -1.868496) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.97 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=28.7 cpu_frame_avg_ms=33.13 physics_frame_avg_ms=16.46 frames=139 [PERF_WINDOW] wall_ms_p50=34.04 wall_ms_p95=51.77 wall_ms_p99=61.41 wall_ms_max=75.02 cpu_ms_p95=44.20 physics_ms_p95=20.25 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=139 unfocused_frames=0 focused_fps=28.7 unfocused_fps=0.0 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=34 fighter_grid_cells=56 projectile_grid_cells=34 max_fighter_bucket=2 max_projectile_bucket=1 damage_visual_refresh={avg_ms:0.035,max_ms:0.171,samples:71} projectile_ray={avg_ms:0.007,max_ms:0.223,samples:158} war_ai_total={avg_ms:0.304,max_ms:1.854,samples:162} war_animation_tree={avg_ms:0.163,max_ms:0.436,samples:162} war_blend_setup={avg_ms:0.005,max_ms:0.035,samples:162} war_cast_and_ik={avg_ms:0.013,max_ms:0.063,samples:162} war_collision={avg_ms:0.018,max_ms:0.198,samples:162} war_pose_and_feet={avg_ms:0.058,max_ms:1.479,samples:162} war_roster={avg_ms:0.001,max_ms:0.019,samples:162} war_scheduler_total={avg_ms:5.428,max_ms:14.224,samples:150} war_simulation_all={avg_ms:5.086,max_ms:13.526,samples:150} war_spatial_build={avg_ms:0.319,max_ms:0.841,samples:150} war_steering={avg_ms:0.004,max_ms:0.200,samples:162} war_target_selection={avg_ms:0.002,max_ms:0.106,samples:162} war_velocity_setup={avg_ms:0.005,max_ms:0.053,samples:162} draw_calls=57 objects=195 video_mem_mb=238.4 active_projectiles=34 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=20.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.402204, -0.301724, -1.881064) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.01 cam_pitch=-0.16
+[PLAYER_DEBUG] t=20.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.336009, -0.31633, -1.893413) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.05 cam_pitch=-0.16
+[PLAYER_DEBUG] t=20.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.273678, -0.336368, -1.907126) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.09 cam_pitch=-0.16
+[PLAYER_DEBUG] t=21.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.222438, -0.348149, -1.913252) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.14 cam_pitch=-0.16
+[PLAYER_DEBUG] t=21.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.167778, -0.361382, -1.913669) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.18 cam_pitch=-0.16
+[PLAYER_DEBUG] t=21.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.12941, -0.37232, -1.920654) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.23 cam_pitch=-0.16
+[PLAYER_DEBUG] t=21.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.090549, -0.384524, -1.926815) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.28 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=10 xyz=(10.07093, 9.358246, 2.925825) velocity=(0.075005, -0.387614, -1.922791) living=57 fps=15.0
+[SOLO_GROUND_SPEED] target_mps=10.8
+[PLAYER_DEBUG] t=22.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.047919, -0.389585, -1.919033) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.32 cam_pitch=-0.16
+[PLAYER_DEBUG] t=22.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.002426, -0.404747, -1.918846) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.37 cam_pitch=-0.16
+[PLAYER_DEBUG] t=22.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.047133, -0.422334, -1.91732) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.42 cam_pitch=-0.16
+[PLAYER_DEBUG] t=22.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.08616, -0.43435, -1.919824) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.47 cam_pitch=-0.16
+[PLAYER_DEBUG] t=23.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.126363, -0.446156, -1.92147) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.52 cam_pitch=-0.16
+[PLAYER_DEBUG] t=23.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.179893, -0.458748, -1.911894) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.56 cam_pitch=-0.16
+[PLAYER_DEBUG] t=23.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.235372, -0.469891, -1.900613) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.62 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=12 xyz=(9.876041, 8.476173, -0.967308) velocity=(-0.28357, -0.480011, -1.893387) living=57 fps=13.0
+[PLAYER_DEBUG] t=24.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.293484, -0.483131, -1.891677) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.67 cam_pitch=-0.16
+[PLAYER_DEBUG] t=24.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.362626, -0.498879, -1.878619) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.73 cam_pitch=-0.16
+[PLAYER_DEBUG] t=24.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.428024, -0.512001, -1.868575) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.78 cam_pitch=-0.16
+[PLAYER_DEBUG] t=24.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.533183, -0.530944, -1.835257) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.83 cam_pitch=-0.16
+[PLAYER_DEBUG] t=25.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.615622, -0.540822, -1.81334) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.88 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=19.0 cpu_frame_avg_ms=51.60 physics_frame_avg_ms=19.28 frames=88 [PERF_WINDOW] wall_ms_p50=57.26 wall_ms_p95=93.20 wall_ms_p99=101.80 wall_ms_max=101.80 cpu_ms_p95=62.06 physics_ms_p95=21.57 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=10 unfocused_frames=78 focused_fps=26.0 unfocused_fps=18.1 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=34 fighter_grid_cells=56 projectile_grid_cells=34 max_fighter_bucket=2 max_projectile_bucket=1 damage_visual_refresh={avg_ms:0.037,max_ms:0.189,samples:59} projectile_ray={avg_ms:0.008,max_ms:0.256,samples:162} war_ai_total={avg_ms:0.433,max_ms:2.528,samples:161} war_animation_tree={avg_ms:0.246,max_ms:1.108,samples:161} war_blend_setup={avg_ms:0.008,max_ms:0.036,samples:161} war_cast_and_ik={avg_ms:0.018,max_ms:0.093,samples:161} war_collision={avg_ms:0.023,max_ms:0.150,samples:161} war_pose_and_feet={avg_ms:0.072,max_ms:1.660,samples:161} war_roster={avg_ms:0.002,max_ms:0.007,samples:161} war_scheduler_total={avg_ms:7.501,max_ms:15.557,samples:150} war_simulation_all={avg_ms:7.083,max_ms:14.944,samples:150} war_spatial_build={avg_ms:0.388,max_ms:1.119,samples:150} war_steering={avg_ms:0.005,max_ms:0.070,samples:161} war_target_selection={avg_ms:0.004,max_ms:0.057,samples:161} war_velocity_setup={avg_ms:0.009,max_ms:0.036,samples:161} draw_calls=74 objects=212 video_mem_mb=238.4 active_projectiles=34 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=25.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.746615, -0.553235, -1.757549) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.93 cam_pitch=-0.16
+[PLAYER_DEBUG] t=25.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.907839, -0.568635, -1.678666) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.98 cam_pitch=-0.16
+[PLAYER_DEBUG] t=25.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.082963, -0.572801, -1.571017) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.04 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=14 xyz=(8.558465, 7.385004, -4.580681) velocity=(-1.172915, -0.576441, -1.510468) living=57 fps=21.0
+[PLAYER_DEBUG] t=26.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.294304, -0.567271, -1.402589) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.09 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=5.1
+[PLAYER_DEBUG] t=26.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.525567, -0.541931, -1.149849) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.14 cam_pitch=-0.16
+[PLAYER_DEBUG] t=26.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.731096, -0.488077, -0.816506) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.18 cam_pitch=-0.16
+[PLAYER_DEBUG] t=26.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.884261, -0.402165, -0.363394) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.23 cam_pitch=-0.16
+[PLAYER_DEBUG] t=27.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.924778, -0.301173, 0.113441) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.27 cam_pitch=-0.16
+[PLAYER_DEBUG] t=27.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.863133, -0.198666, 0.509101) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.3 cam_pitch=-0.16
+[PLAYER_DEBUG] t=27.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.716089, -0.093868, 0.880775) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.32 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=16 xyz=(5.212993, 6.699863, -5.025926) velocity=(-1.607451, -0.035546, 1.067106) living=57 fps=24.0
+[PLAYER_DEBUG] t=28.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.588533, -0.026452, 1.095133) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.34 cam_pitch=-0.16
+[PLAYER_DEBUG] t=28.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.475404, 0.012937, 1.243361) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.35 cam_pitch=-0.16
+[PLAYER_DEBUG] t=28.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.37299, 0.037302, 1.355152) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.35 cam_pitch=-0.16
+[PLAYER_DEBUG] t=28.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.300276, 0.057233, 1.430496) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.35 cam_pitch=-0.16
+[PLAYER_DEBUG] t=29.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.234513, 0.075813, 1.480931) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.34 cam_pitch=-0.16
+[PLAYER_DEBUG] t=29.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.185339, 0.09458, 1.525234) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.32 cam_pitch=-0.16
+[PLAYER_DEBUG] t=29.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.144799, 0.111425, 1.549177) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.31 cam_pitch=-0.16
+[PLAYER_DEBUG] t=29.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.123016, 0.124169, 1.56408) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.27 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=18 xyz=(2.602934, 6.836737, -2.12477) velocity=(-1.113125, 0.131357, 1.57055) living=57 fps=20.0
+[PLAYER_DEBUG] t=30.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.10469, 0.138771, 1.575859) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.23 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=22.5 cpu_frame_avg_ms=43.02 physics_frame_avg_ms=20.43 frames=114 [PERF_WINDOW] wall_ms_p50=41.00 wall_ms_p95=66.02 wall_ms_p99=76.43 wall_ms_max=85.98 cpu_ms_p95=56.02 physics_ms_p95=23.32 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=0 unfocused_frames=114 focused_fps=0.0 unfocused_fps=22.5 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=34 fighter_grid_cells=56 projectile_grid_cells=30 max_fighter_bucket=2 max_projectile_bucket=1 damage_visual_refresh={avg_ms:0.037,max_ms:0.180,samples:68} projectile_ray={avg_ms:0.007,max_ms:0.043,samples:156} war_ai_total={avg_ms:0.358,max_ms:1.423,samples:162} war_animation_tree={avg_ms:0.202,max_ms:0.857,samples:162} war_blend_setup={avg_ms:0.006,max_ms:0.036,samples:162} war_cast_and_ik={avg_ms:0.016,max_ms:0.127,samples:162} war_collision={avg_ms:0.019,max_ms:0.161,samples:162} war_pose_and_feet={avg_ms:0.058,max_ms:0.961,samples:162} war_roster={avg_ms:0.001,max_ms:0.005,samples:162} war_scheduler_total={avg_ms:6.324,max_ms:17.805,samples:150} war_simulation_all={avg_ms:5.961,max_ms:17.237,samples:150} war_spatial_build={avg_ms:0.336,max_ms:0.567,samples:150} war_steering={avg_ms:0.004,max_ms:0.053,samples:162} war_target_selection={avg_ms:0.004,max_ms:0.049,samples:162} war_velocity_setup={avg_ms:0.007,max_ms:0.042,samples:162} draw_calls=77 objects=215 video_mem_mb=238.4 active_projectiles=30 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=30.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.093292, 0.153113, 1.582466) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.18 cam_pitch=-0.16
+[PLAYER_DEBUG] t=30.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.088185, 0.166399, 1.584643) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.09 cam_pitch=-0.16
+[PLAYER_DEBUG] t=30.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.088362, 0.182318, 1.582769) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.96 cam_pitch=-0.16
+[PLAYER_DEBUG] t=31.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.09479, 0.198422, 1.576386) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.78 cam_pitch=-0.16
+[PLAYER_DEBUG] t=31.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.103663, 0.210996, 1.568546) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.38 cam_pitch=-0.16
+[PLAYER_DEBUG] t=31.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.121524, 0.229065, 1.553269) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.92 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=20 xyz=(0.473742, 7.19502, 0.919177) velocity=(-1.13662, 0.239846, 1.546248) living=57 fps=24.0
+[PLAYER_DEBUG] t=32.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.142179, 0.244049, 1.541487) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.37 cam_pitch=-0.16
+[SOLO_FLIGHT] takeoff t=32.0
+[PLAYER_DEBUG] t=32.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.166927, 0.260982, 1.520028) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.06 cam_pitch=-0.16
+[PLAYER_DEBUG] t=32.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.196475, 0.278769, 1.49367) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.12 cam_pitch=-0.16
+[PLAYER_DEBUG] t=32.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.236436, 0.301169, 1.450328) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.24 cam_pitch=-0.16
+[PLAYER_DEBUG] t=33.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.278906, 0.32147, 1.414698) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.33 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=3.9
+[PLAYER_DEBUG] t=33.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.325548, 0.343771, 1.359291) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.39 cam_pitch=-0.16
+[PLAYER_DEBUG] t=33.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.377283, 0.366588, 1.300628) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.45 cam_pitch=-0.16
+[PLAYER_DEBUG] t=33.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.449649, 0.396637, 1.217173) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.48 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=22 xyz=(-2.122178, 7.840002, 3.778035) velocity=(-1.475562, 0.407295, 1.182007) living=57 fps=19.0
+[PLAYER_DEBUG] t=34.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.521208, 0.425788, 1.115771) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.54 cam_pitch=-0.16
+[PLAYER_DEBUG] t=34.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.589754, 0.452647, 1.012705) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.58 cam_pitch=-0.16
+[PLAYER_DEBUG] t=34.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.666393, 0.483495, 0.843977) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.62 cam_pitch=-0.16
+[PLAYER_DEBUG] t=34.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.747192, 0.514714, 0.650155) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.67 cam_pitch=-0.16
+[PLAYER_DEBUG] t=35.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.811767, 0.540576, 0.406929) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.71 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=19.9 cpu_frame_avg_ms=51.47 physics_frame_avg_ms=19.74 frames=100 [PERF_WINDOW] wall_ms_p50=48.86 wall_ms_p95=76.51 wall_ms_p99=101.06 wall_ms_max=105.14 cpu_ms_p95=65.81 physics_ms_p95=24.76 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=0 unfocused_frames=100 focused_fps=0.0 unfocused_fps=19.9 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=30 fighter_grid_cells=56 projectile_grid_cells=12 max_fighter_bucket=2 max_projectile_bucket=1 damage_visual_refresh={avg_ms:0.035,max_ms:0.107,samples:61} projectile_ray={avg_ms:0.006,max_ms:0.033,samples:105} war_ai_total={avg_ms:0.410,max_ms:1.765,samples:165} war_animation_tree={avg_ms:0.228,max_ms:0.912,samples:165} war_blend_setup={avg_ms:0.007,max_ms:0.053,samples:165} war_cast_and_ik={avg_ms:0.020,max_ms:0.104,samples:165} war_collision={avg_ms:0.022,max_ms:0.169,samples:165} war_pose_and_feet={avg_ms:0.068,max_ms:1.053,samples:165} war_roster={avg_ms:0.001,max_ms:0.007,samples:165} war_scheduler_total={avg_ms:6.907,max_ms:17.950,samples:151} war_simulation_all={avg_ms:6.532,max_ms:17.478,samples:151} war_spatial_build={avg_ms:0.346,max_ms:0.747,samples:151} war_steering={avg_ms:0.005,max_ms:0.080,samples:165} war_target_selection={avg_ms:0.004,max_ms:0.056,samples:165} war_velocity_setup={avg_ms:0.012,max_ms:0.378,samples:165} draw_calls=64 objects=205 video_mem_mb=238.3 active_projectiles=12 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=35.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.84382, 0.5556, 0.120677) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.75 cam_pitch=-0.16
+[PLAYER_DEBUG] t=35.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.845255, 0.559445, -0.149566) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.81 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=24 xyz=(-5.56247, 8.852724, 4.794998) velocity=(-1.782949, 0.542957, -0.499218) living=57 fps=22.0
+[PLAYER_DEBUG] t=36.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.771247, 0.539547, -0.542681) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.86 cam_pitch=-0.16
+[PLAYER_DEBUG] t=36.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.69064, 0.515183, -0.785261) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.92 cam_pitch=-0.16
+[PLAYER_DEBUG] t=36.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.531602, 0.465083, -1.085452) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.98 cam_pitch=-0.16
+[PLAYER_DEBUG] t=36.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.340572, 0.403151, -1.334409) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.03 cam_pitch=-0.16
+[PLAYER_DEBUG] t=37.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.197469, 0.35569, -1.48234) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.11 cam_pitch=-0.16
+[PLAYER_DEBUG] t=37.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.028644, 0.298857, -1.610245) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.15 cam_pitch=-0.16
+[PLAYER_DEBUG] t=37.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.87286, 0.245011, -1.713437) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.21 cam_pitch=-0.16
+[PLAYER_DEBUG] t=37.67 MOUSE_DOWN | button=1
+[PLAYER_DEBUG] t=37.67 MOVEMENT_CLIP | Punching (1).fbx
+PUNCH right Punching (1).fbx
+[PLAYER_DEBUG] t=37.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.770154, 0.208541, -1.776606) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.25 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=26 xyz=(-7.99662, 9.575591, 2.233209) velocity=(-0.77195, 0.209027, -1.78075) living=57 fps=10.0
+[PLAYER_DEBUG] t=38.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.625105, 0.156675, -1.823461) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.34 cam_pitch=-0.16
+[PLAYER_DEBUG] t=38.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.519375, 0.117586, -1.854549) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.41 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=6.8
+[PLAYER_DEBUG] t=38.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.451134, 0.091272, -1.883063) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.47 cam_pitch=-0.16
+[PLAYER_DEBUG] t=38.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.328771, 0.043643, -1.905339) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.52 cam_pitch=-0.16
+[PLAYER_DEBUG] t=39.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.265058, 0.017846, -1.92021) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.57 cam_pitch=-0.16
+[PLAYER_DEBUG] t=39.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.197621, -0.019886, -1.932918) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.62 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=10.1
+[PLAYER_DEBUG] t=39.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.119728, -0.08352, -1.938878) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.68 cam_pitch=-0.16
+[PLAYER_DEBUG] t=40.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.068627, -0.122688, -1.945375) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.73 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=11.3
+[FLIGHT_BENCHMARK_POSITION] t_s=28 xyz=(-8.752664, 9.661379, -1.80992) velocity=(-0.068787, -0.122975, -1.949912) living=57 fps=5.0
+[PLAYER_DEBUG] t=40.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.02058, -0.15883, -1.954925) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.82 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=15.4 cpu_frame_avg_ms=54.86 physics_frame_avg_ms=23.84 frames=47 [PERF_WINDOW] wall_ms_p50=83.21 wall_ms_p95=245.95 wall_ms_p99=285.72 wall_ms_max=285.72 cpu_ms_p95=65.81 physics_ms_p95=44.47 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=11 unfocused_frames=36 focused_fps=9.2 unfocused_fps=17.3 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=12 fighter_grid_cells=57 projectile_grid_cells=0 max_fighter_bucket=1 max_projectile_bucket=0 damage_visual_refresh={avg_ms:0.041,max_ms:0.218,samples:50} projectile_ray={avg_ms:0.008,max_ms:0.012,samples:18} war_ai_total={avg_ms:0.515,max_ms:1.998,samples:166} war_animation_tree={avg_ms:0.289,max_ms:1.263,samples:166} war_blend_setup={avg_ms:0.010,max_ms:0.065,samples:166} war_cast_and_ik={avg_ms:0.027,max_ms:0.226,samples:166} war_collision={avg_ms:0.028,max_ms:0.332,samples:166} war_pose_and_feet={avg_ms:0.082,max_ms:1.308,samples:166} war_roster={avg_ms:0.002,max_ms:0.028,samples:166} war_scheduler_total={avg_ms:8.417,max_ms:16.381,samples:152} war_simulation_all={avg_ms:8.052,max_ms:15.877,samples:152} war_spatial_build={avg_ms:0.331,max_ms:0.828,samples:152} war_steering={avg_ms:0.007,max_ms:0.243,samples:166} war_target_selection={avg_ms:0.003,max_ms:0.082,samples:166} war_velocity_setup={avg_ms:0.011,max_ms:0.036,samples:166} draw_calls=60 objects=199 video_mem_mb=238.2 active_projectiles=0 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=40.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.097711, -0.239758, -1.927795) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.86 cam_pitch=-0.16
+[PLAYER_DEBUG] t=40.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.164959, -0.285828, -1.930723) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.93 cam_pitch=-0.16
+[PLAYER_DEBUG] t=41.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.275363, -0.358753, -1.915026) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.99 cam_pitch=-0.16
+[PLAYER_DEBUG] t=41.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.370551, -0.414726, -1.900697) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.04 cam_pitch=-0.16
+[PLAYER_DEBUG] t=41.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.525312, -0.495193, -1.849466) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.07 cam_pitch=-0.16
+[PLAYER_DEBUG] t=41.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.680214, -0.569556, -1.79276) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.14 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=30 xyz=(-8.14921, 8.945986, -5.520199) velocity=(0.757176, -0.606853, -1.763503) living=57 fps=8.0
+[SOLO_FLIGHT] descent t=42.0 altitude=11.9
+[PLAYER_DEBUG] t=42.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.866606, -0.655795, -1.707865) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.19 cam_pitch=-0.16
+[PLAYER_DEBUG] t=42.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.105131, -0.744839, -1.554128) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.24 cam_pitch=-0.16
+[PLAYER_DEBUG] t=42.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.487007, -0.845192, -1.154622) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.29 cam_pitch=-0.16
+[PLAYER_DEBUG] t=42.93 TELEMETRY | state=FLIGHT input=(0.0, 0.510135) velocity=(1.622465, -0.804827, -0.639121) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.59 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.34 cam_pitch=-0.16
+[SOLO_FLIGHT] landed t=43.1
+[PLAYER_DEBUG] t=43.2 TELEMETRY | state=FLIGHT input=(0.0, 0.487695) velocity=(1.674013, -0.757348, -0.210058) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.53 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.38 cam_pitch=-0.16
+[PLAYER_DEBUG] t=43.47 TELEMETRY | state=FLIGHT input=(0.0, 0.519985) velocity=(1.733598, -0.68079, 0.454355) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.61 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.41 cam_pitch=-0.16
+[PLAYER_DEBUG] t=43.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.73077, -0.628017, 0.814623) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.43 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=8.5
+[FLIGHT_BENCHMARK_POSITION] t_s=32 xyz=(-5.191155, 7.506004, -6.424479) velocity=(1.583192, -0.518019, 1.088208) living=57 fps=8.0
+[PLAYER_DEBUG] t=44.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.583192, -0.518019, 1.088208) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.46 cam_pitch=-0.16
+[PLAYER_DEBUG] t=44.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.423624, -0.425658, 1.291632) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.47 cam_pitch=-0.16
+[PLAYER_DEBUG] t=44.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.33194, -0.372939, 1.396046) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.48 cam_pitch=-0.16
+[PLAYER_DEBUG] t=44.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.238906, -0.319136, 1.47647) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.49 cam_pitch=-0.16
+[PLAYER_DEBUG] t=45.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.166587, -0.278851, 1.536213) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.49 cam_pitch=-0.16
+[PLAYER_DEBUG] t=45.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.107302, -0.23993, 1.57557) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.49 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=7.9 cpu_frame_avg_ms=80.33 physics_frame_avg_ms=24.43 frames=44 [PERF_WINDOW] wall_ms_p50=108.89 wall_ms_p95=146.14 wall_ms_p99=190.19 wall_ms_max=190.19 cpu_ms_p95=113.69 physics_ms_p95=27.62 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=0 unfocused_frames=44 focused_fps=0.0 unfocused_fps=7.9 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=0 fighter_grid_cells=54 projectile_grid_cells=0 max_fighter_bucket=2 max_projectile_bucket=0 damage_visual_refresh={avg_ms:0.041,max_ms:0.097,samples:51} war_ai_total={avg_ms:0.609,max_ms:2.133,samples:161} war_animation_tree={avg_ms:0.335,max_ms:0.804,samples:161} war_blend_setup={avg_ms:0.014,max_ms:0.156,samples:161} war_cast_and_ik={avg_ms:0.037,max_ms:0.387,samples:161} war_collision={avg_ms:0.033,max_ms:0.194,samples:161} war_pose_and_feet={avg_ms:0.087,max_ms:1.430,samples:161} war_roster={avg_ms:0.003,max_ms:0.014,samples:161} war_scheduler_total={avg_ms:9.787,max_ms:20.978,samples:151} war_simulation_all={avg_ms:9.408,max_ms:20.653,samples:151} war_spatial_build={avg_ms:0.344,max_ms:0.753,samples:151} war_steering={avg_ms:0.007,max_ms:0.082,samples:161} war_target_selection={avg_ms:0.005,max_ms:0.072,samples:161} war_velocity_setup={avg_ms:0.014,max_ms:0.060,samples:161} draw_calls=83 objects=223 video_mem_mb=238.2 active_projectiles=0 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=45.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.087083, -0.219125, 1.601258) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.48 cam_pitch=-0.16
+[PLAYER_DEBUG] t=45.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.053641, -0.187017, 1.619077) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.48 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=34 xyz=(-2.824407, 6.91463, -3.570683) velocity=(1.058562, -0.187891, 1.626637) living=57 fps=10.0
+[PLAYER_DEBUG] t=46.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.035744, -0.161296, 1.631271) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.47 cam_pitch=-0.16
+[PLAYER_DEBUG] t=46.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.028064, -0.140807, 1.641921) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.45 cam_pitch=-0.16
+[PLAYER_DEBUG] t=46.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.018258, -0.115038, 1.643215) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.43 cam_pitch=-0.16
+[PLAYER_DEBUG] t=46.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.015964, -0.091357, 1.645006) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.39 cam_pitch=-0.16
+[PLAYER_DEBUG] t=47.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.015889, -0.066262, 1.640061) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.35 cam_pitch=-0.16
+[PLAYER_DEBUG] t=47.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.023728, -0.03886, 1.6354) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.28 cam_pitch=-0.16
+[PLAYER_DEBUG] t=47.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.037686, -0.018305, 1.637347) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-2.14 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=5.5
+[FLIGHT_BENCHMARK_POSITION] t_s=36 xyz=(-0.736663, 6.739055, -0.242021) velocity=(1.051787, 0.003178, 1.628347) living=57 fps=15.0
+[PLAYER_DEBUG] t=48.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.052662, 0.007575, 1.617026) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.89 cam_pitch=-0.16
+[PLAYER_DEBUG] t=48.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.072702, 0.021503, 1.603676) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-1.18 cam_pitch=-0.16
+[PLAYER_DEBUG] t=48.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.097551, 0.035478, 1.591991) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.34 cam_pitch=-0.16
+[PLAYER_DEBUG] t=48.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.121564, 0.049322, 1.574794) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.15 cam_pitch=-0.16
+[PLAYER_DEBUG] t=49.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.159301, 0.069654, 1.546442) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.3 cam_pitch=-0.16
+[PLAYER_DEBUG] t=49.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.204271, 0.092519, 1.510459) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.37 cam_pitch=-0.16
+[PLAYER_DEBUG] t=49.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.254192, 0.116923, 1.46753) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.44 cam_pitch=-0.16
+[PLAYER_DEBUG] t=49.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.300708, 0.139172, 1.424466) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.49 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=38 xyz=(1.633388, 6.882836, 2.882565) velocity=(1.322671, 0.148482, 1.409353) living=57 fps=14.0
+[PLAYER_DEBUG] t=50.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.36827, 0.172296, 1.349474) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.53 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=11.8 cpu_frame_avg_ms=66.58 physics_frame_avg_ms=25.83 frames=60 [PERF_WINDOW] wall_ms_p50=82.44 wall_ms_p95=120.17 wall_ms_p99=152.57 wall_ms_max=152.57 cpu_ms_p95=77.25 physics_ms_p95=33.17 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=0 unfocused_frames=60 focused_fps=0.0 unfocused_fps=11.8 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=0 fighter_grid_cells=55 projectile_grid_cells=0 max_fighter_bucket=2 max_projectile_bucket=0 damage_visual_refresh={avg_ms:0.045,max_ms:0.221,samples:52} war_ai_total={avg_ms:0.547,max_ms:2.573,samples:162} war_animation_tree={avg_ms:0.312,max_ms:0.855,samples:162} war_blend_setup={avg_ms:0.011,max_ms:0.071,samples:162} war_cast_and_ik={avg_ms:0.028,max_ms:0.130,samples:162} war_collision={avg_ms:0.030,max_ms:0.257,samples:162} war_pose_and_feet={avg_ms:0.077,max_ms:1.866,samples:162} war_roster={avg_ms:0.002,max_ms:0.009,samples:162} war_scheduler_total={avg_ms:8.997,max_ms:19.932,samples:150} war_simulation_all={avg_ms:8.627,max_ms:19.415,samples:150} war_spatial_build={avg_ms:0.337,max_ms:1.109,samples:150} war_steering={avg_ms:0.006,max_ms:0.061,samples:162} war_target_selection={avg_ms:0.005,max_ms:0.329,samples:162} war_velocity_setup={avg_ms:0.012,max_ms:0.040,samples:162} draw_calls=69 objects=209 video_mem_mb=238.2 active_projectiles=0 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=50.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.422886, 0.197146, 1.294929) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.57 cam_pitch=-0.16
+[PLAYER_DEBUG] t=50.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.495809, 0.232374, 1.203691) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.6 cam_pitch=-0.16
+[PLAYER_DEBUG] t=50.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.58489, 0.27836, 1.064691) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.63 cam_pitch=-0.16
+[PLAYER_DEBUG] t=51.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.661433, 0.318063, 0.937438) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.67 cam_pitch=-0.16
+[PLAYER_DEBUG] t=51.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.751298, 0.371755, 0.731483) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.71 cam_pitch=-0.16
+[PLAYER_DEBUG] t=51.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.824184, 0.425872, 0.480936) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.75 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=40 xyz=(4.852005, 7.483384, 4.77098) velocity=(1.864111, 0.47388, 0.202091) living=57 fps=15.0
+[PLAYER_DEBUG] t=52.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.864111, 0.47388, 0.202091) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.79 cam_pitch=-0.16
+[PLAYER_DEBUG] t=52.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.853354, 0.516379, -0.146145) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.84 cam_pitch=-0.16
+[PLAYER_DEBUG] t=52.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.765677, 0.544862, -0.555375) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.89 cam_pitch=-0.16
+[PLAYER_DEBUG] t=52.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.675062, 0.551588, -0.804796) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.95 cam_pitch=-0.16
+[PLAYER_DEBUG] t=53.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.503587, 0.540327, -1.089765) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.99 cam_pitch=-0.16
+[PLAYER_DEBUG] t=53.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.308073, 0.515408, -1.32145) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.06 cam_pitch=-0.16
+[PLAYER_DEBUG] t=53.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(1.154374, 0.491616, -1.47175) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.13 cam_pitch=-0.16
+[PLAYER_DEBUG] t=53.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.961931, 0.455468, -1.609399) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.19 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=42 xyz=(7.812191, 8.511042, 2.898516) velocity=(0.913864, 0.446543, -1.644921) living=57 fps=13.0
+[PLAYER_DEBUG] t=54.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.82914, 0.428559, -1.688725) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.24 cam_pitch=-0.16
+[PLAYER_DEBUG] t=54.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.710264, 0.403693, -1.752961) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.3 cam_pitch=-0.16
+[PLAYER_DEBUG] t=54.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.607919, 0.380947, -1.796003) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.36 cam_pitch=-0.16
+[PLAYER_DEBUG] t=54.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.479827, 0.351146, -1.83559) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.42 cam_pitch=-0.16
+[PLAYER_DEBUG] t=55.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.417723, 0.336795, -1.853377) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.48 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=14.1 cpu_frame_avg_ms=64.40 physics_frame_avg_ms=19.72 frames=80 [PERF_WINDOW] wall_ms_p50=63.57 wall_ms_p95=95.04 wall_ms_p99=109.93 wall_ms_max=109.93 cpu_ms_p95=78.65 physics_ms_p95=21.06 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=0 unfocused_frames=80 focused_fps=0.0 unfocused_fps=14.1 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=0 fighter_grid_cells=55 projectile_grid_cells=0 max_fighter_bucket=2 max_projectile_bucket=0 damage_visual_refresh={avg_ms:0.041,max_ms:0.357,samples:61} war_ai_total={avg_ms:0.459,max_ms:1.700,samples:166} war_animation_tree={avg_ms:0.262,max_ms:0.979,samples:166} war_blend_setup={avg_ms:0.009,max_ms:0.035,samples:166} war_cast_and_ik={avg_ms:0.024,max_ms:0.173,samples:166} war_collision={avg_ms:0.027,max_ms:0.243,samples:166} war_pose_and_feet={avg_ms:0.062,max_ms:1.115,samples:166} war_roster={avg_ms:0.002,max_ms:0.006,samples:166} war_scheduler_total={avg_ms:7.534,max_ms:15.667,samples:151} war_simulation_all={avg_ms:7.217,max_ms:15.379,samples:151} war_spatial_build={avg_ms:0.287,max_ms:0.634,samples:151} war_steering={avg_ms:0.006,max_ms:0.126,samples:166} war_target_selection={avg_ms:0.002,max_ms:0.073,samples:166} war_velocity_setup={avg_ms:0.011,max_ms:0.195,samples:166} draw_calls=53 objects=193 video_mem_mb=238.2 active_projectiles=0 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=55.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.31672, 0.313441, -1.877331) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.53 cam_pitch=-0.16
+[PLAYER_DEBUG] t=55.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.256841, 0.299718, -1.888685) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.6 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=44 xyz=(8.786523, 9.207902, -0.680093) velocity=(0.188593, 0.284309, -1.899087) living=57 fps=20.0
+[PLAYER_DEBUG] t=56.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.178576, 0.282075, -1.900388) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.65 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=7.6
+[PLAYER_DEBUG] t=56.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.107402, 0.266442, -1.907984) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.7 cam_pitch=-0.16
+[PLAYER_DEBUG] t=56.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(0.038332, 0.251721, -1.912615) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.77 cam_pitch=-0.16
+[PLAYER_DEBUG] t=56.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.032958, 0.237014, -1.914593) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.82 cam_pitch=-0.16
+[PLAYER_DEBUG] t=57.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.109617, 0.221717, -1.913571) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.88 cam_pitch=-0.16
+[PLAYER_DEBUG] t=57.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.204349, 0.20343, -1.907822) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.93 cam_pitch=-0.16
+[PLAYER_DEBUG] t=57.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.297431, 0.187063, -1.90639) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.98 cam_pitch=-0.16
+[PLAYER_DEBUG] t=57.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.410124, 0.165096, -1.878156) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.03 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=46 xyz=(8.557519, 9.660341, -4.552487) velocity=(-0.467944, 0.15445, -1.865503) living=57 fps=27.0
+[PLAYER_DEBUG] t=58.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.535818, 0.142491, -1.852811) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.09 cam_pitch=-0.16
+[PLAYER_DEBUG] t=58.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.711, 0.109166, -1.790388) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.14 cam_pitch=-0.16
+[PLAYER_DEBUG] t=58.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-0.914911, 0.069491, -1.697362) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.19 cam_pitch=-0.16
+[PLAYER_DEBUG] t=58.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.170713, 0.01591, -1.533658) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.24 cam_pitch=-0.16
+[PLAYER_DEBUG] t=59.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.465998, -0.104337, -1.260334) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.29 cam_pitch=-0.16
+[PLAYER_DEBUG] t=59.47 TELEMETRY | state=FLIGHT input=(0.0, 0.495821) velocity=(-1.63494, -0.238741, -0.729515) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.56 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.34 cam_pitch=-0.16
+[PLAYER_DEBUG] t=59.73 TELEMETRY | state=FLIGHT input=(0.0, 0.477073) velocity=(-1.658801, -0.327563, -0.150518) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.51 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.37 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=48 xyz=(6.148585, 9.508121, -6.873512) velocity=(-1.682007, -0.386951, 0.315798) living=57 fps=25.0
+[PLAYER_DEBUG] t=60.0 TELEMETRY | state=FLIGHT input=(0.0, 0.49793) velocity=(-1.682007, -0.386951, 0.315798) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.56 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.41 cam_pitch=-0.16
+[MOTION_DEMO] jump
+[PLAYER_DEBUG] t=60.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.732104, -0.455449, 0.819077) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.44 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=24.3 cpu_frame_avg_ms=53.66 physics_frame_avg_ms=19.80 frames=127 [PERF_WINDOW] wall_ms_p50=36.72 wall_ms_p95=63.08 wall_ms_p99=77.31 wall_ms_max=90.77 cpu_ms_p95=71.52 physics_ms_p95=26.49 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=0 unfocused_frames=127 focused_fps=0.0 unfocused_fps=24.3 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=0 fighter_grid_cells=55 projectile_grid_cells=0 max_fighter_bucket=2 max_projectile_bucket=0 damage_visual_refresh={avg_ms:0.031,max_ms:0.061,samples:66} war_ai_total={avg_ms:0.310,max_ms:1.343,samples:162} war_animation_tree={avg_ms:0.172,max_ms:0.731,samples:162} war_blend_setup={avg_ms:0.005,max_ms:0.018,samples:162} war_cast_and_ik={avg_ms:0.014,max_ms:0.064,samples:162} war_collision={avg_ms:0.018,max_ms:0.144,samples:162} war_pose_and_feet={avg_ms:0.052,max_ms:0.851,samples:162} war_roster={avg_ms:0.001,max_ms:0.004,samples:162} war_scheduler_total={avg_ms:5.539,max_ms:13.660,samples:151} war_simulation_all={avg_ms:5.259,max_ms:13.320,samples:151} war_spatial_build={avg_ms:0.256,max_ms:0.560,samples:151} war_steering={avg_ms:0.004,max_ms:0.073,samples:162} war_target_selection={avg_ms:0.004,max_ms:0.163,samples:162} war_velocity_setup={avg_ms:0.006,max_ms:0.022,samples:162} draw_calls=89 objects=230 video_mem_mb=238.2 active_projectiles=0 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=60.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.571198, -0.446225, 1.097491) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.46 cam_pitch=-0.16
+[PLAYER_DEBUG] t=60.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.44216, -0.429819, 1.263692) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.47 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=10.4
+[PLAYER_DEBUG] t=61.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.322253, -0.420445, 1.389382) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.48 cam_pitch=-0.16
+[PLAYER_DEBUG] t=61.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.236772, -0.409847, 1.466741) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.49 cam_pitch=-0.16
+[PLAYER_DEBUG] t=61.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.167876, -0.402279, 1.522675) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.49 cam_pitch=-0.16
+[PLAYER_DEBUG] t=61.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.112747, -0.397312, 1.563733) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.49 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=11.7
+[FLIGHT_BENCHMARK_POSITION] t_s=50 xyz=(3.412453, 8.677389, -4.421306) velocity=(-1.105137, -0.396418, 1.574706) living=57 fps=29.0
+[PLAYER_DEBUG] t=62.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.07739, -0.389715, 1.58877) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.48 cam_pitch=-0.16
+[PLAYER_DEBUG] t=62.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.056296, -0.379483, 1.603485) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.47 cam_pitch=-0.16
+[PLAYER_DEBUG] t=62.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.03132, -0.377963, 1.619751) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.46 cam_pitch=-0.16
+[PLAYER_DEBUG] t=62.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.020378, -0.370471, 1.627097) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.45 cam_pitch=-0.16
+[PLAYER_DEBUG] t=63.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.01347, -0.364405, 1.63175) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.43 cam_pitch=-0.16
+[PLAYER_DEBUG] t=63.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.011535, -0.357472, 1.633334) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.4 cam_pitch=-0.16
+[PLAYER_DEBUG] t=63.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.01374, -0.35123, 1.632305) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.35 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=52 xyz=(1.312728, 7.9276, -1.126895) velocity=(-1.020164, -0.344651, 1.628649) living=57 fps=22.0
+[PLAYER_DEBUG] t=64.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.020164, -0.344651, 1.628649) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.28 cam_pitch=-0.16
+[PLAYER_DEBUG] t=64.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.03113, -0.337933, 1.622082) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=2.16 cam_pitch=-0.16
+[PLAYER_DEBUG] t=64.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.048756, -0.331292, 1.611087) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.9 cam_pitch=-0.16
+[PLAYER_DEBUG] t=64.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.068196, -0.322644, 1.598706) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=1.24 cam_pitch=-0.16
+[PLAYER_DEBUG] t=65.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.089606, -0.314922, 1.590056) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=0.31 cam_pitch=-0.16
+[PLAYER_DEBUG] t=65.33 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.124568, -0.302865, 1.560559) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.07 cam_pitch=-0.16
+[PERF_DETAIL] fps_avg=26.3 cpu_frame_avg_ms=47.55 physics_frame_avg_ms=15.67 frames=128 [PERF_WINDOW] wall_ms_p50=35.80 wall_ms_p95=66.11 wall_ms_p99=72.64 wall_ms_max=73.26 cpu_ms_p95=56.24 physics_ms_p95=19.66 [SPAWN_PROFILE] queue=0 spawned_window=0 last_ms=44.12 max_ms=0.00 [WINDOW_FOCUS] focused_frames=0 unfocused_frames=128 focused_fps=0.0 unfocused_fps=26.3 [STRESS_CONFIG] no_deaths=false target_fighters=80 batch_aoe_shader=false [WAR_ACTIVITY] living_min=57 living_max=57 living_avg=57.0 projectile_peak=0 fighter_grid_cells=53 projectile_grid_cells=0 max_fighter_bucket=2 max_projectile_bucket=0 damage_visual_refresh={avg_ms:0.031,max_ms:0.071,samples:65} war_ai_total={avg_ms:0.336,max_ms:1.822,samples:163} war_animation_tree={avg_ms:0.192,max_ms:0.585,samples:163} war_blend_setup={avg_ms:0.006,max_ms:0.035,samples:163} war_cast_and_ik={avg_ms:0.015,max_ms:0.200,samples:163} war_collision={avg_ms:0.018,max_ms:0.153,samples:163} war_pose_and_feet={avg_ms:0.053,max_ms:1.060,samples:163} war_roster={avg_ms:0.001,max_ms:0.011,samples:163} war_scheduler_total={avg_ms:5.697,max_ms:14.122,samples:152} war_simulation_all={avg_ms:5.401,max_ms:13.824,samples:152} war_spatial_build={avg_ms:0.271,max_ms:0.978,samples:152} war_steering={avg_ms:0.004,max_ms:0.046,samples:163} war_target_selection={avg_ms:0.003,max_ms:0.050,samples:163} war_velocity_setup={avg_ms:0.007,max_ms:0.030,samples:163} draw_calls=63 objects=203 video_mem_mb=238.2 active_projectiles=0 fighters=60 fireball_size=1.00 fps_cap=30
+[PLAYER_DEBUG] t=65.6 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.158691, -0.290798, 1.535976) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.26 cam_pitch=-0.16
+[PLAYER_DEBUG] t=65.87 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.20109, -0.276931, 1.503709) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.37 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=54 xyz=(-0.885231, 7.301899, 2.029317) velocity=(-1.217585, -0.272097, 1.496426) living=57 fps=20.0
+[PLAYER_DEBUG] t=66.13 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.250064, -0.260747, 1.463992) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.43 cam_pitch=-0.16
+[PLAYER_DEBUG] t=66.4 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.294279, -0.245947, 1.431794) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.49 cam_pitch=-0.16
+[PLAYER_DEBUG] t=66.67 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.354941, -0.222194, 1.369204) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.53 cam_pitch=-0.16
+[PLAYER_DEBUG] t=66.93 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.437009, -0.193882, 1.283954) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.57 cam_pitch=-0.16
+[PLAYER_DEBUG] t=67.2 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.509948, -0.164514, 1.198424) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.6 cam_pitch=-0.16
+[PLAYER_DEBUG] t=67.47 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.602835, -0.125319, 1.072344) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.64 cam_pitch=-0.16
+[PLAYER_DEBUG] t=67.73 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.689792, -0.082746, 0.930495) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.67 cam_pitch=-0.16
+[FLIGHT_BENCHMARK_POSITION] t_s=56 xyz=(-3.773243, 6.955793, 4.430761) velocity=(-1.771891, -0.0362, 0.763546) living=57 fps=29.0
+[PLAYER_DEBUG] t=68.0 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.789682, -0.024957, 0.72098) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.71 cam_pitch=-0.16
+[PLAYER_DEBUG] t=68.27 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.878259, 0.023651, 0.441038) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.75 cam_pitch=-0.16
+[PLAYER_DEBUG] t=68.53 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.926248, 0.053129, 0.211011) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.8 cam_pitch=-0.16
+[PLAYER_DEBUG] t=68.8 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.933656, 0.092022, -0.10143) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.85 cam_pitch=-0.16
+[SOLO_GROUND_SPEED] target_mps=7.3
+[PLAYER_DEBUG] t=69.07 TELEMETRY | state=FLIGHT input=(0.0, 0.55) velocity=(-1.874335, 0.135058, -0.457098) grounded=false squat=0.0 key=false visual_y=0.94 visual_scale_y=1.0 animation=pelvis_only animation_cadence=1.69 strafe_weight=0.0 strafe_left_blend=0.0 strafe_right_blend=0.0 visual_yaw=0.0 strafe_side_mps=0.0 strafe_left_ready=true strafe_right_ready=true flight_idle=0.0 cam_yaw=-0.9 cam_pitch=-0.16
+O u t - F i l e   :   T h e   p r o c e s s   c a n n o t   a c c e s s   t h e   f i l e    
+ ' C : \ U s e r s \ f o r e a \ D o c u m e n t s \ C o d e x \ 2 0 2 6 - 1 0 - 1 6 \ o k a y \ o u t p u t s \ W a l k i n g L a b \ l o g s \ r u n _ 2 0 2 6 - 1 0 - 1 9 _ 0 1 - 1 6 - 3 1 . l o g '   b e c a u s e   i t   i s    
+ b e i n g   u s e d   b y   a n o t h e r   p r o c e s s .  
+ A t   C : \ U s e r s \ f o r e a \ D o c u m e n t s \ C o d e x \ 2 0 2 6 - 1 0 - 1 6 \ o k a y \ o u t p u t s \ W a l k i n g L a b \ s c r i p t s \ r u n _ l o g g e d . p s 1 : 2 4   c h a r : 1 0 2  
+ +   . . .     $ _ . T o S t r i n g ( )   |   O u t - F i l e   - F i l e P a t h   $ l o g F i l e   - A p p e n d   - E n c o d i n g   u t f 8   }  
+ +                                             ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~  
+         +   C a t e g o r y I n f o                     :   O p e n E r r o r :   ( : )   [ O u t - F i l e ] ,   I O E x c e p t i o n  
+         +   F u l l y Q u a l i f i e d E r r o r I d   :   F i l e O p e n F a i l u r e , M i c r o s o f t . P o w e r S h e l l . C o m m a n d s . O u t F i l e C o m m a n d  
+    
+ Run ended 2026-10-19T01:17:44.4848493-04:00 exit=1
