@@ -1,10 +1,10 @@
 extends Node3D
 # One and only one visible demonstration actor. Original sourced animation tracks;
 # source rig is stated on screen when the action requires a different rig.
-const UAL1 := "res://assets/source_original.glb"
-const UAL2 := "res://assets/showcase/UAL2_Standard.glb"
-const AETHER := "res://assets/showcase/aether-02.glb"
-const SWORD := "res://assets/kenney_weapons/mini-arena/weapon-sword.glb"
+const UAL1 = "res://assets/source_original.glb"
+const UAL2 = "res://assets/showcase/UAL2_Standard.glb"
+const AETHER = "res://assets/showcase/aether-02.glb"
+const SWORD = "res://assets/kenney_weapons/mini-arena/weapon-sword.glb"
 
 var rigs: Dictionary = {}
 var mixers: Dictionary = {}
@@ -180,9 +180,10 @@ func _play_step(index: int) -> void:
 	var requested: String = String(entry["rig"])
 	for key in mixers.keys():
 		if key != requested: (mixers[key] as AnimationPlayer).stop()
+	var visible_rig: String = requested if rigs.has(requested) else "UAL1"
 	for key in rigs.keys():
 		var model: Node3D = rigs[key] as Node3D
-		model.visible = key == requested
+		model.visible = key == visible_rig
 	selected_rig = requested
 	selected_clip = ""
 	if not mixers.has(requested):
