@@ -26,6 +26,7 @@ var status_refresh_clock: float = 0.0
 const ARENA_HALF_EXTENT: float = 50.0
 const LINEUP_DISTANCES: Array[int] = [1,2,4,8,16,32,64,128]
 var fighter_spawn_index: int = 0
+var spawn_rng: RandomNumberGenerator = RandomNumberGenerator.new()
 # Queue runtime spawn requests: avoid constructing ten complete rigs in one frame.
 var queued_fighter_spawns: int = 0
 var spawn_cooldown: float = 0.0
@@ -98,6 +99,7 @@ func profile_percentile(values: Array[float], fraction: float) -> float:
 	return ordered[clampi(ceili(float(ordered.size()) * fraction) - 1,0,ordered.size()-1)]
 
 func _ready():
+	spawn_rng.randomize()
 	flight_benchmark_requested = "--flight-benchmark" in OS.get_cmdline_user_args()
 	if flight_benchmark_requested:
 		for argument in OS.get_cmdline_user_args():
@@ -146,6 +148,10 @@ func _ready():
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	player.demo_immortal = true
+	# Black must not inherit any scripted AI/benchmark movement in normal play.
+	player.benchmark_flight_active = false
+	player.benchmark_flight_axis = Vector2.ZERO
+	player.benchmark_flight_direction = Vector3.ZERO
 	add_child(player)
 	player.camera.current = true
 	player_label = make_label(player.actor,"BLACK / IMMORTAL [G]",TEAM_BLUE)
@@ -157,7 +163,7 @@ func _ready():
 	if flight_benchmark_requested:
 		spawn_more_fighters(benchmark_fighters)
 	else:
-		# Blue player + 3 AI versus 4 red AI, spawned over separate frames.
+		# Autonomous free-for-all combatants, spawned over separate frames.
 		spawn_more_fighters(TEAM_AI_FIGHTERS)
 	print("[ARENA_MODE] free_for_all player=manual immortal=true starting_spells=1 arena_half_extent=",ARENA_HALF_EXTENT)
 
@@ -203,6 +209,27 @@ func spawn_more_fighters(count: int = 10, immediate: bool = false) -> void:
 	for i in range(count):
 		_spawn_single_fighter()
 
+# Independent random war positions, rejecting crowded samples and the player/demo start.
+# Kept out of benchmarking so its positional comparison remains reproducible.
+func random_war_spawn() -> Vector3:
+	var best: Vector3 = Vector3.ZERO
+	var best_clearance: float = -1.0
+	for attempt in range(64):
+		var candidate := Vector3(spawn_rng.randf_range(-ARENA_HALF_EXTENT+6.0,ARENA_HALF_EXTENT-6.0),0.0,spawn_rng.randf_range(-ARENA_HALF_EXTENT+6.0,ARENA_HALF_EXTENT-6.0))
+		var clearance: float = candidate.distance_to(Vector3(player.spawn_point.x,0.0,player.spawn_point.z))
+		if is_instance_valid(ai):
+			clearance = minf(clearance,candidate.distance_to(Vector3(ai.spawn_point.x,0.0,ai.spawn_point.z)))
+		for other in mannequins:
+			if is_instance_valid(other) and not other.combat_dead:
+				var occupied: Vector3 = other.actor.global_position
+				clearance = minf(clearance,candidate.distance_to(Vector3(occupied.x,0.0,occupied.z)))
+		if clearance > best_clearance:
+			best = candidate
+			best_clearance = clearance
+		if clearance >= 6.0:
+			return candidate
+	return best
+
 func _spawn_single_fighter() -> void:
 	var spawn_begin: int = Time.get_ticks_usec()
 	var pose_enabled: bool = player.war_pose_enabled if is_instance_valid(player) else false
@@ -232,7 +259,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = Vector3(sin(angle)*20.0,0.0,cos(angle)*20.0)
+			fighter.spawn_point = random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
