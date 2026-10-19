@@ -25,7 +25,8 @@ var level_number: int = 1
 const TEAM_BLUE: Color = Color("317bff")
 const TEAM_RED: Color = Color("ed4451")
 var status_refresh_clock: float = 0.0
-var arena_half_extent: float = 2000.0
+var arena_half_extent: float = 5.0
+var biome_features_enabled: bool = false
 const LINEUP_DISTANCES: Array[int] = [1,2,4,8,16,32,64,128]
 var fighter_spawn_index: int = 0
 var spawn_rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -103,7 +104,7 @@ func profile_percentile(values: Array[float], fraction: float) -> float:
 func _ready():
 	spawn_rng.randomize()
 	current_level = preload("res://level_definitions.gd").get_level(level_number)
-	arena_half_extent = float(current_level.get("arena_half_extent",2000.0))
+	arena_half_extent = float(current_level.get("arena_half_extent",5.0))
 	spawn_rng.seed = int(current_level["seed"])
 	flight_benchmark_requested = "--flight-benchmark" in OS.get_cmdline_user_args()
 	if flight_benchmark_requested:
@@ -174,7 +175,7 @@ func _ready():
 	# Always show a separate autonomous locomotion demonstrator beside Black.
 	ai = null
 	# Keep Black player-controlled and spawn a separate autonomous motion showcase.
-	set_demo_npc_enabled(not flight_benchmark_requested)
+	set_demo_npc_enabled(false)
 	if flight_benchmark_requested:
 		spawn_more_fighters(benchmark_fighters)
 	else:
