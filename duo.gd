@@ -16,8 +16,10 @@ var battle_fireball_speed: float = 1.0
 var battle_fireball_size: float = 1.0
 var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 const MAX_ACTIVE_FIGHTERS: int = 80
-# Default development mode is player versus one autonomous fighter.
-# Larger battles remain available through manual spawning and benchmarks.
+# Default spell sandbox: five stationary targets and five roaming walkers.
+# Larger combat battles remain available by manual spawning and benchmarks.
+const SPELL_TEST_TARGET_COUNT: int = 10
+const SPELL_TEST_STATIONARY_COUNT: int = 5
 const LINEUP_DISTANCES: Array[int] = [1,2,4,8,16,32,64,128]
 var fighter_spawn_index: int = 0
 # Queue runtime spawn requests: avoid constructing ten complete rigs in one frame.
@@ -144,7 +146,13 @@ func _ready():
 	add_child(ai)
 	ai.camera.current = false
 	ai_label = make_label(ai.actor,"MOTION DEMO",Color("c9d6ff"))
-	print("[ARENA_MODE] player=BLACK controlled=true demo=DemoNPC enabled=true")
+	if flight_benchmark_requested:
+		spawn_more_fighters(MAX_ACTIVE_FIGHTERS)
+	else:
+		# Spawn over multiple displayed frames; don't stall startup constructing
+		# ten full rigs at once. DemoNPC remains independent of this lineup.
+		spawn_more_fighters(SPELL_TEST_TARGET_COUNT)
+	print("[ARENA_MODE] player=BLACK controlled=true demo=DemoNPC enabled=true spell_targets=",SPELL_TEST_TARGET_COUNT," stationary=",SPELL_TEST_STATIONARY_COUNT," walking=",SPELL_TEST_TARGET_COUNT-SPELL_TEST_STATIONARY_COUNT)
 
 func clear_winner_announcement() -> void:
 	announced_winner = false
@@ -180,20 +188,37 @@ func _spawn_single_fighter() -> void:
 	fighter.ai_abilities = true
 	fighter.animation_test_mode = "war"
 	fighter.war_pose_enabled = pose_enabled
-	# Distribute later batches across the arena, avoiding the player spawn.
-	var angle: float = float(index) * 2.39996323
-	var ring: float = 45.0 + float((index / 10) % 8) * 19.0
-	if index < LINEUP_DISTANCES.size():
-		var measured_distance: float = float(LINEUP_DISTANCES[index])
-		# Exact collinear lineup directly in front of the player.
-		fighter.spawn_point = player.spawn_point + Vector3(0.0,0.0,-measured_distance)
-		fighter.animation_lineup_mode = true
+	var is_spell_target: bool = not flight_benchmark_requested and index < SPELL_TEST_TARGET_COUNT
+	# Dedicated spell-test rows sit in the player's forward field of view.
+	# Front row stays still, rear row walks small loops around fixed anchors.
+	var label_text: String = "FIGHTER %02d" % (index+1)
+	if is_spell_target:
+		var stationary_target: bool = index < SPELL_TEST_STATIONARY_COUNT
+		var column: int = index % SPELL_TEST_STATIONARY_COUNT
+		var column_x: float = (float(column)-2.0)*4.1
+		var row_z: float = -24.0 if stationary_target else -34.0
+		fighter.spawn_point = player.spawn_point+Vector3(column_x,0.0,row_z)
+		fighter.spell_target_anchor = fighter.spawn_point
+		fighter.spell_walker_phase = float(column)*0.9
+		fighter.spell_target_mode = "stationary" if stationary_target else "walker"
+		fighter.stationary_only = true # Install existing standing idle on the rig.
+		fighter.ai_abilities = false # No automatic fireballs or chasing.
+		label_text = ("STATIC %d" if stationary_target else "WALKER %d") % (column+1)
 	else:
-		fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
+		# Preserve the existing 80-fighter benchmark and manual war-spawn path.
+		var angle: float = float(index) * 2.39996323
+		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
+		if index < LINEUP_DISTANCES.size():
+			var measured_distance: float = float(LINEUP_DISTANCES[index])
+			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
+			fighter.animation_lineup_mode = true
+			label_text = "%d m" % LINEUP_DISTANCES[index]
+		else:
+			fighter.spawn_point = Vector3(sin(angle)*ring,0.0,cos(angle)*ring)
 	fighter.character_tint = Color(FIGHTER_COLORS[index % FIGHTER_COLORS.size()])
 	add_child(fighter)
-	fighter.actor.rotation.y = atan2(player.actor.global_position.x-fighter.actor.global_position.x,player.actor.global_position.z-fighter.actor.global_position.z) + PI
-	make_label(fighter.actor,("%d m" % LINEUP_DISTANCES[index]) if index < LINEUP_DISTANCES.size() else ("FIGHTER %02d" % (index+1)),fighter.character_tint)
+	fighter.actor.rotation.y = atan2(player.actor.global_position.x-fighter.actor.global_position.x,player.actor.global_position.z-fighter.actor.global_position.z)+PI
+	make_label(fighter.actor,label_text,fighter.character_tint)
 	mannequins.append(fighter)
 	# The arena drives this fighter from one central physics callback.
 	fighter.set_physics_process(false)
