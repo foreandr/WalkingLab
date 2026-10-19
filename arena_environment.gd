@@ -83,6 +83,7 @@ func make_arena():
 		var left_hills = preload("res://dirt_landforms.gd").new()
 		left_hills.name = "GrassHills"
 		left_hills.half_extent = landform_half_size
+		left_hills.grass_surface = true
 		left_hills.position = Vector3(-world_half_extent*0.5,0,0)
 		add_child(left_hills)
 		var right_hills = preload("res://dirt_landforms.gd").new()
