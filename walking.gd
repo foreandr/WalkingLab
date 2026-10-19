@@ -2517,7 +2517,7 @@ func _physics_process(dt):
 	else:
 		actor.velocity.y = -0.3
 	var biome_effect: Dictionary = {}
-	if player_controlled:
+	if player_controlled and get_tree().current_scene != null and bool(get_tree().current_scene.get("biome_features_enabled")):
 		biome_effect = preload("res://biome_map.gd").sample(actor.global_position)
 		if bool(biome_effect.get("grounded",false)) and flight_enabled:
 			flight_enabled = false
