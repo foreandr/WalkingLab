@@ -39,13 +39,14 @@ var cast_released: bool = false
 var cast_arm_name: String = ""
 var cast_element: String = "fire"
 # Five fingers per hand. Shift changes which complete set 1-5 operates.
-# RIGHT: Ember, Frost, Arc, Gravity, Leech.
+# RIGHT: Ember, Frost, Homing Missile, Gravity, Ricochet.
 # LEFT: Comet, Bloom, Tempest, Venom, Flight.
-const SPELL_NAMES: Array[String] = ["Ember","Frost","Arc","Gravity","Leech","Comet","Bloom","Tempest","Venom","Flight"]
-const SPELL_IDS: Array[String] = ["fire","frost","arc","gravity","leech","comet","bloom","tempest","venom","flight"]
-const SPELL_COSTS: Array[float] = [15.0,20.0,24.0,30.0,25.0,28.0,24.0,22.0,20.0,18.0]
-const SPELL_COOLDOWNS: Array[float] = [2.0,5.0,6.0,9.0,8.0,5.0,10.0,6.0,7.0,3.0]
-const SPELL_COLORS: Array[Color] = [Color("ff9b4f"),Color("7de8ff"),Color("d5bbff"),Color("af83fa"),Color("80edaa"),Color("f9d474"),Color("a6f4bc"),Color("99e5e9"),Color("9cdd59"),Color("f0f0ff")]
+const SPELL_NAMES: Array[String] = ["Ember","Frost","Homing","Gravity","Ricochet","Comet","Bloom","Tempest","Venom","Flight"]
+const SPELL_IDS: Array[String] = ["fire","frost","homing","gravity","ricochet","comet","bloom","tempest","venom","flight"]
+const SPELL_COSTS: Array[float] = [15.0,20.0,22.0,30.0,24.0,28.0,24.0,22.0,20.0,18.0]
+const SPELL_COOLDOWNS: Array[float] = [2.0,5.0,4.0,9.0,7.0,5.0,10.0,6.0,7.0,3.0]
+const SPELL_COLORS: Array[Color] = [Color("ff9b4f"),Color("7de8ff"),Color("f8e365"),Color("af83fa"),Color("ff5ee7"),Color("f9d474"),Color("a6f4bc"),Color("99e5e9"),Color("9cdd59"),Color("f0f0ff")]
+const MAX_ACTIVE_RICOCHETS: int = 20
 var spell_remaining: Array[float] = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
 var mana: float = 100.0
 var infinite_mana: bool = false
@@ -603,7 +604,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRight hand 1-5: Ember / Frost / Arc / Gravity / Leech\nLeft hand 1-5: Comet / Bloom / Tempest / Venom / Flight\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
+	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRight hand 1-5: Ember / Frost / Homing / Gravity / Ricochet\nLeft hand 1-5: Comet / Bloom / Tempest / Venom / Flight\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
@@ -1654,7 +1655,7 @@ func update_pursuit_agent(dt: float) -> void:
 	if not is_escapee and is_instance_valid(escapee) and not escapee.combat_dead:
 		pursuit_cast_timer -= dt
 		if pursuit_cast_timer<=0.0 and target_distance<65.0 and cast_elapsed<0.0:
-			var choices: Array[String] = ["fire","frost","arc","gravity","leech","comet","tempest","venom"]
+			var choices: Array[String] = ["fire","frost","homing","gravity","ricochet","comet","tempest","venom"]
 			var chosen: String = choices[(pursuit_spell_cursor+int(name.right(1)))%choices.size()]
 			pursuit_spell_cursor += 1
 			controlled_arm = "left" if chosen in ["comet","tempest","venom"] else "right"
@@ -2922,6 +2923,41 @@ func select_hovered_target() -> void:
 	selected_spell_target.add_child(lock_marker)
 	if player_controlled: debug_player("TARGET_LOCKED",selected_spell_target.name)
 
+func acquire_homing_target() -> CharacterBody3D:
+	# Explicit lock wins, but the missile never requires the user to lock.
+	if is_instance_valid(selected_spell_target):
+		var locked_owner: Node = selected_spell_target.get_parent()
+		var locked_damage: Node = locked_owner.get_node_or_null("DamageSystem") if locked_owner != null else null
+		if locked_damage != null and not locked_damage.dead and selected_spell_target != actor:
+			return selected_spell_target
+	if not player_controlled:
+		if is_instance_valid(war_target) and not war_target.combat_dead:
+			return war_target.actor as CharacterBody3D
+		return null
+	if camera == null: return null
+	var pointer: Vector2 = get_viewport().get_mouse_position()
+	var sight: Vector3 = camera.project_ray_normal(pointer)
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var max_cursor_offset: float = minf(viewport_size.x,viewport_size.y)*0.55
+	var best: CharacterBody3D = null
+	var best_score: float = INF
+	for opponent in get_tree().get_nodes_in_group("combat_fighters"):
+		if opponent == self or not is_instance_valid(opponent) or opponent.combat_dead: continue
+		var victim_body: CharacterBody3D = opponent.get("actor") as CharacterBody3D
+		if victim_body == null: continue
+		var victim_position: Vector3 = victim_body.global_position+Vector3.UP*1.0
+		var to_victim: Vector3 = victim_position-camera.global_position
+		var range_m: float = to_victim.length()
+		if range_m<0.5 or range_m>110.0 or sight.dot(to_victim/range_m)<0.35: continue
+		if camera.is_position_behind(victim_position): continue
+		var pixels: float = camera.unproject_position(victim_position).distance_to(pointer)
+		if pixels>max_cursor_offset: continue
+		var score: float = pixels + range_m*1.5
+		if score<best_score:
+			best_score = score
+			best = victim_body
+	return best
+
 func spell_is_ready(slot: int) -> bool:
 	return slot>=0 and slot<SPELL_IDS.size() and (ignore_spell_cooldowns or spell_remaining[slot]<=0.0) and (infinite_mana or mana>=SPELL_COSTS[slot])
 
@@ -2968,6 +3004,9 @@ func cast_spell(element: String) -> void:
 			toggle_flight_spell()
 			return
 	if cast_elapsed>=0.0 or crouch.active(): return
+	if element=="ricochet" and get_tree().get_nodes_in_group("persistent_ricochets").size()>=MAX_ACTIVE_RICOCHETS:
+		if player_controlled: debug_player("RICOCHET_LIMIT","active orbs capped at "+str(MAX_ACTIVE_RICOCHETS))
+		return
 	if player_controlled and not spell_is_ready(slot): return
 	var arm_health: Node = get_node_or_null("DamageSystem")
 	if arm_health != null and float(arm_health.hp["right_arm" if controlled_arm == "right" else "left_arm"])<=0.0:
@@ -3025,6 +3064,7 @@ func release_fireball(hand_world: Vector3) -> void:
 	var projectile := Node3D.new()
 	projectile.name = cast_element.capitalize()+"Projectile"
 	projectile.add_to_group("battle_fireballs")
+	if cast_element=="ricochet": projectile.add_to_group("persistent_ricochets")
 	get_tree().current_scene.add_child(projectile)
 	projectile.global_position = hand_world + travel * 0.20
 	# Use external particles for both spell types; never hand-draw VFX.
@@ -3046,7 +3086,7 @@ func release_fireball(hand_world: Vector3) -> void:
 		colored_particles.color = Color.WHITE
 		colored_particles.color_ramp = tint_ramp
 		effect.process_material = colored_particles
-	if player_controlled:
+	if player_controlled and cast_element!="ricochet":
 		var glow := OmniLight3D.new()
 		glow.light_color = spell_color
 		glow.light_energy = 1.25
@@ -3057,7 +3097,8 @@ func release_fireball(hand_world: Vector3) -> void:
 		arena.configure_fireball_particles(effect,float(arena.get("battle_fireball_size")))
 	else:
 		effect.scale = Vector3.ONE * 3.0
-	effect.amount = mini(effect.amount,6)
+	effect.amount = mini(effect.amount,10 if cast_element=="ricochet" else 6)
+	if cast_element=="ricochet": effect.lifetime = 0.40
 	effect.fixed_fps = 30
 	effect.emitting = true
 	effect.restart()
@@ -3073,6 +3114,13 @@ func release_fireball(hand_world: Vector3) -> void:
 	mover.attacker_name = name
 	mover.spell_type = cast_element
 	mover.spell_color = spell_color
+	if cast_element=="homing":
+		mover.homing_target = acquire_homing_target()
+		mover.travel_speed = maxf(mover.travel_speed,32.0)
+		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,32.0)
+	if cast_element=="ricochet":
+		mover.travel_speed = maxf(mover.travel_speed,23.0)
+		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,23.0)
 	mover.blast_width = float(arena.get("battle_fireball_size")) if arena != null else 1.0
 	projectile.add_child(mover)
 	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
