@@ -1,0 +1,7 @@
+WalkingLab run 2026-10-19T14:18:40.0159497-04:00
+Godot executable: C:\Users\forea\Documents\Codex\2026-10-16\okay\work\godot\Godot_v4.7.2-stable_win64_console.exe
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+OpenGL API 3.3.0 Core Profile Context 26.8.1.260806 - Compatibility - Using Device: ATI Technologies Inc. - AMD Radeon(TM) 610M
+
+LOGGER ERROR: SCRIPT ERROR: Parse Error: Function "gui_is_drag_successful()" not found in base self.
+Run ended 2026-10-19T14:18:41.1893883-04:00 exit=1
