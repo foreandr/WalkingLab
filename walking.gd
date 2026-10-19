@@ -1991,7 +1991,7 @@ func update_team_battle_agent(dt: float) -> void:
 			flight_enabled = false
 	if spell_grounded_remaining>0.0: flight_enabled = false
 	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
-	var movement_speed: float = 17.2 if not critical else 14.4
+	var movement_speed: float = (17.2 if not critical else 14.4) * (1.0 if bool(get_meta("speed_boots",false)) else 0.79)
 	if flight_enabled: movement_speed = 21.0
 	if spell_frost_remaining>0.0: movement_speed *= 0.12
 	if spell_gravity_remaining>0.0:
