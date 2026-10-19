@@ -61,6 +61,7 @@ var backward_flying_clip: Dictionary = {}
 var selected_spell_target: CharacterBody3D = null
 var lock_marker: Label3D = null
 var movement_clips: Dictionary = {}
+var solo_left_strafe_available: bool = false
 # All arena combatants use the same imported rig. Share immutable retargeted
 # animation curves rather than import and retarget twenty FBX files per fighter.
 static var shared_flight_clips_ready: bool = false
@@ -265,7 +266,7 @@ func _ready():
 	if player.has_animation("Sprint"): player.get_animation_library("").remove_animation("Sprint")
 	var backwards_begin_usec: int = Time.get_ticks_usec()
 	install_backwards(player)
-	var solo_left_strafe_available: bool = install_solo_left_strafe(player)
+	solo_left_strafe_available = install_solo_left_strafe(player)
 	if autonomous_only: print("[FIGHTER_INIT_PHASE] fighter=",name," phase=backwards ms=",snappedf(float(Time.get_ticks_usec()-backwards_begin_usec)/1000.0,0.01))
 	if player_controlled: print("MIXAMO_CLIPS ",player.get_animation_list())
 	var white = StandardMaterial3D.new()
