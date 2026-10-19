@@ -10,7 +10,7 @@ static func get_level(number: int) -> Dictionary:
 			"biome": "flat_dirt",
 			"seed": 1001,
 			"arena_half_extent": 250.0,
-			"enemy_count": 2,
+			"enemy_count": 11,
 			"enemy_distance": 9.0,
 			"battle_royale_drop": true,
 			"drop_height": 52.0,
