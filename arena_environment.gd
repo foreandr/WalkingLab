@@ -1,4 +1,5 @@
 extends Node3D
+var biome: String = "arena"
 func _ready(): make_arena()
 
 func texture(id: String, scale_value: float) -> StandardMaterial3D:
@@ -53,6 +54,13 @@ func make_arena():
 	fill.light_color = Color("9ab5d3")
 	fill.light_energy = 0.16
 	add_child(fill)
+	if biome == "grassland":
+		# Level one uses existing sourced ground textures, without a stone ring or ruins.
+		var grass_ground = PlaneMesh.new()
+		grass_ground.size = Vector2(100,100)
+		mesh_node(grass_ground,Vector3(0,-0.13,0),texture("forest_ground_04",0.18))
+		print("[LEVEL_ENVIRONMENT] biome=grassland ground=100x100 ruins=false")
+		return
 	var ground = PlaneMesh.new()
 	ground.size = Vector2(100,100) # Match the compact pursuit arena boundaries.
 	mesh_node(ground,Vector3(0,-0.13,0),texture("forest_ground_04",0.35))
