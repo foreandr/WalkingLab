@@ -325,6 +325,9 @@ func _ready():
 		agent_rng.seed = agent_rng.randi() ^ hash(name)
 		agent_preferred_speed = (2.0 if ai_mode == "walk" else (10.0 if ai_mode == "sprint" else 7.5)) * agent_rng.randf_range(0.85,1.15)
 		choose_agent_destination()
+		# Stagger squad casts so all seven NPCs do not allocate spell VFX
+		# on the same physics tick.
+		if team_battle_ai: pursuit_cast_timer = agent_rng.randf_range(0.12,0.72)
 	if not actor_only:
 		add_child(preload("res://arena_environment.gd").new())
 		var floor_body = StaticBody3D.new()
@@ -1821,12 +1824,12 @@ func update_team_battle_agent(dt: float) -> void:
 	blink_cooldown_remaining = maxf(0.0,blink_cooldown_remaining-dt)
 	for i in range(spell_remaining.size()):
 		spell_remaining[i] = maxf(0.0,spell_remaining[i]-dt)
-	mana = minf(100.0,mana+12.0*dt)
+	mana = minf(100.0,mana+18.0*dt)
 	tick_live_spell_effects(dt)
 	team_decision_timer -= dt
 	var previous_target: Node = war_target
 	if team_decision_timer<=0.0 or not team_is_enemy(war_target):
-		team_decision_timer = agent_rng.randf_range(0.33,0.60)
+		team_decision_timer = agent_rng.randf_range(0.26,0.43)
 		team_strafe_sign = -1.0 if agent_rng.randf()<0.5 else 1.0
 		var best_score: float = INF
 		war_target = null
@@ -1854,6 +1857,13 @@ func update_team_battle_agent(dt: float) -> void:
 	if target_valid and team_decision_timer>0.3:
 		var ray: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*1.2,war_target.actor.global_position+Vector3.UP*1.1)
 		ray.exclude = [actor.get_rid()]
+		# Teammates do not block our spells. Ignore their colliders when
+		# deciding whether the intended enemy is exposed.
+		for ally in arena.active_war_fighters:
+			if is_instance_valid(ally) and ally != self and ally.team_id==team_id:
+				ray.exclude.append(ally.actor.get_rid())
+		if is_instance_valid(arena.player) and arena.player!=self and arena.player.team_id==team_id:
+			ray.exclude.append(arena.player.actor.get_rid())
 		var obstacle: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
 		team_clear_shot = obstacle.is_empty() or obstacle.get("collider")==war_target.actor
 	var injury: Node = get_node_or_null("DamageSystem")
@@ -1886,7 +1896,7 @@ func update_team_battle_agent(dt: float) -> void:
 	# Flight is a tactical route to airborne opponents and safe escapes.
 	team_mobility_timer -= dt
 	if team_mobility_timer<=0.0:
-		team_mobility_timer = agent_rng.randf_range(1.5,3.2)
+		team_mobility_timer = agent_rng.randf_range(0.85,1.65)
 		var want_flight: bool = target_valid and spell_grounded_remaining<=0.0 and (war_target.flight_enabled or offset.y>3.5 or (critical and agent_rng.randf()<0.40))
 		if want_flight and not flight_enabled:
 			var flight_slot: int = SPELL_IDS.find("flight")
@@ -1897,8 +1907,8 @@ func update_team_battle_agent(dt: float) -> void:
 			flight_enabled = false
 	if spell_grounded_remaining>0.0: flight_enabled = false
 	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
-	var movement_speed: float = 12.5 if not critical else 10.7
-	if flight_enabled: movement_speed = 15.0
+	var movement_speed: float = 17.2 if not critical else 14.4
+	if flight_enabled: movement_speed = 21.0
 	if spell_frost_remaining>0.0: movement_speed *= 0.12
 	if spell_gravity_remaining>0.0:
 		desired = (spell_gravity_origin-at).normalized()
@@ -1910,14 +1920,14 @@ func update_team_battle_agent(dt: float) -> void:
 	if flight_enabled:
 		var height_goal: float = clampf((war_target.actor.global_position.y+2.0) if target_valid else 8.0,4.0,28.0)
 		target_velocity.y = clampf((height_goal-at.y)*2.0,-9.0,10.0)
-		actor.velocity = actor.velocity.move_toward(target_velocity,dt*30.0)
+		actor.velocity = actor.velocity.move_toward(target_velocity,dt*44.0)
 	else:
-		actor.velocity.x = move_toward(actor.velocity.x,target_velocity.x,dt*28.0)
-		actor.velocity.z = move_toward(actor.velocity.z,target_velocity.z,dt*28.0)
+		actor.velocity.x = move_toward(actor.velocity.x,target_velocity.x,dt*41.0)
+		actor.velocity.z = move_toward(actor.velocity.z,target_velocity.z,dt*41.0)
 		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
 	actor.move_and_slide()
 	if desired.length_squared()>0.01:
-		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-desired.x,-desired.z),dt*6.5)
+		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-desired.x,-desired.z),dt*8.2)
 	# Any teammate can blink to flank or escape, not only an assigned class.
 	if target_valid and blink_cooldown_remaining<=0.0:
 		if distance_m>22.0 and distance_m<43.0 and agent_rng.randf()<dt*1.5: cast_blink(1.0)
@@ -1951,20 +1961,32 @@ func update_team_battle_agent(dt: float) -> void:
 			if player_hp!=null and (float(player_hp.hp["torso"])<75.0 or float(player_hp.hp["head"])<75.0): hurt_allies+=1
 		if hurt_allies>=2 or critical:
 			if spell_is_ready(SPELL_IDS.find("bloom")): chosen = "bloom"
-		if chosen=="" and target_valid and team_clear_shot and distance_m<62.0:
-			if war_target.flight_enabled and war_target.spell_grounded_remaining<0.2: chosen = "grounding"
-			elif war_target.spell_frost_remaining<0.2 and distance_m<32.0 and agent_rng.randf()<0.48: chosen = "frost"
-			elif distance_m<9.0 and agent_rng.randf()<0.65: chosen = "tempest"
-			elif distance_m>21.0 and agent_rng.randf()<0.64: chosen = "homing"
-			else:
-				var attacks: Array[String] = ["fire","gravity","venom","ricochet","grounding","frost","homing","tempest"]
-				chosen = attacks[agent_rng.randi_range(0,attacks.size()-1)]
+		if chosen=="" and target_valid and team_clear_shot and distance_m<67.0:
+			# Prioritize counters, then fall back to ANY available attack.
+			# The old single random pick silently wasted most attack windows
+			# whenever the selected spell was on cooldown.
+			var preferences: Array[String] = []
+			if war_target.flight_enabled and war_target.spell_grounded_remaining<0.25: preferences.append("grounding")
+			if war_target.spell_frost_remaining<0.25 and distance_m<38.0: preferences.append("frost")
+			if distance_m<12.0: preferences.append("tempest")
+			if distance_m>20.0: preferences.append("homing")
+			var attacks: Array[String] = ["fire","homing","venom","gravity","frost","grounding","tempest","ricochet"]
+			var seed_index: int = agent_rng.randi_range(0,attacks.size()-1)
+			for i in range(attacks.size()):
+				preferences.append(attacks[(seed_index+i)%attacks.size()])
+			for candidate_spell in preferences:
+				if spell_is_ready(SPELL_IDS.find(candidate_spell)):
+					chosen = candidate_spell
+					break
 		if chosen!="":
 			var spell_slot: int = SPELL_IDS.find(chosen)
 			if spell_is_ready(spell_slot):
 				controlled_arm = "left" if spell_slot>=5 else "right"
 				cast_spell(chosen)
-		pursuit_cast_timer = agent_rng.randf_range(0.60,1.15)
+		# Fire the next shot promptly when there is something ready to cast.
+		# When every attack is on cooldown, check again instead of waiting a
+		# full second on an already-rejected spell.
+		pursuit_cast_timer = agent_rng.randf_range(0.34,0.59) if chosen!="" else 0.22
 	jab_aim_strength = 1.0
 	adjust_jab_arm()
 	update_cast_motion(dt)
