@@ -1556,7 +1556,7 @@ func cast_blink(direction_sign: float) -> bool:
 	# W casts a forward blink; S casts a backward blink. Travel checks the
 	# real CharacterBody capsule against physical walls and nearby fighters.
 	if blink_cooldown_remaining>0.0 or combat_dead: return false
-	if player_controlled and not infinite_mana and mana<BLINK_MANA_COST: return false
+	if not infinite_mana and mana<BLINK_MANA_COST: return false
 	var forward: Vector3 = -actor.global_basis.z
 	forward.y = 0.0
 	if forward.length_squared()<0.01: return false
@@ -1575,7 +1575,7 @@ func cast_blink(direction_sign: float) -> bool:
 		if not actor.test_move(actor.global_transform,blink_direction*distance_available): break
 		distance_available *= 0.65
 	if distance_available<1.0 or actor.test_move(actor.global_transform,blink_direction*distance_available): return false
-	if player_controlled and not infinite_mana: mana -= BLINK_MANA_COST
+	if not infinite_mana: mana -= BLINK_MANA_COST
 	blink_cooldown_remaining = BLINK_COOLDOWN
 	actor.global_position += blink_direction*distance_available
 	actor.velocity = blink_direction*11.0
@@ -1835,9 +1835,13 @@ func update_team_battle_agent(dt: float) -> void:
 	team_mobility_timer -= dt
 	if team_mobility_timer<=0.0:
 		team_mobility_timer = agent_rng.randf_range(1.5,3.2)
-		if target_valid and spell_grounded_remaining<=0.0:
-			flight_enabled = war_target.flight_enabled or offset.y>3.5 or (critical and agent_rng.randf()<0.40)
-		else:
+		var want_flight: bool = target_valid and spell_grounded_remaining<=0.0 and (war_target.flight_enabled or offset.y>3.5 or (critical and agent_rng.randf()<0.40))
+		if want_flight and not flight_enabled:
+			var flight_slot: int = SPELL_IDS.find("flight")
+			if spell_is_ready(flight_slot):
+				spend_spell(flight_slot)
+				flight_enabled = true
+		elif not want_flight:
 			flight_enabled = false
 	if spell_grounded_remaining>0.0: flight_enabled = false
 	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
