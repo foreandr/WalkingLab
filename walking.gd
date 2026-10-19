@@ -634,6 +634,9 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
 	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRIGHT 1-5: Cinderburst / Permafrost / Soulseeker / Voidwell / Everbound\nLEFT 1-5: Earthbind / Lifeweave / Galeforce / Blight / Ascension\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
+	controls_details.visible = false
+	column.add_child(controls_details)
+	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
 	var spellbook_heading := Button.new()
 	spellbook_heading.text = "Spellbook  ▾"
 	column.add_child(spellbook_heading)
@@ -645,9 +648,6 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	spellbook.visible = false
 	column.add_child(spellbook)
 	spellbook_heading.pressed.connect(func(): spellbook.visible = not spellbook.visible)
-	controls_details.visible = false
-	column.add_child(controls_details)
-	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
 	cog.pressed.connect(func(): options_panel.visible = not options_panel.visible)
 
 func install_resource_hud(canvas: CanvasLayer) -> void:
@@ -1856,14 +1856,15 @@ func update_team_battle_agent(dt: float) -> void:
 	# concealed by a wall, pillar, or another body.
 	if target_valid and team_decision_timer>0.3:
 		var ray: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*1.2,war_target.actor.global_position+Vector3.UP*1.1)
-		ray.exclude = [actor.get_rid()]
+		var sight_excludes: Array[RID] = [actor.get_rid()]
 		# Teammates do not block our spells. Ignore their colliders when
 		# deciding whether the intended enemy is exposed.
 		for ally in arena.active_war_fighters:
 			if is_instance_valid(ally) and ally != self and ally.team_id==team_id:
-				ray.exclude.append(ally.actor.get_rid())
+				sight_excludes.append(ally.actor.get_rid())
 		if is_instance_valid(arena.player) and arena.player!=self and arena.player.team_id==team_id:
-			ray.exclude.append(arena.player.actor.get_rid())
+			sight_excludes.append(arena.player.actor.get_rid())
+		ray.exclude = sight_excludes
 		var obstacle: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
 		team_clear_shot = obstacle.is_empty() or obstacle.get("collider")==war_target.actor
 	var injury: Node = get_node_or_null("DamageSystem")
