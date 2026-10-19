@@ -56,7 +56,7 @@ func _physics_process(delta: float) -> void:
 	if battle_base_speed <= 0.0:
 		match spell_type:
 			"gravity": effective_speed *= 0.7
-			"comet": effective_speed *= 1.2
+			"grounding": effective_speed *= 1.25
 			"bloom": effective_speed *= 0.8
 			"tempest": effective_speed *= 1.4
 			"venom": effective_speed *= 1.1
