@@ -41,10 +41,10 @@ var cast_element: String = "fire"
 # Five fingers per hand. Shift changes which complete set 1-5 operates.
 # RIGHT: Ember, Frost, Homing Missile, Gravity, Ricochet.
 # LEFT: Comet, Bloom, Tempest, Venom, Flight.
-const SPELL_NAMES: Array[String] = ["Ember","Frost","Homing","Gravity","Ricochet","Comet","Bloom","Tempest","Venom","Flight"]
-const SPELL_IDS: Array[String] = ["fire","frost","homing","gravity","ricochet","comet","bloom","tempest","venom","flight"]
-const SPELL_COSTS: Array[float] = [15.0,20.0,22.0,30.0,24.0,28.0,24.0,22.0,20.0,18.0]
-const SPELL_COOLDOWNS: Array[float] = [2.0,5.0,4.0,9.0,7.0,5.0,10.0,6.0,7.0,3.0]
+const SPELL_NAMES: Array[String] = ["Ember","Frost","Homing","Gravity","Ricochet","Grounding","Bloom","Tempest","Venom","Flight"]
+const SPELL_IDS: Array[String] = ["fire","frost","homing","gravity","ricochet","grounding","bloom","tempest","venom","flight"]
+const SPELL_COSTS: Array[float] = [15.0,20.0,22.0,30.0,24.0,26.0,35.0,22.0,20.0,18.0]
+const SPELL_COOLDOWNS: Array[float] = [2.0,7.0,4.0,9.0,7.0,8.0,12.0,6.0,7.0,3.0]
 const SPELL_COLORS: Array[Color] = [Color("ff9b4f"),Color("7de8ff"),Color("f8e365"),Color("af83fa"),Color("ff5ee7"),Color("f9d474"),Color("a6f4bc"),Color("99e5e9"),Color("9cdd59"),Color("f0f0ff")]
 const MAX_ACTIVE_RICOCHETS: int = 20
 var spell_remaining: Array[float] = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
@@ -167,6 +167,13 @@ var lineup_cast_clock: float = 0.0
 # Each walker orbits a local anchor so targets remain within the test range.
 var spell_target_mode: String = ""
 # Scripted pursuit cast: four autonomous rigs share real collision and spells.
+# Player + three blue allies versus four red enemies in team mode.
+var team_id: String = ""
+var team_battle_ai: bool = false
+var status_label: Label3D = null
+var team_decision_timer: float = 0.0
+var team_strafe_sign: float = 1.0
+var team_mobility_timer: float = 0.0
 var pursuit_role: String = ""
 var pursuit_home: Vector3 = Vector3.ZERO
 var pursuit_cast_timer: float = 0.0
@@ -182,6 +189,7 @@ var spell_walker_phase: float = 0.0
 var spell_burn_remaining: float = 0.0
 var spell_burn_tick: float = 0.0
 var spell_frost_remaining: float = 0.0
+var spell_grounded_remaining: float = 0.0
 var spell_gravity_remaining: float = 0.0
 var spell_gravity_origin: Vector3 = Vector3.ZERO
 var spell_venom_remaining: float = 0.0
@@ -604,7 +612,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRight hand 1-5: Ember / Frost / Homing / Gravity / Ricochet\nLeft hand 1-5: Comet / Bloom / Tempest / Venom / Flight\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
+	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRight hand 1-5: Ember / Frost / Homing / Gravity / Ricochet\nLeft hand 1-5: Grounding / Bloom / Tempest / Venom / Flight\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
@@ -1383,6 +1391,12 @@ func apply_spell_status(effect_id: String, center: Vector3) -> void:
 			spell_burn_tick = 0.0
 		"frost":
 			spell_frost_remaining = maxf(spell_frost_remaining,5.0)
+		"grounding":
+			spell_grounded_remaining = maxf(spell_grounded_remaining,6.0)
+			flight_enabled = false
+			flight_windup_remaining = 0.0
+			flight_launch_remaining = 0.0
+			flight_acceleration_time = 0.0
 		"gravity":
 			spell_gravity_remaining = maxf(spell_gravity_remaining,2.6)
 			spell_gravity_origin = center
@@ -1397,6 +1411,76 @@ func apply_spell_status(effect_id: String, center: Vector3) -> void:
 				spell_tempest_direction = spell_tempest_direction.normalized()
 			else:
 				spell_tempest_direction = Vector3.FORWARD
+
+func status_description() -> String:
+	if combat_dead: return ""
+	var active: Array[String] = []
+	if spell_frost_remaining>0.0: active.append("FROST %.1fs" % spell_frost_remaining)
+	if spell_grounded_remaining>0.0: active.append("GROUNDED %.1fs" % spell_grounded_remaining)
+	if spell_burn_remaining>0.0: active.append("BURN %.1fs" % spell_burn_remaining)
+	if spell_venom_remaining>0.0: active.append("POISON %.1fs" % spell_venom_remaining)
+	if spell_gravity_remaining>0.0: active.append("PULLED %.1fs" % spell_gravity_remaining)
+	if spell_tempest_remaining>0.0: active.append("KNOCKBACK")
+	if spell_regen_remaining>0.0: active.append("REGEN %.1fs" % spell_regen_remaining)
+	return "  |  ".join(active)
+
+func team_is_enemy(other: Node) -> bool:
+	return other != null and is_instance_valid(other) and other != self and not other.combat_dead and team_id != "" and String(other.get("team_id")) != "" and String(other.get("team_id")) != team_id
+
+func heal_from_bloom(amount: float) -> void:
+	var damage: Node = get_node_or_null("DamageSystem")
+	if damage == null or damage.dead: return
+	for region in damage.REGIONS:
+		damage.hp[region] = minf(100.0,float(damage.hp[region])+amount)
+		damage.region_regen_delays[region] = 0.0
+	damage.update_damage_colors()
+	spell_regen_remaining = maxf(spell_regen_remaining,5.0)
+	spell_regen_tick = 0.0
+	if player_controlled: update_resource_hud()
+
+func cast_bloom_pulse() -> void:
+	# Friendly-only area healing: 18 metres, all six body regions, plus HoT.
+	var arena: Node = get_tree().current_scene
+	if arena == null: return
+	var center: Vector3 = actor.global_position+Vector3.UP*1.0
+	for recipient in get_tree().get_nodes_in_group("combat_fighters"):
+		if not is_instance_valid(recipient) or recipient.combat_dead: continue
+		if team_id!="" and String(recipient.get("team_id"))!=team_id: continue
+		if recipient.actor.global_position.distance_to(actor.global_position)>18.0: continue
+		recipient.heal_from_bloom(32.0)
+	# The imported particle texture and motion create a spreading green ring.
+	var bloom := Node3D.new()
+	bloom.name = "BloomHealingWave"
+	arena.add_child(bloom)
+	bloom.global_position = center
+	var particles: GPUParticles3D = arena.fireball_scene.instantiate()
+	bloom.add_child(particles)
+	particles.local_coords = false
+	particles.one_shot = true
+	particles.explosiveness = 1.0
+	particles.lifetime = 0.85
+	particles.amount = 180
+	particles.fixed_fps = 30
+	var material: ParticleProcessMaterial = particles.process_material.duplicate(true) as ParticleProcessMaterial
+	if material != null:
+		var gradient := Gradient.new()
+		gradient.set_color(0,Color("6df4a0"))
+		gradient.set_color(1,Color(0.20,0.95,0.58,0.0))
+		var ramp := GradientTexture1D.new()
+		ramp.gradient = gradient
+		material.color_ramp = ramp
+		material.gravity = Vector3.ZERO
+		material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		material.emission_sphere_radius = 0.20
+		material.spread = 180.0
+		material.initial_velocity_min = 18.0/0.80
+		material.initial_velocity_max = 18.0/0.65
+		particles.process_material = material
+	particles.emitting = true
+	particles.restart()
+	var cleanup := bloom.create_tween()
+	cleanup.tween_interval(1.4)
+	cleanup.tween_callback(bloom.queue_free)
 
 func update_spell_test_target(dt: float) -> void:
 	# Spell effects stay active even on completely passive mannequins.
