@@ -1749,7 +1749,174 @@ func update_pursuit_agent(dt: float) -> void:
 	adjust_jab_arm()
 	update_cast_motion(dt)
 
+func tick_live_spell_effects(dt: float) -> void:
+	spell_grounded_remaining = maxf(0.0,spell_grounded_remaining-dt)
+	spell_frost_remaining = maxf(0.0,spell_frost_remaining-dt)
+	spell_gravity_remaining = maxf(0.0,spell_gravity_remaining-dt)
+	spell_tempest_remaining = maxf(0.0,spell_tempest_remaining-dt)
+	if spell_grounded_remaining>0.0:
+		flight_enabled = false
+		flight_windup_remaining = 0.0
+	if spell_burn_remaining>0.0:
+		spell_burn_remaining = maxf(0.0,spell_burn_remaining-dt)
+		spell_burn_tick += dt
+		if spell_burn_tick>=0.7:
+			spell_burn_tick = 0.0
+			var injury: Node = get_node_or_null("DamageSystem")
+			if injury!=null and not injury.dead: injury.receive_region_hit("torso",actor.global_position+Vector3.UP,4.0,"BURN",false)
+	if spell_venom_remaining>0.0:
+		spell_venom_remaining = maxf(0.0,spell_venom_remaining-dt)
+		spell_venom_tick += dt
+		if spell_venom_tick>=0.85:
+			spell_venom_tick = 0.0
+			var injury: Node = get_node_or_null("DamageSystem")
+			if injury!=null and not injury.dead: injury.receive_region_hit("torso",actor.global_position+Vector3.UP,4.0,"VENOM",false)
+	if spell_regen_remaining>0.0:
+		spell_regen_remaining = maxf(0.0,spell_regen_remaining-dt)
+		spell_regen_tick += dt
+		if spell_regen_tick>=0.5:
+			spell_regen_tick = 0.0
+			var damage: Node = get_node_or_null("DamageSystem")
+			if damage!=null and not damage.dead:
+				for region in damage.REGIONS:
+					damage.hp[region] = minf(100.0,float(damage.hp[region])+2.5)
+				damage.update_damage_colors()
+
+func update_team_battle_agent(dt: float) -> void:
+	# Full roster is shared by the arena scheduler; decisions use enemies only.
+	# Navigation, targeting, flight, statuses and casts remain autonomous.
+	var arena: Node = get_tree().current_scene
+	if arena==null or combat_dead: return
+	clock += dt
+	blink_cooldown_remaining = maxf(0.0,blink_cooldown_remaining-dt)
+	for i in range(spell_remaining.size()):
+		spell_remaining[i] = maxf(0.0,spell_remaining[i]-dt)
+	mana = minf(100.0,mana+12.0*dt)
+	tick_live_spell_effects(dt)
+	team_decision_timer -= dt
+	var previous_target: Node = war_target
+	if team_decision_timer<=0.0 or not team_is_enemy(war_target):
+		team_decision_timer = agent_rng.randf_range(0.33,0.60)
+		team_strafe_sign = -1.0 if agent_rng.randf()<0.5 else 1.0
+		var best_score: float = INF
+		war_target = null
+		var fighters: Array = arena.active_war_fighters.duplicate()
+		fighters.append(arena.player)
+		for candidate in fighters:
+			if not team_is_enemy(candidate): continue
+			var enemy_damage: Node = candidate.get_node_or_null("DamageSystem")
+			if enemy_damage==null or enemy_damage.dead: continue
+			var dist: float = actor.global_position.distance_to(candidate.actor.global_position)
+			var vulnerability: float = (100.0-float(enemy_damage.hp["torso"]))*0.10
+			var score: float = dist-vulnerability+agent_rng.randf_range(-3.0,3.0)
+			if candidate==previous_target: score-=4.0
+			if score<best_score:
+				best_score = score
+				war_target = candidate
+	var target_valid: bool = team_is_enemy(war_target)
+	var offset: Vector3 = war_target.actor.global_position-actor.global_position if target_valid else Vector3.ZERO
+	var planar: Vector3 = Vector3(offset.x,0.0,offset.z)
+	var distance_m: float = planar.length()
+	var forward: Vector3 = planar.normalized() if distance_m>0.01 else Vector3.FORWARD
+	var flank: Vector3 = Vector3(-forward.z,0.0,forward.x)
+	var injury: Node = get_node_or_null("DamageSystem")
+	var critical: bool = injury != null and (float(injury.hp["torso"])<42.0 or float(injury.hp["head"])<46.0)
+	var desired: Vector3 = flank*team_strafe_sign*0.5
+	if target_valid:
+		if distance_m>21.0: desired += forward*1.3
+		elif distance_m<10.0 or critical: desired -= forward*1.5
+		else: desired += forward*0.2
+	var edge_push := Vector3.ZERO
+	var at: Vector3 = actor.global_position
+	if absf(at.x)>39.0: edge_push.x = -signf(at.x)*2.0
+	if absf(at.z)>39.0: edge_push.z = -signf(at.z)*2.0
+	desired = (desired+edge_push).normalized()
+	# Flight is a tactical route to airborne opponents and safe escapes.
+	team_mobility_timer -= dt
+	if team_mobility_timer<=0.0:
+		team_mobility_timer = agent_rng.randf_range(1.5,3.2)
+		if target_valid and spell_grounded_remaining<=0.0:
+			flight_enabled = war_target.flight_enabled or offset.y>3.5 or (critical and agent_rng.randf()<0.40)
+		else:
+			flight_enabled = false
+	if spell_grounded_remaining>0.0: flight_enabled = false
+	actor.floor_snap_length = 0.0 if flight_enabled else 0.12
+	var movement_speed: float = 12.5 if not critical else 10.7
+	if flight_enabled: movement_speed = 15.0
+	if spell_frost_remaining>0.0: movement_speed *= 0.12
+	if spell_gravity_remaining>0.0:
+		desired = (spell_gravity_origin-at).normalized()
+		movement_speed = 13.0
+	if spell_tempest_remaining>0.0:
+		desired = spell_tempest_direction
+		movement_speed = 20.0
+	var target_velocity: Vector3 = desired*movement_speed
+	if flight_enabled:
+		var height_goal: float = clampf((war_target.actor.global_position.y+2.0) if target_valid else 8.0,4.0,28.0)
+		target_velocity.y = clampf((height_goal-at.y)*2.0,-9.0,10.0)
+		actor.velocity = actor.velocity.move_toward(target_velocity,dt*30.0)
+	else:
+		actor.velocity.x = move_toward(actor.velocity.x,target_velocity.x,dt*28.0)
+		actor.velocity.z = move_toward(actor.velocity.z,target_velocity.z,dt*28.0)
+		actor.velocity.y -= SIMPLE_JUMP_GRAVITY*dt
+	actor.move_and_slide()
+	if desired.length_squared()>0.01:
+		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-desired.x,-desired.z),dt*6.5)
+	# Any teammate can blink to flank or escape, not only an assigned class.
+	if target_valid and blink_cooldown_remaining<=0.0:
+		if distance_m>22.0 and distance_m<43.0 and agent_rng.randf()<dt*1.5: cast_blink(1.0)
+		elif distance_m<5.0 and critical: cast_blink(-1.0)
+	speed = Vector2(actor.velocity.x,actor.velocity.z).length()
+	blend = speed_band(SPEEDS,speed)
+	tree.set("parameters/Gaits/blend_position",blend)
+	tree.set("parameters/Direction/blend_amount",0.0)
+	tree.set("parameters/Cadence/scale",maxf(0.2,speed/3.2))
+	tree.advance(dt)
+	if flight_enabled:
+		var pitch: float = clampf(atan2(speed,maxf(-4.0,actor.velocity.y)),0.10,2.6)
+		visual.rotation.x = move_toward(visual.rotation.x,pitch,dt*5.0)
+		visual.position.y = 0.95*absf(sin(visual.rotation.x))
+		apply_flight_pose(dt)
+	else:
+		visual.rotation.x = move_toward(visual.rotation.x,0.0,dt*7.0)
+		visual.position.y = 0.0
+	pursuit_cast_timer -= dt
+	if pursuit_cast_timer<=0.0 and cast_elapsed<0.0:
+		var chosen: String = ""
+		# Heal wounded allies together. Squad spacing determines efficiency.
+		var hurt_allies: int = 0
+		for ally in arena.active_war_fighters:
+			if not is_instance_valid(ally) or ally.combat_dead or ally.team_id!=team_id: continue
+			if ally.actor.global_position.distance_to(at)>18.0: continue
+			var ally_hp: Node = ally.get_node_or_null("DamageSystem")
+			if ally_hp!=null and (float(ally_hp.hp["torso"])<75.0 or float(ally_hp.hp["head"])<75.0): hurt_allies+=1
+		if arena.player.team_id==team_id and not arena.player.combat_dead and arena.player.actor.global_position.distance_to(at)<18.0:
+			var player_hp: Node = arena.player.get_node_or_null("DamageSystem")
+			if player_hp!=null and (float(player_hp.hp["torso"])<75.0 or float(player_hp.hp["head"])<75.0): hurt_allies+=1
+		if hurt_allies>=2 or critical:
+			if spell_is_ready(SPELL_IDS.find("bloom")): chosen = "bloom"
+		if chosen=="" and target_valid and distance_m<62.0:
+			if war_target.flight_enabled and war_target.spell_grounded_remaining<0.2: chosen = "grounding"
+			elif war_target.spell_frost_remaining<0.2 and distance_m<32.0 and agent_rng.randf()<0.48: chosen = "frost"
+			elif distance_m<9.0 and agent_rng.randf()<0.65: chosen = "tempest"
+			elif distance_m>21.0 and agent_rng.randf()<0.64: chosen = "homing"
+			else:
+				var attacks: Array[String] = ["fire","gravity","venom","ricochet","grounding","frost","homing","tempest"]
+				chosen = attacks[agent_rng.randi_range(0,attacks.size()-1)]
+		if chosen!="":
+			var spell_slot: int = SPELL_IDS.find(chosen)
+			if spell_is_ready(spell_slot):
+				controlled_arm = "left" if spell_slot>=5 else "right"
+				cast_spell(chosen)
+		pursuit_cast_timer = agent_rng.randf_range(0.60,1.15)
+	jab_aim_strength = 1.0
+	adjust_jab_arm()
+	update_cast_motion(dt)
+
 func war_simulation_tick(dt: float) -> void:
+	if team_battle_ai:
+		update_team_battle_agent(dt)
+		return
 	if pursuit_role != "":
 		update_pursuit_agent(dt)
 		return
@@ -1819,16 +1986,11 @@ func _physics_process(dt):
 					if changed_target: arena.record_player_auto_target_change(closest.name)
 	if paused: return
 	if player_controlled:
+		tick_live_spell_effects(dt)
 		blink_cooldown_remaining = maxf(0.0,blink_cooldown_remaining-dt)
 		for i in range(spell_remaining.size()):
 			spell_remaining[i] = maxf(0.0,spell_remaining[i]-dt)
 		mana = 100.0 if infinite_mana else minf(100.0,mana+7.0*dt)
-		if spell_regen_remaining > 0.0:
-			spell_regen_remaining = maxf(0.0,spell_regen_remaining-dt)
-			spell_regen_tick += dt
-			if spell_regen_tick >= 0.5:
-				spell_regen_tick = 0.0
-				heal_from_spell(3.0)
 		var spending_stamina: bool = (alt_dash_held or Input.is_action_pressed("sprint")) and manual_input.length_squared()>0.02 and not sprint_exhausted
 		stamina = clampf(stamina-(24.0 if alt_dash_held else 11.0)*dt if spending_stamina else stamina+18.0*dt,0.0,100.0)
 		if stamina <= 0.0:
