@@ -25,7 +25,7 @@ var level_number: int = 1
 const TEAM_BLUE: Color = Color("317bff")
 const TEAM_RED: Color = Color("ed4451")
 var status_refresh_clock: float = 0.0
-const ARENA_HALF_EXTENT: float = 50.0
+var arena_half_extent: float = 2000.0
 const LINEUP_DISTANCES: Array[int] = [1,2,4,8,16,32,64,128]
 var fighter_spawn_index: int = 0
 var spawn_rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -103,6 +103,7 @@ func profile_percentile(values: Array[float], fraction: float) -> float:
 func _ready():
 	spawn_rng.randomize()
 	current_level = preload("res://level_definitions.gd").get_level(level_number)
+	arena_half_extent = float(current_level.get("arena_half_extent",2000.0))
 	spawn_rng.seed = int(current_level["seed"])
 	flight_benchmark_requested = "--flight-benchmark" in OS.get_cmdline_user_args()
 	if flight_benchmark_requested:
@@ -134,13 +135,15 @@ func _ready():
 	# Restore the arena and its real physics floor independently of mannequins.
 	var level_environment = preload("res://arena_environment.gd").new()
 	level_environment.biome = String(current_level["biome"])
+	level_environment.world_half_extent = arena_half_extent
+	level_environment.building_defs = current_level.get("buildings",[])
 	add_child(level_environment)
 	var floor_body := StaticBody3D.new()
 	floor_body.name = "ArenaGroundCollision"
 	add_child(floor_body)
 	var floor_shape := CollisionShape3D.new()
 	var floor_box := BoxShape3D.new()
-	floor_box.size = Vector3(ARENA_HALF_EXTENT*2.0,0.2,ARENA_HALF_EXTENT*2.0)
+	floor_box.size = Vector3(arena_half_extent*2.0,0.2,arena_half_extent*2.0)
 	floor_shape.shape = floor_box
 	floor_shape.position.y = -0.1
 	floor_body.add_child(floor_shape)
@@ -166,7 +169,8 @@ func _ready():
 	player.camera.current = true
 	player_label = make_label(player.actor,"BLACK / IMMORTAL [G]",TEAM_BLUE)
 	attach_status_label(player)
-	make_boundary()
+	if String(current_level.get("biome","")) != "grassland":
+		make_boundary()
 	# Always show a separate autonomous locomotion demonstrator beside Black.
 	ai = null
 	# Motion showcase was a test fixture; never spawn it during ordinary war.
@@ -673,14 +677,14 @@ func make_boundary():
 	roof_material.albedo_color = Color("34414e")
 	roof_material.roughness = 0.95
 	roof_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	var side: float = ARENA_HALF_EXTENT*2.0
+	var side: float = arena_half_extent*2.0
 	var wall_height: float = 42.0
 	var half_height: float = wall_height*0.5
 	var surfaces := [
-		{"name":"NorthWall","size":Vector3(side,wall_height,1.5),"center":Vector3(0,half_height,-ARENA_HALF_EXTENT)},
-		{"name":"SouthWall","size":Vector3(side,wall_height,1.5),"center":Vector3(0,half_height,ARENA_HALF_EXTENT)},
-		{"name":"EastWall","size":Vector3(1.5,wall_height,side),"center":Vector3(ARENA_HALF_EXTENT,half_height,0)},
-		{"name":"WestWall","size":Vector3(1.5,wall_height,side),"center":Vector3(-ARENA_HALF_EXTENT,half_height,0)},
+		{"name":"NorthWall","size":Vector3(side,wall_height,1.5),"center":Vector3(0,half_height,-arena_half_extent)},
+		{"name":"SouthWall","size":Vector3(side,wall_height,1.5),"center":Vector3(0,half_height,arena_half_extent)},
+		{"name":"EastWall","size":Vector3(1.5,wall_height,side),"center":Vector3(arena_half_extent,half_height,0)},
+		{"name":"WestWall","size":Vector3(1.5,wall_height,side),"center":Vector3(-arena_half_extent,half_height,0)},
 		{"name":"Ceiling","size":Vector3(side,1.5,side),"center":Vector3(0,wall_height,0)}
 	]
 	for item in surfaces:
