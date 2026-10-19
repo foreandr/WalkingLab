@@ -22,7 +22,7 @@ const MAX_ACTIVE_FIGHTERS: int = 80
 const TEAM_AI_FIGHTERS: int = 1
 var current_level: Dictionary = {}
 var royale_loot: Array[Dictionary] = []
-const ROYALE_SPELLS: Array[String] = ["fire","frost","homing"]
+const ROYALE_SPELLS: Array[String] = ["fire","frost","homing","ricochet","gravity","grounding","venom","tempest"]
 var level_number: int = 1
 const TEAM_BLUE: Color = Color("317bff")
 const TEAM_RED: Color = Color("ed4451")
@@ -292,7 +292,7 @@ func _spawn_single_fighter() -> void:
 		var angle: float = float(index) * 2.39996323
 		var ring: float = 45.0 + float((index / 10) % 8) * 19.0
 		if not flight_benchmark_requested:
-			fighter.spawn_point = Vector3(spawn_rng.randf_range(-40.0,40.0),float(current_level.get("drop_height",52.0))+spawn_rng.randf_range(-3.0,3.0),spawn_rng.randf_range(-40.0,40.0)) if bool(current_level.get("battle_royale_drop",false)) else random_war_spawn()
+			fighter.spawn_point = Vector3(spawn_rng.randf_range(-180.0,180.0),float(current_level.get("drop_height",52.0))+spawn_rng.randf_range(-3.0,3.0),spawn_rng.randf_range(-40.0,40.0)) if bool(current_level.get("battle_royale_drop",false)) else random_war_spawn()
 		elif index < LINEUP_DISTANCES.size():
 			var measured_distance: float = float(LINEUP_DISTANCES[index])
 			fighter.spawn_point = player.spawn_point+Vector3(0.0,0.0,-measured_distance)
@@ -845,13 +845,14 @@ func _unhandled_input(event):
 func create_royale_loot() -> void:
 	var all_fighters: Array = [player]
 	all_fighters.append_array(mannequins)
-	for i in range(mini(3,all_fighters.size())):
-		var fighter: Node = all_fighters[i]
-		var spell: String = ROYALE_SPELLS[i]
+	for i in range(all_fighters.size()+5):
+		var fighter: Node = all_fighters[i % all_fighters.size()]
+		var boots: bool = i >= all_fighters.size() and i % 2 == 0
+		var spell: String = "" if boots else ROYALE_SPELLS[i % ROYALE_SPELLS.size()]
 		var target: Vector3 = fighter.spawn_point
 		target.y = 0.16
 		var display := Node3D.new()
-		display.name = "LootRing_%s" % spell
+		display.name = "LootBoots_%d" % i if boots else "LootRing_%s_%d" % [spell,i]
 		display.position = target+Vector3(3.0 if i % 2 == 0 else -3.0,0,3.0)
 		add_child(display)
 		var torus := TorusMesh.new()
@@ -872,12 +873,12 @@ func create_royale_loot() -> void:
 		light.omni_range = 3.0
 		display.add_child(light)
 		var label := Label3D.new()
-		label.text = spell.to_upper()+" RING  [E]"
+		label.text = "SPEED BOOTS  [E]" if boots else spell.to_upper()+" RING  [E]"
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.position.y = 1.7
 		label.font_size = 42
 		display.add_child(label)
-		royale_loot.append({"spell":spell,"node":display,"claimed":false})
+		royale_loot.append({"spell":spell,"boots":boots,"node":display,"claimed":false})
 		print("[ROYALE_RING] spell=",spell," at=",display.position)
 
 func update_royale_loot() -> void:
@@ -900,9 +901,12 @@ func update_royale_loot() -> void:
 		if closest == null: continue
 		if closest == player and not Input.is_physical_key_pressed(KEY_E): continue
 		var spell: String = entry["spell"]
-		if not spell in closest.equipped_spells:
-			closest.equipped_spells.append(spell)
-			if closest.has_method("refresh_ring_inventory"): closest.refresh_ring_inventory()
+		if bool(entry.get("boots",false)):
+			closest.set_meta("speed_boots",true)
+		else:
+			if not spell in closest.equipped_spells:
+				closest.equipped_spells.append(spell)
+				if closest.has_method("refresh_ring_inventory"): closest.refresh_ring_inventory()
 		entry["claimed"] = true
 		item.queue_free()
-		print("[ROYALE_RING_PICKUP] fighter=",closest.name," spell=",spell)
+		print("[ROYALE_PICKUP] fighter=",closest.name," item=",("speed_boots" if bool(entry.get("boots",false)) else spell))
