@@ -67,6 +67,9 @@ func make_arena():
 		var landforms = preload("res://dirt_landforms.gd").new()
 		landforms.half_extent = world_half_extent
 		add_child(landforms)
+		var grass = preload("res://dirt_grass.gd").new()
+		grass.half_extent = world_half_extent
+		add_child(grass)
 		# Biome map remains available for the next terrain-development phase.
 		print("[LEVEL_ENVIRONMENT] flat_dirt_open_sky=true roof=false side_m=",world_half_extent*2.0)
 		return
