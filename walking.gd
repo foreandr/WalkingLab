@@ -145,6 +145,7 @@ var agent_rng := RandomNumberGenerator.new()
 var agent_destination: Vector3 = Vector3.ZERO
 var agent_decision_left: float = 0.0
 var agent_preferred_speed: float = 0.0
+var solo_landing_logged: bool = false
 var camera_target: CharacterBody3D
 
 const LABELS = ["WALK", "EASY RUN", "RUN", "STANDARD RUN", "FAST RUN", "QUICK RUN"]
@@ -1145,6 +1146,20 @@ func _physics_process(dt):
 				start_movement_clip("Jumping Up.fbx")
 				debug_player("FLIGHT_TAKEOFF","windup complete")
 	clock += step
+	# Solo showcase: physical launch, controlled flight and gravity landing.
+	# This never touches the human-controlled forward sprint system.
+	var solo_showcase: bool = name == "PlayerMan" and ai_mode == "sprint" and not player_controlled
+	var solo_flight_time: float = fmod(clock,48.0) if solo_showcase else 0.0
+	if solo_showcase:
+		var should_fly: bool = solo_flight_time >= 32.0 and solo_flight_time < 42.0
+		if should_fly and not flight_enabled:
+			flight_enabled = true
+			flight_launch_remaining = FLIGHT_LAUNCH_DURATION
+			print("[SOLO_FLIGHT] takeoff t=",snappedf(clock,0.1))
+		elif not should_fly and flight_enabled:
+			flight_enabled = false
+			flight_launch_remaining = 0.0
+			print("[SOLO_FLIGHT] descent t=",snappedf(clock,0.1)," altitude=",snappedf(actor.position.y,0.1))
 	jab_cooldown = maxf(0.0,jab_cooldown-step)
 	jab_aim_remaining = maxf(0.0,jab_aim_remaining-step)
 	jab_aim_strength = move_toward(jab_aim_strength,1.0 if (player_controlled or ai_abilities) else 0.0,step*8.0)
@@ -1266,7 +1281,7 @@ func _physics_process(dt):
 	if player_controlled and not flight_enabled:
 		visual.position.y = 0.0
 		visual.scale.y = 1.0
-	if player_controlled or ai_abilities or ai_mode == "fly":
+	if player_controlled or ai_abilities or ai_mode == "fly" or solo_showcase:
 		apply_flight_pose(step)
 	if player_controlled:
 		apply_injured_walk(step)
@@ -1328,10 +1343,14 @@ func _physics_process(dt):
 	if player_controlled and not flight_enabled and not actor.is_on_floor():
 		actor.velocity.x *= AIR_JUMP_TRAVEL_MULTIPLIER
 		actor.velocity.z *= AIR_JUMP_TRAVEL_MULTIPLIER
-	if player_controlled or ai_abilities or ai_mode == "fly": actor.floor_snap_length = 0.0 if flight_enabled else 0.12
-	if player_controlled or ai_abilities or ai_mode == "fly":
+	if player_controlled or ai_abilities or ai_mode == "fly" or solo_showcase: actor.floor_snap_length = 0.0 if flight_enabled else 0.12
+	if player_controlled or ai_abilities or ai_mode == "fly" or solo_showcase:
 		if flight_enabled:
-			if ai_abilities or ai_mode == "fly":
+			if solo_showcase:
+				# Real collision remains active; rise and then hold altitude.
+				var target_altitude: float = 13.0 + sin((solo_flight_time-34.0)*0.75)*2.0
+				actor.velocity.y = clampf((target_altitude-actor.position.y)*2.0,-6.0,12.0)
+			elif ai_abilities or ai_mode == "fly":
 				actor.velocity.y = (1.0 if ai_mode == "fly" and actor.position.y < 5.0 else sin(clock*0.9)*0.6)*FLIGHT_SPEED
 			else:
 				# W moves in the camera's three-dimensional aim direction.
@@ -1365,6 +1384,12 @@ func _physics_process(dt):
 		actor.velocity.z *= 0.5
 		if flight_enabled and actor.velocity.y > 0.0: actor.velocity.y *= 0.5
 	actor.move_and_slide()
+	if solo_showcase and not flight_enabled and actor.is_on_floor() and actor.position.y <= 0.1 and solo_flight_time >= 42.0:
+		if not solo_landing_logged:
+			print("[SOLO_FLIGHT] landed t=",snappedf(clock,0.1))
+			solo_landing_logged = true
+	elif solo_flight_time < 32.0:
+		solo_landing_logged = false
 	if player_controlled and not flight_enabled and actor.is_on_floor():
 		vertical_jump_speed = 0.0
 		if movement_clip_name == "Jumping Up.fbx":
@@ -1382,7 +1407,7 @@ func _physics_process(dt):
 			if player_controlled:
 				movement_clip_name = ""
 				print("FLIGHT_AUTO_LANDED speed=",flight_impact_speed)
-	if player_controlled or ai_abilities or ai_mode == "fly":
+	if player_controlled or ai_abilities or ai_mode == "fly" or solo_showcase:
 		update_flight_orientation(step)
 
 	# This arena has a flat floor at zero, including at wall contacts.
