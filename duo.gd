@@ -19,7 +19,7 @@ var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 const MAX_ACTIVE_FIGHTERS: int = 80
 # Default: one fleeing runner, three differently constrained spellcasters.
 # The previous 80-fighter stress test remains opt-in through CLI.
-const PURSUIT_FIGHTERS: int = 4
+const PURSUIT_FIGHTERS: int = 5
 const ARENA_HALF_EXTENT: float = 50.0
 const LINEUP_DISTANCES: Array[int] = [1,2,4,8,16,32,64,128]
 var fighter_spawn_index: int = 0
@@ -141,10 +141,10 @@ func _ready():
 	if flight_benchmark_requested:
 		spawn_more_fighters(MAX_ACTIVE_FIGHTERS)
 	else:
-		# One runner and three pursuers; stagger expensive rig initialization
+		# One runner and four pursuers; stagger expensive rig initialization
 		# over displayed frames to avoid startup hitching.
 		spawn_more_fighters(PURSUIT_FIGHTERS)
-	print("[ARENA_MODE] player=YOU controlled=true pursuit=1_escapee+3_chasers demo=off half_extent=",ARENA_HALF_EXTENT)
+	print("[ARENA_MODE] player=YOU controlled=true pursuit=1_escapee+4_chasers_with_blink demo=off half_extent=",ARENA_HALF_EXTENT)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
 	if enabled:
@@ -204,9 +204,9 @@ func _spawn_single_fighter() -> void:
 	var is_pursuit: bool = not flight_benchmark_requested and index < PURSUIT_FIGHTERS
 	var label_text: String = "FIGHTER %02d" % (index+1)
 	if is_pursuit:
-		var roles: Array[String] = ["escapee","hunter","no_flight","no_sprint"]
-		var labels: Array[String] = ["ESCAPEE","ALL SPELLS","NO FLIGHT","NO SPRINT"]
-		var starting_points: Array[Vector3] = [Vector3(0,0,-10),Vector3(-10,0,8),Vector3(10,0,8),Vector3(0,0,14)]
+		var roles: Array[String] = ["escapee","hunter","no_flight","no_sprint","blink_hunter"]
+		var labels: Array[String] = ["ESCAPEE","ALL SPELLS","NO FLIGHT","NO SPRINT","BLINK HUNTER"]
+		var starting_points: Array[Vector3] = [Vector3(0,0,-10),Vector3(-10,0,8),Vector3(10,0,8),Vector3(0,0,14),Vector3(-18,0,12)]
 		fighter.spawn_point = starting_points[index]
 		fighter.pursuit_role = roles[index]
 		fighter.pursuit_home = Vector3.ZERO
