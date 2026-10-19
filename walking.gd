@@ -1392,6 +1392,7 @@ func combat_react(region: String, amount: float, remaining: float) -> void:
 	start_movement_clip(clip)
 
 func combat_die(region: String) -> void:
+	if demo_immortal: return
 	combat_dead = true
 	combat_death_time = 0.0
 	combat_pose_frozen = false
