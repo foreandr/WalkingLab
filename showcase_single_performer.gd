@@ -128,8 +128,9 @@ func _install_hand_sword(id: String, model: Node3D) -> void:
 	var weapon: Node3D = _new_sword_model()
 	if weapon == null: return
 	attachment.add_child(weapon)
-	weapon.position = Vector3(0.02,0.5,0.01)
-	weapon.rotation_degrees = Vector3(0.0,0.0,90.0)
+	weapon.scale = Vector3.ONE * 2.1 # Source GLB is 0.501m long; present as ~1.05m sword.
+	weapon.position = Vector3(0.0,0.22,0.0)
+	weapon.rotation_degrees = Vector3(180.0,0.0,0.0)
 	weapon.visible = false
 	weapons[id] = weapon
 	print("[SHOWCASE_SWORD_HAND] rig=",id," bone=",chosen)
@@ -143,17 +144,18 @@ func _new_sword_model() -> Node3D:
 
 func _install_ground_sword() -> void:
 	ground_sword = _new_sword_model()
+	if ground_sword != null: ground_sword.scale = Vector3.ONE * 2.1
 	sword_available = ground_sword != null
 	if not sword_available:
 		push_warning("[SHOWCASE_SWORD_NOT_INSTALLED] Run RUN.bat to install Kenney mini-arena original sword and texture.")
 		return
-	get_tree().current_scene.add_child.call_deferred(ground_sword)
+	get_parent().add_child.call_deferred(ground_sword)
 	# Node enters the world on the next idle cycle; positioning is handled there.
 	call_deferred("_set_ground_sword_position")
 
 func _set_ground_sword_position() -> void:
-	if not is_instance_valid(ground_sword): return
-	ground_sword.global_position = home + Vector3(0.0,0.08,0.9)
+	if not is_instance_valid(ground_sword) or not ground_sword.is_inside_tree(): return
+	ground_sword.global_position = home + Vector3(0.0,0.22,0.9)
 	ground_sword.rotation_degrees = Vector3(0,0,90)
 	ground_sword.visible = not held_sword
 
@@ -176,6 +178,8 @@ func _play_step(index: int) -> void:
 	step_start = position
 	var entry: Dictionary = sequence[step_index]
 	var requested: String = String(entry["rig"])
+	for key in mixers.keys():
+		if key != requested: (mixers[key] as AnimationPlayer).stop()
 	for key in rigs.keys():
 		var model: Node3D = rigs[key] as Node3D
 		model.visible = key == requested
@@ -209,9 +213,11 @@ func _update_sword_visibility() -> void:
 
 func _take_sword() -> void:
 	if not sword_available:
+		sword_pickup_complete = true
 		stage_label.text += "\nMISSING SWORD ASSET"
 		return
 	if not weapons.has(selected_rig):
+		sword_pickup_complete = true
 		stage_label.text += "\nNO RIGHT-HAND ATTACHMENT"
 		return
 	held_sword = true

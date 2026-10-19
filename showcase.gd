@@ -111,7 +111,8 @@ func _build_player_sword() -> void:
 	player_sword_on_ground = packed.instantiate() as Node3D
 	if player_sword_on_ground == null: return
 	add_child(player_sword_on_ground)
-	player_sword_on_ground.position = player.actor.global_position + Vector3(1.0,0.08,-1.4)
+	player_sword_on_ground.position = player.actor.global_position + Vector3(1.0,0.22,-1.4)
+	player_sword_on_ground.scale = Vector3.ONE*2.1
 	player_sword_on_ground.rotation_degrees = Vector3(0,0,90)
 	player_sword_label = Label3D.new()
 	player_sword_label.text = "SWORD - PRESS E"
@@ -119,8 +120,8 @@ func _build_player_sword() -> void:
 	player_sword_label.pixel_size = 0.0045
 	player_sword_label.outline_size = 11
 	player_sword_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	player_sword_label.position = Vector3(0,0.9,0)
-	player_sword_on_ground.add_child(player_sword_label)
+	player_sword_label.position = player_sword_on_ground.position + Vector3(0,1.1,0)
+	add_child(player_sword_label)
 
 func _pickup_player_sword() -> void:
 	if not is_instance_valid(player_sword_on_ground) or player_sword_in_hand != null: return
@@ -140,9 +141,10 @@ func _pickup_player_sword() -> void:
 	attachment.name = "PlayerShowcaseSwordHand"
 	skeleton.add_child(attachment)
 	player_sword_on_ground.reparent(attachment,false)
-	player_sword_on_ground.position = Vector3(0.03,0.47,0.0)
-	player_sword_on_ground.rotation_degrees = Vector3(0,0,90)
-	player_sword_label.visible = false
+	player_sword_on_ground.scale = Vector3.ONE*2.1
+	player_sword_on_ground.position = Vector3(0,0.22,0.0)
+	player_sword_on_ground.rotation_degrees = Vector3(180,0,0)
+	player_sword_label.queue_free()
 	player_sword_in_hand = player_sword_on_ground
 	player_sword_on_ground = null
 	print("[PLAYER_SHOWCASE_SWORD_PICKED_UP] key=E bone=",right_hand)
