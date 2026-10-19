@@ -80,9 +80,12 @@ func circular_height(nx: float, nz: float) -> float:
  var r: float = Vector2(nx,nz).length()
  if r >= 1.0: return -30.0
  var angle: float = atan2(nz,nx)
- var fade: float = (1.0-smoothstep(0.83,1.0,r))
- var hill: float = 1.8*sin(nx*13.0+cos(nz*6.0)*1.7)*cos(nz*11.0)
- var valley: float = -2.4*exp(-((nx-0.34)*(nx-0.34)+(nz+0.3)*(nz+0.3))*35.0)
- var ridge: float = 1.2*cos(angle*8.0+sin(r*13.0))*sin(r*8.0)
- var centre_safe: float = smoothstep(0.08,0.24,r)
- return (hill+valley+ridge)*fade*centre_safe
+ var fade: float = 1.0-smoothstep(0.78,0.99,r)
+ var centre_safe: float = smoothstep(0.08,0.23,r)
+ # Predominantly raised terrain; a single larger, deeper valley.
+ var ridges: float = maxf(0.0,sin(nx*12.0+cos(nz*5.0))*cos(nz*10.0))*3.3
+ var heights: float = ridges+maxf(0.0,cos(angle*7.0+sin(r*9.0))*sin(r*7.0))*2.5
+ var dx: float = (nx-0.35)/0.21
+ var dz: float = (nz+0.24)/0.22
+ var valley: float = 10.5*exp(-1.7*(dx*dx+dz*dz))
+ return (heights-valley)*fade*centre_safe
