@@ -6,8 +6,8 @@ static func get_level(number: int) -> Dictionary:
 	if index == 1:
 		return {
 			"number": 1,
-			"name": "Dirt",
-			"biome": "dirt",
+			"name": "Flat Dirt",
+			"biome": "flat_dirt",
 			"seed": 1001,
 			"arena_half_extent": 25.0,
 			"enemy_count": 0,
@@ -21,8 +21,8 @@ static func get_level(number: int) -> Dictionary:
 	# Future level progression can supply biome, enemy count, seed and rules.
 	return {
 		"number": index,
-		"name": "Dirt %d" % index,
-		"biome": "dirt",
+		"name": "Flat Dirt %d" % index,
+		"biome": "flat_dirt",
 		"seed": 1000 + index,
 		"arena_half_extent": 25.0,
 		"enemy_count": 0,
