@@ -68,6 +68,7 @@ var solo_right_strafe_available: bool = false
 var strafe_left_blend: float = 0.0
 var strafe_right_blend: float = 0.0
 const STRAFE_VISUAL_YAW: float = 55.0
+const STRAFE_FORWARD_LEAN_DEGREES: float = 10.0
 const STRAFE_BLEND_RATE: float = 8.0
 const STRAFE_ACTIVATE_SPEED: float = 1.25
 # Black only: travel twice as far sideways while strafe clips play half as fast.
@@ -98,7 +99,10 @@ var squat_hold_seconds: float = 0.0
 const SQUAT_MAX_CHARGE_SECONDS: float = 2.0
 const SQUAT_MAX_HOP_IMPULSE: float = 9.9
 const AIR_JUMP_TRAVEL_MULTIPLIER: float = 1.41421356
-const SQUAT_HOP_IMPULSE: float = 3.0
+# A normal tap jump is three times as high with unchanged gravity:
+# h = v^2 / (2g), so multiply the launch impulse by sqrt(3).
+# The existing fully charged jump remains at its previous maximum.
+const SQUAT_HOP_IMPULSE: float = 5.196152423
 const SQUAT_BLEND_SPEED: float = 1.8
 var debug_tick: float = 0.0
 var last_debug_state: String = ""
@@ -2123,6 +2127,11 @@ func sample_flight_curve(keys: Array, time: float) -> Quaternion:
 func update_flight_orientation(dt: float) -> void:
 	# Head-first along camera aiming direction; physical collider remains upright.
 	var target_pitch: float = 0.0
+	if player_controlled and not flight_enabled:
+		# Pitch the mesh forward only while strafing. Existing eased blend
+		# weights give a smooth lean-in / lean-out without tilting the collider.
+		var strafe_pose: float = maxf(strafe_left_blend,strafe_right_blend)
+		target_pitch = -deg_to_rad(STRAFE_FORWARD_LEAN_DEGREES)*strafe_pose
 	if flight_enabled:
 		target_pitch = deg_to_rad(20.0)
 		# Hover leans forward by 20 degrees; steering keeps head-first alignment.
@@ -2137,7 +2146,7 @@ func update_flight_orientation(dt: float) -> void:
 	visual.rotation.x = flight_visual_pitch
 	# Rig pivot is at the feet. Raise the visible mesh as it pitches so
 	# the head and chest do not cut through the ground at low altitude.
-	visual.position.y = 0.95 * absf(sin(flight_visual_pitch))
+	visual.position.y = 0.95 * absf(sin(flight_visual_pitch)) if flight_enabled else 0.0
 
 func debug_player(event_type: String, details: String) -> void:
 	if not player_controlled: return
