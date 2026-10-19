@@ -47,6 +47,7 @@ const SPELL_COLORS: Array[Color] = [Color("ff9b4f"),Color("7de8ff"),Color("d5bbf
 var spell_remaining: Array[float] = [0.0,0.0,0.0,0.0,0.0]
 var mana: float = 100.0
 var stamina: float = 100.0
+var sprint_exhausted: bool = false
 var health: float = 100.0
 var spell_slots: Array[Label] = []
 var health_progress: ProgressBar
@@ -93,7 +94,7 @@ var solo_right_strafe_available: bool = false
 var strafe_left_blend: float = 0.0
 var strafe_right_blend: float = 0.0
 const STRAFE_VISUAL_YAW: float = 55.0
-const STRAFE_FORWARD_LEAN_DEGREES: float = 28.0
+const STRAFE_FORWARD_LEAN_DEGREES: float = 34.0
 const STRAFE_BLEND_RATE: float = 8.0
 const STRAFE_ACTIVATE_SPEED: float = 1.25
 # Black only: travel twice as far sideways while strafe clips play half as fast.
@@ -1462,9 +1463,13 @@ func _physics_process(dt):
 		for i in range(spell_remaining.size()):
 			spell_remaining[i] = maxf(0.0,spell_remaining[i]-dt)
 		mana = minf(100.0,mana+7.0*dt)
-		var spending_stamina: bool = alt_dash_held or (Input.is_action_pressed("sprint") and manual_input.length_squared()>0.02)
+		var spending_stamina: bool = (alt_dash_held or Input.is_action_pressed("sprint")) and manual_input.length_squared()>0.02 and not sprint_exhausted
 		stamina = clampf(stamina-(24.0 if alt_dash_held else 11.0)*dt if spending_stamina else stamina+18.0*dt,0.0,100.0)
-		if stamina <= 0.0 and alt_dash_held: alt_dash_held = false
+		if stamina <= 0.0:
+			sprint_exhausted = true
+			alt_dash_held = false
+		elif stamina >= 25.0:
+			sprint_exhausted = false
 		update_resource_hud()
 	if combat_dead:
 		update_combat_fall(dt)
@@ -1550,7 +1555,7 @@ func _physics_process(dt):
 			crouch.sprint()
 	var crouch_driving = crouch.update(step)
 	if player_controlled:
-		var building_sprint = not crouch_driving and not crouch.active() and not manual_launch_lock and (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not Input.is_action_pressed("walk") and manual_input.y>0.1
+		var building_sprint = not crouch_driving and not crouch.active() and not manual_launch_lock and not sprint_exhausted and (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not Input.is_action_pressed("walk") and manual_input.y>0.1
 		if not building_sprint:
 			manual_sprint_clock = 0.0
 		else:
@@ -1780,7 +1785,7 @@ func _physics_process(dt):
 				if flight_direction.length_squared() > 1.0: flight_direction = flight_direction.normalized()
 				if player_controlled:
 					if flight_direction.length_squared() > 0.001:
-						flight_acceleration_time += step*(2.0 if Input.is_action_pressed("sprint") else 1.0)
+						flight_acceleration_time += step*(2.0 if Input.is_action_pressed("sprint") and not sprint_exhausted else 1.0)
 					else:
 						flight_acceleration_time = 0.0
 				# A held double-Alt gives a short, powerful flight dash. Once
@@ -1884,7 +1889,7 @@ func manual_target_speed() -> float:
 	var injury: Node = get_node_or_null("DamageSystem")
 	if injury != null and (float(injury.hp["left_leg"]) <= 20.0 or float(injury.hp["right_leg"]) <= 20.0):
 		return -BACK_SPEEDS[0] if manual_input.y < -0.1 else SPEEDS[0]
-	var sprinting = (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not manual_launch_lock
+	var sprinting = (Input.is_action_pressed("sprint") or Input.is_physical_key_pressed(KEY_ALT)) and not manual_launch_lock and not sprint_exhausted
 	if manual_input.y< -0.1: return -BACK_SPEEDS[2] if sprinting else -BACK_SPEEDS[1]
 	if Input.is_action_pressed("walk"): return SPEEDS[0]
 	if not sprinting or manual_input.y<=0.1: return SPEEDS[2]
@@ -2772,7 +2777,7 @@ func _unhandled_input(event):
 			var event_ms: int = Time.get_ticks_msec()
 			if event.pressed:
 				alt_press_begin_ms = event_ms
-				alt_dash_held = (event_ms-alt_last_short_release_ms <= ALT_DOUBLE_TAP_WINDOW_MS)
+				alt_dash_held = (event_ms-alt_last_short_release_ms <= ALT_DOUBLE_TAP_WINDOW_MS) and not sprint_exhausted
 				alt_last_short_release_ms = -100000
 				if alt_dash_held:
 					debug_player("ALT_DASH","second_alt_held=true mode="+("FLIGHT" if flight_enabled else "GROUND"))
