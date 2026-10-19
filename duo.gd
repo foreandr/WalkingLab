@@ -19,7 +19,10 @@ var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 const MAX_ACTIVE_FIGHTERS: int = 80
 # Default: one fleeing runner, three differently constrained spellcasters.
 # The previous 80-fighter stress test remains opt-in through CLI.
-const PURSUIT_FIGHTERS: int = 5
+const TEAM_AI_FIGHTERS: int = 7
+const TEAM_BLUE: Color = Color("317bff")
+const TEAM_RED: Color = Color("ed4451")
+var status_refresh_clock: float = 0.0
 const ARENA_HALF_EXTENT: float = 50.0
 const LINEUP_DISTANCES: Array[int] = [1,2,4,8,16,32,64,128]
 var fighter_spawn_index: int = 0
@@ -131,9 +134,11 @@ func _ready():
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,34)
 	player.character_tint = FIGHTER_COLOR
+	player.team_id = "blue"
 	add_child(player)
 	player.camera.current = true
-	player_label = make_label(player.actor,"YOU",FIGHTER_COLOR)
+	player_label = make_label(player.actor,"YOU / BLUE",TEAM_BLUE)
+	attach_status_label(player)
 	make_boundary()
 	# DemoNPC is an optional developer tool, not an always-visible actor.
 	# It can be enabled through Settings when animation calibration is needed.
@@ -141,10 +146,9 @@ func _ready():
 	if flight_benchmark_requested:
 		spawn_more_fighters(MAX_ACTIVE_FIGHTERS)
 	else:
-		# One runner and four pursuers; stagger expensive rig initialization
-		# over displayed frames to avoid startup hitching.
-		spawn_more_fighters(PURSUIT_FIGHTERS)
-	print("[ARENA_MODE] player=YOU controlled=true pursuit=1_escapee+4_chasers_with_blink demo=off half_extent=",ARENA_HALF_EXTENT)
+		# Blue player + 3 AI versus 4 red AI, spawned over separate frames.
+		spawn_more_fighters(TEAM_AI_FIGHTERS)
+	print("[ARENA_MODE] 4v4 team battle player=BLUE allies=3 enemies=4 arena_half_extent=",ARENA_HALF_EXTENT)
 
 func set_demo_npc_enabled(enabled: bool) -> void:
 	if enabled:
@@ -201,17 +205,17 @@ func _spawn_single_fighter() -> void:
 	fighter.ai_abilities = true
 	fighter.animation_test_mode = "war"
 	fighter.war_pose_enabled = pose_enabled
-	var is_pursuit: bool = not flight_benchmark_requested and index < PURSUIT_FIGHTERS
+	var is_team_battle: bool = not flight_benchmark_requested and index < TEAM_AI_FIGHTERS
 	var label_text: String = "FIGHTER %02d" % (index+1)
-	if is_pursuit:
-		var roles: Array[String] = ["escapee","hunter","no_flight","no_sprint","blink_hunter"]
-		var labels: Array[String] = ["ESCAPEE","ALL SPELLS","NO FLIGHT","NO SPRINT","BLINK HUNTER"]
-		var starting_points: Array[Vector3] = [Vector3(0,0,-10),Vector3(-10,0,8),Vector3(10,0,8),Vector3(0,0,14),Vector3(-18,0,12)]
-		fighter.spawn_point = starting_points[index]
-		fighter.pursuit_role = roles[index]
-		fighter.pursuit_home = Vector3.ZERO
+	if is_team_battle:
+		var blue_spawn: Array[Vector3] = [Vector3(-9,0,24),Vector3(0,0,24),Vector3(9,0,24)]
+		var red_spawn: Array[Vector3] = [Vector3(-15,0,-23),Vector3(-5,0,-26),Vector3(5,0,-26),Vector3(15,0,-23)]
+		var blue_team: bool = index<3
+		fighter.team_id = "blue" if blue_team else "red"
+		fighter.team_battle_ai = true
+		fighter.spawn_point = blue_spawn[index] if blue_team else red_spawn[index-3]
 		fighter.ai_abilities = true
-		label_text = labels[index]
+		label_text = ("%s %d" % ["BLUE",index+1]) if blue_team else ("%s %d" % ["RED",index-2])
 	else:
 		# Preserve the existing 80-fighter benchmark and manual war-spawn path.
 		var angle: float = float(index) * 2.39996323
@@ -226,7 +230,8 @@ func _spawn_single_fighter() -> void:
 	fighter.character_tint = FIGHTER_COLOR
 	add_child(fighter)
 	fighter.actor.rotation.y = atan2(player.actor.global_position.x-fighter.actor.global_position.x,player.actor.global_position.z-fighter.actor.global_position.z)+PI
-	make_label(fighter.actor,label_text,fighter.character_tint)
+	make_label(fighter.actor,label_text,TEAM_BLUE if fighter.team_id=="blue" else (TEAM_RED if fighter.team_id=="red" else FIGHTER_COLOR))
+	if is_team_battle: attach_status_label(fighter)
 	mannequins.append(fighter)
 	# The arena drives this fighter from one central physics callback.
 	fighter.set_physics_process(false)
@@ -403,6 +408,10 @@ func _process(dt: float) -> void:
 			if whole_second % 2 == 0 and whole_second != flight_benchmark_last_log_second:
 				flight_benchmark_last_log_second = whole_second
 				print("[FLIGHT_BENCHMARK_POSITION] t_s=",whole_second," xyz=",player.actor.global_position," velocity=",player.actor.velocity," living=",active_war_fighters.size()," fps=",Engine.get_frames_per_second())
+	status_refresh_clock -= dt
+	if status_refresh_clock<=0.0:
+		status_refresh_clock = 0.15
+		refresh_visible_status_labels()
 	# Incrementally build the requested fighters instead of blocking one frame
 	# on ten imported rigs, animation graphs and collision bodies.
 	if queued_fighter_spawns > 0:
@@ -554,6 +563,43 @@ func make_label(body: Node3D, text: String, color: Color) -> Label3D:
 	ring.position.y = 0.045
 	body.add_child(ring)
 	return label
+func attach_status_label(fighter: Node) -> void:
+	var status := Label3D.new()
+	status.name = "StatusEffects"
+	status.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	status.font_size = 36
+	status.pixel_size = 0.006
+	status.position.y = 2.87
+	status.no_depth_test = false
+	status.outline_size = 8
+	status.modulate = Color("fff6ce")
+	status.visible = false
+	fighter.actor.add_child(status)
+	fighter.status_label = status
+
+func refresh_visible_status_labels() -> void:
+	if not is_instance_valid(player) or not is_instance_valid(player.camera): return
+	var watcher: Camera3D = player.camera
+	var rect: Rect2 = get_viewport().get_visible_rect()
+	var roster: Array = mannequins.duplicate()
+	roster.append(player)
+	for fighter in roster:
+		if not is_instance_valid(fighter): continue
+		var status: Label3D = fighter.status_label
+		if status == null or not is_instance_valid(status): continue
+		var at: Vector3 = fighter.actor.global_position+Vector3.UP*2.8
+		var distance: float = at.distance_to(watcher.global_position)
+		if distance>38.0 or watcher.is_position_behind(at):
+			status.visible = false
+			continue
+		var screen: Vector2 = watcher.unproject_position(at)
+		if not rect.has_point(screen):
+			status.visible = false
+			continue
+		var effects: String = fighter.status_description()
+		status.visible = effects!=""
+		if status.visible: status.text = effects
+
 func make_boundary():
 	# Compact 100 x 100 metre pursuit cage: opaque walls and a low roof.
 	var structure := StaticBody3D.new()
@@ -675,22 +721,27 @@ func _physics_process(_dt):
 	if player == null: return
 	tick_war_fighters(_dt)
 	player_label.position.y = player.crouch.capsule.height+0.3
-	if stress_no_deaths or announced_winner or queued_fighter_spawns > 0 or mannequins.size() < 2: return
-	var survivors: Array = []
+	if stress_no_deaths or announced_winner or queued_fighter_spawns>0: return
+	if flight_benchmark_requested: return
+	var blue_alive: int = 0 if player.combat_dead else 1
+	var red_alive: int = 0
 	for fighter in mannequins:
-		if is_instance_valid(fighter) and not fighter.combat_dead: survivors.append(fighter)
-	if survivors.size() == 1:
+		if not is_instance_valid(fighter) or fighter.combat_dead: continue
+		if fighter.team_id=="blue": blue_alive += 1
+		elif fighter.team_id=="red": red_alive += 1
+	if blue_alive==0 or red_alive==0:
 		announced_winner = true
-		print("[WAR WINNER] ",survivors[0].name)
+		var winner: String = "BLUE" if blue_alive>0 else "RED"
+		print("[TEAM_WINNER] ",winner)
 		var banner := Label3D.new()
-		banner.text = "WINNER"
+		banner.text = winner+" WINS"
 		winner_banner = banner
-		banner.font_size = 90
+		banner.font_size = 85
 		banner.pixel_size = 0.009
 		banner.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		banner.modulate = Color("ffd05b")
-		banner.position = Vector3.UP*3.5
-		survivors[0].actor.add_child(banner)
+		banner.modulate = TEAM_BLUE if winner=="BLUE" else TEAM_RED
+		banner.position = Vector3(0,6,0)
+		add_child(banner)
 
 func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
