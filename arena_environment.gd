@@ -63,6 +63,7 @@ func make_arena():
 		mesh_node(grass_ground,Vector3(0,-0.13,0),texture("forest_ground_04",0.18))
 		make_demo_buildings()
 		add_child(preload("res://central_tower.gd").new())
+		build_stacked_level_roofs()
 		print("[LEVEL_ENVIRONMENT] biome=grassland side_m=",world_half_extent*2.0," sky=true fog=true buildings=",building_defs.size()," border=false roof=false")
 		return
 	var ground = PlaneMesh.new()
@@ -139,3 +140,36 @@ func make_demo_buildings() -> void:
 		label.outline_size = 12
 		label.position.y = extent.y+5.0
 		root.add_child(label)
+
+# Four solid roof slabs per transition leave a 30m hole occupied by the
+# cylindrical stair tower. They double as floors for the next level.
+func build_stacked_level_roofs() -> void:
+	var outer: float = world_half_extent
+	var aperture: float = 15.0
+	var material_roof := texture("forest_ground_04",0.18)
+	for floor_index in [1,2]:
+		var y: float = float(floor_index)*12.0
+		var strips: Array = [
+			{"size":Vector3(outer*2.0,0.8,outer-aperture),"at":Vector3(0,y, -(outer+aperture)*0.5)},
+			{"size":Vector3(outer*2.0,0.8,outer-aperture),"at":Vector3(0,y, (outer+aperture)*0.5)},
+			{"size":Vector3(outer-aperture,0.8,aperture*2.0),"at":Vector3(-(outer+aperture)*0.5,y,0)},
+			{"size":Vector3(outer-aperture,0.8,aperture*2.0),"at":Vector3((outer+aperture)*0.5,y,0)}
+		]
+		for strip_index in range(strips.size()):
+			var data: Dictionary = strips[strip_index]
+			var body := StaticBody3D.new()
+			body.name = "Level%dRoof%d" % [floor_index,strip_index]
+			body.position = data["at"] + Vector3(0.0,0.0,-60.0)
+			add_child(body)
+			var roof_shape := BoxShape3D.new()
+			roof_shape.size = data["size"]
+			var collision := CollisionShape3D.new()
+			collision.shape = roof_shape
+			body.add_child(collision)
+			var roof_mesh := BoxMesh.new()
+			roof_mesh.size = data["size"]
+			var visible := MeshInstance3D.new()
+			visible.mesh = roof_mesh
+			visible.material_override = material_roof
+			body.add_child(visible)
+	print("[LEVEL_ROOFS] count=2 solid=true aperture_diameter=30m")
