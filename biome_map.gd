@@ -42,6 +42,7 @@ func _ready() -> void:
  rng.seed = 1001
  _create_clouds()
  _create_regions()
+ _create_elevation()
  print("[BIOME_MAP] regions=",REGIONS.size()," overlap=true gravity=2x,3x,4x clouds=",clouds.size())
 
 func _material(color: Color, translucent: bool = false) -> StandardMaterial3D:
@@ -140,3 +141,43 @@ func _create_regions() -> void:
    water.bottom_radius = water.top_radius
    water.height = 0.04
    _mesh(root,water,Vector3(0,0.06,0),_material(Color(0.17,0.54,0.76,0.76),true))
+
+func _create_elevation() -> void:
+ # Rounded climbable hills with matching physics; surface above the main plane.
+ var ground_mat := _material(Color("598749"))
+ for hill_data in [
+  {"p":Vector3(380,-27,-370),"r":46.0},
+  {"p":Vector3(-350,-21,385),"r":37.0},
+  {"p":Vector3(530,-33,-190),"r":54.0}
+ ]:
+  var hill := StaticBody3D.new()
+  hill.name = "PhysicalHill"
+  hill.position = hill_data["p"]
+  add_child(hill)
+  var shape := SphereShape3D.new()
+  shape.radius = hill_data["r"]
+  var collision := CollisionShape3D.new()
+  collision.shape = shape
+  hill.add_child(collision)
+  var sphere := SphereMesh.new()
+  sphere.radius = hill_data["r"]
+  sphere.height = hill_data["r"]*2.0
+  _mesh(hill,sphere,Vector3.ZERO,ground_mat)
+ # Trenches run along the original ground between two solid high berms.
+ # They are below the berm crests, with an unobstructed walkable channel.
+ var bank_mat := _material(Color("766349"))
+ for i in range(2):
+  var center := Vector3(-510+float(i)*130.0,0.0,-420)
+  for side in [-1,1]:
+   var berm := StaticBody3D.new()
+   berm.name = "TrenchBank"
+   berm.position = center+Vector3(float(side)*10.0,1.9,0)
+   add_child(berm)
+   var shape := BoxShape3D.new()
+   shape.size = Vector3(15,3.8,115)
+   var hitbox := CollisionShape3D.new()
+   hitbox.shape = shape
+   berm.add_child(hitbox)
+   var visual := BoxMesh.new()
+   visual.size = shape.size
+   _mesh(berm,visual,Vector3.ZERO,bank_mat)
