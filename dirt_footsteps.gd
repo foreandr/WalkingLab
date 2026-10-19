@@ -23,8 +23,8 @@ func _ready() -> void:
   puff.name = "DirtStepLeft" if i == 0 else "DirtStepRight"
   puff.emitting = false
   puff.one_shot = true
-  puff.amount = 7
-  puff.lifetime = 0.42
+  puff.amount = 11
+  puff.lifetime = 0.5
   puff.explosiveness = 1.0
   puff.local_coords = false
   puff.direction = Vector3(0,1,0)
@@ -44,11 +44,11 @@ func _physics_process(_dt: float) -> void:
  previous_position = runner.global_position
  movement.y = 0.0
  var speed: float = Vector2(runner.velocity.x,runner.velocity.z).length()
- if not runner.is_on_floor() or speed < 4.0:
+ if not runner.is_on_floor() or speed < 2.5:
   stride_distance = 0.0
   return
  stride_distance += movement.length()
- var step_length: float = clampf(1.65-speed*0.025,0.9,1.5)
+ var step_length: float = clampf(1.3-speed*0.025,0.72,1.25)
  if stride_distance < step_length: return
  stride_distance = fmod(stride_distance,step_length)
  var puff: CPUParticles3D = puffs[foot_side]
