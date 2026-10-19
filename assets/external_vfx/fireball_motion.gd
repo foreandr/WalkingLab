@@ -17,6 +17,11 @@ var ricochet_effect_cooldown: float = 0.0
 const RICOCHET_DAMAGE: float = 19.0
 const RICOCHET_HIT_COOLDOWN_MS: int = 850
 const RICOCHET_COLLISION_LIMIT: int = 4
+# Homing missiles have a finite chase window. Their particle size, glow,
+# emission, and swept hit radius all decay over the same four seconds.
+const HOMING_LIFETIME: float = 4.0
+const HOMING_HIT_RADIUS: float = 0.36
+const HOMING_MIN_RADIUS: float = 0.035
 # The flame-wave and target streams use the SAME impact radius as damage.
 # Impact applies to each target when its animated fire reaches that target.
 const LIFETIME: float = 25.0
@@ -35,6 +40,13 @@ func _physics_process(delta: float) -> void:
 		update_ricochet(projectile,delta)
 		return
 	if spell_type=="homing":
+		# Outrunning the missile for four seconds defeats it outright.
+		# Do not extend its time even if it switches targets.
+		lived += delta
+		if lived >= HOMING_LIFETIME:
+			projectile.queue_free()
+			return
+		update_homing_visuals(projectile)
 		update_homing_direction(projectile,delta)
 	profile_tick += 1
 	var sampled: bool = (profile_tick & 31) == 0
@@ -64,14 +76,21 @@ func _physics_process(delta: float) -> void:
 	cached_ray.to = projectile.global_position + displacement
 	var hit: Dictionary = space.intersect_ray(cached_ray)
 	if not hit.is_empty():
-		explode(projectile,hit["position"])
+		if spell_type=="homing":
+			finish_homing_impact(projectile,hit["position"],hit.get("collider"))
+		else:
+			explode(projectile,hit["position"])
 		projectile.queue_free()
 		return
 	# For enlarged fireballs, the visible body of the projectile must be
 	# collidable too. Query spheres along this physics step, preserving the
 	# swept center ray above for narrow/high-speed shots.
-	if blast_width > 1.0:
+	if blast_width > 1.0 or spell_type=="homing":
+		# The physical envelope tapers with the visible missile. A nearly
+		# vanished missile cannot retain a large invisible collision sphere.
 		var width_radius: float = 0.45 * blast_width
+		if spell_type=="homing":
+			width_radius = maxf(HOMING_MIN_RADIUS,HOMING_HIT_RADIUS*(1.0-lived/HOMING_LIFETIME))
 		if cached_sphere == null:
 			cached_sphere = SphereShape3D.new()
 			cached_sphere_query = PhysicsShapeQueryParameters3D.new()
@@ -84,7 +103,10 @@ func _physics_process(delta: float) -> void:
 			cached_sphere_query.transform = Transform3D(Basis.IDENTITY,probe)
 			var overlaps: Array[Dictionary] = space.intersect_shape(cached_sphere_query,1)
 			if not overlaps.is_empty():
-				explode(projectile,probe)
+				if spell_type=="homing":
+					finish_homing_impact(projectile,probe,overlaps[0].get("collider"))
+				else:
+					explode(projectile,probe)
 				projectile.queue_free()
 				return
 	if sampled:
@@ -92,9 +114,38 @@ func _physics_process(delta: float) -> void:
 		if scene_for_profile != null and scene_for_profile.has_method("record_performance_sample"):
 			scene_for_profile.record_performance_sample("projectile_ray",Time.get_ticks_usec()-profile_start)
 	projectile.global_position += displacement
-	lived += delta
-	if lived >= LIFETIME:
-		projectile.queue_free()
+	if spell_type!="homing":
+		lived += delta
+		if lived >= LIFETIME:
+			projectile.queue_free()
+
+func update_homing_visuals(projectile: Node3D) -> void:
+	# Shrink the actual imported particle effect, not just a decorative shell.
+	# Both the emission rate and rendered particles taper steadily to zero.
+	var remaining: float = clampf(1.0-lived/HOMING_LIFETIME,0.0,1.0)
+	var taper: float = maxf(0.025,pow(remaining,1.25))
+	projectile.scale = Vector3.ONE*taper
+	for child in projectile.get_children():
+		if child is GPUParticles3D:
+			var particles: GPUParticles3D = child as GPUParticles3D
+			particles.amount_ratio = remaining
+			particles.transparency = 1.0-remaining
+		elif child is OmniLight3D:
+			(child as OmniLight3D).light_energy = 1.25*remaining*remaining
+
+func finish_homing_impact(projectile: Node3D, hit_point: Vector3, collider: Object) -> void:
+	# The FIRST thing struck consumes the shot, whether its intended mark,
+	# another fighter, a pillar, the ground, or the arena walls/ceiling.
+	# Structures block damage rather than triggering a large splash.
+	if collider is CharacterBody3D:
+		var fighter_body: CharacterBody3D = collider as CharacterBody3D
+		if fighter_body.get_rid()!=owner_rid:
+			var controller: Node = fighter_body.get_parent()
+			var injury: Node = controller.get_node_or_null("DamageSystem") if controller!=null else null
+			if injury!=null and not injury.dead:
+				injury.receive_hit(hit_point,38.0,attacker_name)
+	# Small imported-particle impact, no lingering damage or AOE.
+	ricochet_spark(projectile,hit_point)
 
 func update_homing_direction(projectile: Node3D, delta: float) -> void:
 	# Track living targets, not their positions when the cast was started.
