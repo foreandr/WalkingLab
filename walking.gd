@@ -174,6 +174,8 @@ var status_label: Label3D = null
 var team_decision_timer: float = 0.0
 var team_strafe_sign: float = 1.0
 var team_mobility_timer: float = 0.0
+var team_clear_shot: bool = true
+var team_projectile_dodge: Vector3 = Vector3.ZERO
 var pursuit_role: String = ""
 var pursuit_home: Vector3 = Vector3.ZERO
 var pursuit_cast_timer: float = 0.0
@@ -1819,6 +1821,13 @@ func update_team_battle_agent(dt: float) -> void:
 	var distance_m: float = planar.length()
 	var forward: Vector3 = planar.normalized() if distance_m>0.01 else Vector3.FORWARD
 	var flank: Vector3 = Vector3(-forward.z,0.0,forward.x)
+	# Use an actual physics ray to distinguish a clear shot from an opponent
+	# concealed by a wall, pillar, or another body.
+	if target_valid and team_decision_timer>0.3:
+		var ray: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(actor.global_position+Vector3.UP*1.2,war_target.actor.global_position+Vector3.UP*1.1)
+		ray.exclude = [actor.get_rid()]
+		var obstacle: Dictionary = actor.get_world_3d().direct_space_state.intersect_ray(ray)
+		team_clear_shot = obstacle.is_empty() or obstacle.get("collider")==war_target.actor
 	var injury: Node = get_node_or_null("DamageSystem")
 	var critical: bool = injury != null and (float(injury.hp["torso"])<42.0 or float(injury.hp["head"])<46.0)
 	var desired: Vector3 = flank*team_strafe_sign*0.5
@@ -1826,6 +1835,21 @@ func update_team_battle_agent(dt: float) -> void:
 		if distance_m>21.0: desired += forward*1.3
 		elif distance_m<10.0 or critical: desired -= forward*1.5
 		else: desired += forward*0.2
+		if not team_clear_shot: desired += flank*team_strafe_sign*1.9
+	# Avoid incoming hostile spell paths without expensive full trajectory tests.
+	team_projectile_dodge = team_projectile_dodge.move_toward(Vector3.ZERO,dt*7.0)
+	if team_decision_timer>0.30:
+		for shot in arena.war_nearby_projectiles(actor.global_position,1):
+			if not is_instance_valid(shot): continue
+			var motion: Node = shot.get_node_or_null("Motion")
+			if motion == null or motion.caster_team==team_id: continue
+			var inbound: Vector3 = actor.global_position-shot.global_position
+			var ahead: float = inbound.dot(motion.travel_direction)
+			if ahead<0.0 or ahead>14.0: continue
+			var lateral_miss: Vector3 = inbound-motion.travel_direction*ahead
+			if lateral_miss.length_squared()<11.0:
+				team_projectile_dodge = flank*team_strafe_sign*2.3
+	desired += team_projectile_dodge
 	var edge_push := Vector3.ZERO
 	var at: Vector3 = actor.global_position
 	if absf(at.x)>39.0: edge_push.x = -signf(at.x)*2.0
@@ -1899,7 +1923,7 @@ func update_team_battle_agent(dt: float) -> void:
 			if player_hp!=null and (float(player_hp.hp["torso"])<75.0 or float(player_hp.hp["head"])<75.0): hurt_allies+=1
 		if hurt_allies>=2 or critical:
 			if spell_is_ready(SPELL_IDS.find("bloom")): chosen = "bloom"
-		if chosen=="" and target_valid and distance_m<62.0:
+		if chosen=="" and target_valid and team_clear_shot and distance_m<62.0:
 			if war_target.flight_enabled and war_target.spell_grounded_remaining<0.2: chosen = "grounding"
 			elif war_target.spell_frost_remaining<0.2 and distance_m<32.0 and agent_rng.randf()<0.48: chosen = "frost"
 			elif distance_m<9.0 and agent_rng.randf()<0.65: chosen = "tempest"
@@ -3075,7 +3099,12 @@ func ai_target_position() -> Vector3:
 	var opponent: Node3D = war_target if animation_test_mode == "war" or auto_war_combat else get_tree().current_scene.get_node_or_null("PlayerMan") as Node3D
 	if opponent != null:
 		var opponent_body: Node3D = opponent.get("actor") as Node3D
-		if opponent_body != null: return opponent_body.global_position + Vector3.UP * 1.2
+		if opponent_body != null:
+			var aiming_point: Vector3 = opponent_body.global_position+Vector3.UP*1.2
+			if team_battle_ai and opponent_body is CharacterBody3D:
+				var lead_time: float = clampf(actor.global_position.distance_to(aiming_point)/34.0,0.0,0.65)
+				aiming_point += (opponent_body as CharacterBody3D).velocity*lead_time*0.75
+			return aiming_point
 	return actor.global_position - actor.global_basis.z*15.0
 
 func choose_agent_destination() -> void:
