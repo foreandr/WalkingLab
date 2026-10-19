@@ -1,0 +1,68 @@
+name: WalkingLab brawl import and physics smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'brawl_*.gd'
+      - 'brawl_arena.tscn'
+      - 'walking.gd'
+      - 'combat_damage.gd'
+      - 'project.godot'
+      - '.github/workflows/brawl-smoke.yml'
+  workflow_dispatch:
+jobs:
+  godot-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download official Godot 4.7.2
+        run: |
+          curl --fail --location --retry 3 --silent --show-error \
+            https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          GODOT_BIN=$(find /tmp/godot -type f -name '*linux.x86_64' | head -1)
+          test -n "$GODOT_BIN"
+          chmod +x "$GODOT_BIN"
+          echo "GODOT_BIN=$GODOT_BIN" >> "$GITHUB_ENV"
+      - name: Fetch licensed sourced weapon and animation GLBs
+        run: |
+          mkdir -p assets/showcase assets/kenney_weapons/mini-arena/Textures assets/kenney_weapons/survival/Textures assets/kenney_weapons/weapon
+          curl -fLsS --retry 3 https://raw.githubusercontent.com/Barbatos6669/elderforge/main/assets/animations/universal_animation_library_2/UAL2_Standard.glb -o assets/showcase/UAL2_Standard.glb || true
+          curl -fLsS --retry 3 https://raw.githubusercontent.com/RamonLinares/atlas-09/main/public/models/aether-02.glb -o assets/showcase/aether-02.glb || true
+          for spec in \
+            "mini-arena/weapon-sword.glb" \
+            "mini-arena/Textures/colormap.png" \
+            "survival/tool-axe.glb" \
+            "survival/Textures/colormap.png" \
+            "weapon/knife_sharp.glb"; do
+            curl -fLsS --retry 3 "https://raw.githubusercontent.com/shorepine/kenney/main/3d/$spec" \
+              -o "assets/kenney_weapons/$spec" || true
+          done
+      - name: Import project and verify script parsing
+        run: |
+          set +e
+          timeout 240 "$GODOT_BIN" --headless --editor --path . --import > /tmp/import.log 2>&1
+          rc=$?
+          cat /tmp/import.log | tail -n 100
+          if [ "$rc" -ne 0 ]; then exit "$rc"; fi
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Failed to load script' /tmp/import.log; then exit 1; fi
+      - name: Run default four-team scene for six seconds
+        run: |
+          set +e
+          timeout 100 "$GODOT_BIN" --headless --path . --quit-after 360 > /tmp/brawl.log 2>&1
+          rc=$?
+          grep -E 'BRAWL_|SCRIPT ERROR|Parse Error|ERROR:|FATAL' /tmp/brawl.log | tail -n 140 || true
+          if [ "$rc" -ne 0 ]; then cat /tmp/brawl.log | tail -n 110; exit "$rc"; fi
+          if grep -Ei 'SCRIPT ERROR|Parse Error|Invalid (set|assignment|access)|FATAL' /tmp/brawl.log; then exit 1; fi
+          grep -F '[BRAWL_START]' /tmp/brawl.log
+          grep -F '[BRAWL_METRICS]' /tmp/brawl.log
+      - name: Save reproducible logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: walkinglab-brawl-smoke
+          path: |
+            /tmp/import.log
+            /tmp/brawl.log
+          if-no-files-found: ignore

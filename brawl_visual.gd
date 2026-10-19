@@ -38,6 +38,13 @@ func _ready() -> void:
 	var rigs: Array[Node] = model.find_children("*","Skeleton3D",true,false)
 	if not rigs.is_empty(): skeleton = rigs[0] as Skeleton3D
 	# Never hide BLACK's controllable Mixamo model. Replace only NPC visuals.
+	var mesh_count: int = model.find_children("*","MeshInstance3D",true,false).size()
+	if mesh_count == 0:
+		push_warning("[BRAWL_RIG_HAS_NO_MESH] "+candidate+"; retaining original visible mannequin")
+		model.queue_free()
+		model = null
+		mixer = null
+		return
 	if not pilot.player_controlled: pilot.visual.visible = false
 	print("[BRAWL_RIG_LOADED] fighter=",pilot.name," path=",candidate," visible_meshes=",model.find_children("*","MeshInstance3D",true,false).size()," animations=",mixer.get_animation_list())
 	play_named(["Idle","Idle_Loop","Sentinel"],true)

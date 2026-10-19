@@ -1409,6 +1409,12 @@ func combat_react(region: String, amount: float, remaining: float) -> void:
 		var body_clips: Array[String] = ["Reaction.fbx","Reaction (1).fbx","Big Kidney Hit.fbx","Big Kidney Hit (1).fbx"]
 		clip = body_clips[combat_hit_sequence % body_clips.size()]
 	start_movement_clip(clip)
+	# Visual NPCs use their *own* authored animation source; show the
+	# reaction on the visible rig rather than an invisible backup skeleton.
+	var fighter_visual: Node = actor.get_node_or_null("BrawlVisual") if actor != null else null
+	if fighter_visual != null and fighter_visual.has_method("action"):
+		var reaction_candidates: Array = ["HitHead","Knockback","HitChest"] if region=="head" else ["HitChest","Knockback","HitHead"]
+		fighter_visual.call("action",reaction_candidates,0.44,"WEAPON IMPACT")
 
 func combat_die(region: String) -> void:
 	if demo_immortal: return

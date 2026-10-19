@@ -194,7 +194,7 @@ func _strike_candidate(victim,base: Vector3,old_tip: Vector3,tip: Vector3) -> vo
 	var closest_b: Vector3 = Geometry3D.get_closest_point_to_segment(center,old_tip,tip)
 	var closest: Vector3 = closest_a if center.distance_squared_to(closest_a) < center.distance_squared_to(closest_b) else closest_b
 	# Body collider radius plus sword width and frame-swept temporal margin.
-	if center.distance_squared_to(closest) > 1.15: return
+	if center.distance_squared_to(closest) > 1.96: return
 	struck[id] = true
 	var defense = victim.get_node_or_null("BrawlGear")
 	if defense != null and defense.dodge_remaining > 0.10: return
