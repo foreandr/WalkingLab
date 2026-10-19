@@ -1470,6 +1470,11 @@ func apply_spell_status(effect_id: String, center: Vector3) -> void:
 			else:
 				spell_tempest_direction = Vector3.FORWARD
 
+func apply_spell_statuses(effect_ids: Array[String], center: Vector3) -> void:
+	# Deferred impact tweens outlive the shot; victims own status dispatch.
+	for effect_id in effect_ids:
+		apply_spell_status(effect_id,center)
+
 func status_description() -> String:
 	if combat_dead: return ""
 	var active: PackedStringArray = []
@@ -1801,7 +1806,9 @@ func update_pursuit_agent(dt: float) -> void:
 			var chosen: String = choices[(pursuit_spell_cursor+int(name.right(1)))%choices.size()]
 			pursuit_spell_cursor += 1
 			controlled_arm = "left" if chosen in ["grounding","tempest","venom"] else "right"
-			cast_spell(chosen)
+			var partner: String = "venom" if controlled_arm=="left" else ("homing" if chosen!="homing" else "fire")
+			if pursuit_spell_cursor%3!=0 or not cast_spell_pair(chosen,partner):
+				cast_spell(chosen)
 			pursuit_cast_timer = 1.65 if pursuit_role=="hunter" else (2.3 if pursuit_role=="no_flight" else (3.3 if pursuit_role=="no_sprint" else 1.85))
 	jab_aim_strength = 1.0
 	adjust_jab_arm()
@@ -2008,7 +2015,29 @@ func update_team_battle_agent(dt: float) -> void:
 			var spell_slot: int = SPELL_IDS.find(chosen)
 			if spell_is_ready(spell_slot):
 				controlled_arm = "left" if spell_slot>=5 else "right"
-				cast_spell(chosen)
+				var fused: bool = false
+				# Choose a tactical pair first, then rotate through every other
+				# valid partner; AI follows the same mana/cooldown limits.
+				if target_valid and FUSION_PROJECTILES.has(chosen) and agent_rng.randf()<0.38:
+					var partners: Array[String] = []
+					if spell_slot<5:
+						if chosen!="homing" and distance_m>12.0: partners.append("homing")
+						if chosen!="frost" and war_target.spell_frost_remaining<0.25: partners.append("frost")
+						if chosen!="gravity" and distance_m<32.0: partners.append("gravity")
+					else:
+						if chosen!="grounding" and war_target.flight_enabled: partners.append("grounding")
+						if chosen!="venom": partners.append("venom")
+					var hand_begin: int = 5 if spell_slot>=5 else 0
+					var rotation: int = agent_rng.randi_range(0,4)
+					for offset in range(5):
+						var alternative: String = SPELL_IDS[hand_begin+(rotation+offset)%5]
+						if not partners.has(alternative): partners.append(alternative)
+					for partner in partners:
+						var partner_slot: int = SPELL_IDS.find(partner)
+						if spell_pair_is_ready(spell_slot,partner_slot):
+							fused = cast_spell_pair(chosen,partner)
+							if fused: break
+				if not fused: cast_spell(chosen)
 		# Fire the next shot promptly when there is something ready to cast.
 		# When every attack is on cooldown, check again instead of waiting a
 		# full second on an already-rejected spell.
@@ -3447,7 +3476,8 @@ func cast_spell(element: String) -> void:
 		spend_spell(slot)
 		cast_bloom_pulse()
 		return
-	begin_projectile_cast([element])
+	var standalone: Array[String] = [element]
+	begin_projectile_cast(standalone)
 
 func flush_pending_spell(force: bool = false) -> void:
 	if pending_spell_slot<0: return
@@ -3503,7 +3533,11 @@ func release_fireball(hand_world: Vector3) -> void:
 	if arm_id < 0: return
 	# Aim at the SAME world target captured at cast start. This direction
 	# is measured from the palm so the projectile actually hits the cursor.
-	var homing_pick: CharacterBody3D = acquire_homing_target() if cast_element=="homing" else null
+	var components: Array[String] = cast_components.duplicate()
+	if components.is_empty(): components.append(cast_element)
+	var has_homing: bool = components.has("homing")
+	var has_ricochet: bool = components.has("ricochet")
+	var homing_pick: CharacterBody3D = acquire_homing_target() if has_homing else null
 	var raw_direction: Vector3 = (cast_aim_point-hand_world).normalized()
 	if is_instance_valid(homing_pick):
 		# Start toward the target immediately. A shot initially aimed at the
@@ -3518,9 +3552,9 @@ func release_fireball(hand_world: Vector3) -> void:
 	# structures; ordinary spells preserve cursor-precise palm release.
 	var launch_speed: float = maxf(29.0,cast_hand_velocity.dot(travel))
 	var projectile := Node3D.new()
-	projectile.name = cast_element.capitalize()+"Projectile"
+	projectile.name = (fusion_name(components) if components.size()==2 else cast_element.capitalize())+"Projectile"
 	projectile.add_to_group("battle_fireballs")
-	if cast_element=="ricochet": projectile.add_to_group("persistent_ricochets")
+	if has_ricochet: projectile.add_to_group("persistent_ricochets")
 	get_tree().current_scene.add_child(projectile)
 	projectile.global_position = hand_world + travel * 0.20
 	# Use external particles for both spell types; never hand-draw VFX.
@@ -3529,7 +3563,9 @@ func release_fireball(hand_world: Vector3) -> void:
 	projectile.add_child(effect)
 	var spell_index: int = SPELL_IDS.find(cast_element)
 	var spell_color: Color = SPELL_COLORS[spell_index] if spell_index >= 0 else Color("ff9b4f")
-	if spell_index > 0 and effect.process_material is ParticleProcessMaterial:
+	if components.size()==2:
+		spell_color = spell_color.lerp(SPELL_COLORS[SPELL_IDS.find(components[1])],0.5)
+	if (spell_index > 0 or components.size()==2) and effect.process_material is ParticleProcessMaterial:
 		# The imported fire particle asset has a red/orange color ramp;
 		# multiplying it by cyan/green would make the new spells appear dark.
 		# Replace only the ramp; keep the externally sourced motion and texture.
@@ -3542,7 +3578,7 @@ func release_fireball(hand_world: Vector3) -> void:
 		colored_particles.color = Color.WHITE
 		colored_particles.color_ramp = tint_ramp
 		effect.process_material = colored_particles
-	if player_controlled and cast_element!="ricochet":
+	if player_controlled and not has_ricochet:
 		var glow := OmniLight3D.new()
 		glow.light_color = spell_color
 		glow.light_energy = 1.25
@@ -3553,9 +3589,9 @@ func release_fireball(hand_world: Vector3) -> void:
 		arena.configure_fireball_particles(effect,float(arena.get("battle_fireball_size")))
 	else:
 		effect.scale = Vector3.ONE * 3.0
-	effect.amount = mini(effect.amount,10 if cast_element=="ricochet" else 6)
-	if cast_element=="ricochet": effect.lifetime = 0.40
-	if cast_element=="homing":
+	effect.amount = mini(effect.amount,10 if has_ricochet else 6)
+	if has_ricochet: effect.lifetime = 0.40
+	if has_homing and not has_ricochet:
 		# Particle positions stay relative to the travelling projectile so
 		# the entire imported effect grows thinner as the parent shrinks.
 		# World-space particles would otherwise leave a full-sized trail behind.
@@ -3575,18 +3611,19 @@ func release_fireball(hand_world: Vector3) -> void:
 	mover.owner_rid = actor.get_rid()
 	mover.attacker_name = name
 	mover.caster_team = team_id
-	mover.spell_type = cast_element
+	mover.spell_type = "ricochet" if has_ricochet else ("homing" if has_homing else cast_element)
+	mover.spell_components = components.duplicate()
 	mover.spell_color = spell_color
-	if cast_element=="homing":
+	if has_homing:
 		mover.homing_target = homing_pick
 		mover.travel_speed = maxf(mover.travel_speed,37.0)
 		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,37.0)
-	if cast_element=="ricochet":
+	if has_ricochet:
 		mover.travel_speed = maxf(mover.travel_speed,29.0)
 		if animation_test_mode=="war": mover.battle_base_speed = maxf(mover.battle_base_speed,29.0)
 	mover.blast_width = float(arena.get("battle_fireball_size")) if arena != null else 1.0
 	projectile.add_child(mover)
-	if player_controlled: print("SPELL_RELEASE ",cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
+	if player_controlled: print("SPELL_RELEASE ",fusion_name(components) if components.size()==2 else cast_element," arm=",cast_arm_name," speed_mps=",snappedf(launch_speed,0.1))
 
 func choose_random_idle():
 	# Historical name retained for existing callers. Idle (3).fbx preferred for everyone; never swap.
