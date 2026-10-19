@@ -1352,7 +1352,7 @@ func _physics_process(dt):
 	tree.set("parameters/BackGaits/blend_position",back_blend)
 	tree.set("parameters/Direction/blend_amount",direction_weight)
 	if solo_left_strafe_available and name == "PlayerMan" and ai_mode == "sprint":
-		tree.set("parameters/SoloLeftBlend/blend_amount",1.0 if absf(side_speed) > 0.1 and not flight_enabled else 0.0)
+		tree.set("parameters/SoloLeftBlend/blend_amount",0.75 if absf(side_speed) > 0.1 and not flight_enabled else 0.0)
 	tree.set("parameters/Cadence/scale",1.0 if flight_enabled else speed/stride)
 	if player_controlled: tree.set("parameters/StandingMove/blend_amount",smooth_gait(clamp(speed/0.85,0.0,1.0)))
 	if player_controlled:
@@ -1408,7 +1408,7 @@ func _physics_process(dt):
 		# Preserve normal agent steering during forward-running phases.
 		var showcase_facing: float = manual_heading
 		if name == "PlayerMan" and ai_mode == "sprint" and solo_direction_phase >= 2 and solo_direction_phase <= 5:
-			showcase_facing = deg_to_rad(30.0) if solo_direction_phase == 5 else 0.0
+			showcase_facing = deg_to_rad(60.0) if solo_direction_phase == 5 else 0.0
 		actor.rotation.y = rotate_toward(actor.rotation.y,showcase_facing,step*(2.3 if ai_mode == "walk" else 4.4))
 	elif crouch_driving and crouch.state in ["crouched","settle"] and speed>0.01:
 		var travel_direction = -tangent*speed-radial.normalized()*(radial.length()-route_radius)*2.0
