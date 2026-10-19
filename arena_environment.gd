@@ -131,21 +131,23 @@ func make_arena():
 
 
 func add_dev_tile_border(center: Vector3, side: float) -> void:
-	# Debug-only outline; unlit thick red 3D lines above the tile.
-	var visual := MeshInstance3D.new()
-	visual.name = "DEV_RED_BIOME_BORDER"
-	var m := ImmediateMesh.new()
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(1.0,0.04,0.025)
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.no_depth_test = true
-	m.surface_begin(Mesh.PRIMITIVE_LINES,mat)
+	# Development markers only, not game-world decorative assets or colliders.
+	var red := StandardMaterial3D.new()
+	red.albedo_color = Color(1.0,0.015,0.015)
+	red.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	red.no_depth_test = true
 	var h: float = side*0.5
-	var corners: Array[Vector3] = [Vector3(-h,0.14,-h),Vector3(h,0.14,-h),Vector3(h,0.14,h),Vector3(-h,0.14,h)]
 	for i in range(4):
-		m.surface_add_vertex(corners[i])
-		m.surface_add_vertex(corners[(i+1)%4])
-	m.surface_end()
-	visual.mesh = m
-	visual.position = center
-	add_child(visual)
+		var edge := MeshInstance3D.new()
+		edge.name = "DEV_RED_BORDER_%d" % i
+		var bar := BoxMesh.new()
+		bar.size = Vector3(side,0.14,0.18) if i < 2 else Vector3(0.18,0.14,side)
+		edge.mesh = bar
+		edge.material_override = red
+		edge.position = center+(
+			Vector3(0,0.10,-h) if i == 0 else
+			Vector3(0,0.10,h) if i == 1 else
+			Vector3(-h,0.10,0) if i == 2 else
+			Vector3(h,0.10,0)
+		)
+		add_child(edge)
