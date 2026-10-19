@@ -171,6 +171,10 @@ var pursuit_home: Vector3 = Vector3.ZERO
 var pursuit_cast_timer: float = 0.0
 var pursuit_spell_cursor: int = 0
 var pursuit_plan_timer: float = 0.0
+var blink_cooldown_remaining: float = 0.0
+const BLINK_DISTANCE: float = 9.5
+const BLINK_COOLDOWN: float = 4.0
+const BLINK_MANA_COST: float = 15.0
 var pursuit_flight_preference: bool = false
 var spell_target_anchor: Vector3 = Vector3.ZERO
 var spell_walker_phase: float = 0.0
@@ -599,7 +603,7 @@ func install_options_menu(canvas: CanvasLayer) -> void:
 	controls_heading.text = "Controls  ▾"
 	column.add_child(controls_heading)
 	var controls_details := Label.new()
-	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRight hand 1-5: Ember / Frost / Arc / Gravity / Leech\nLeft hand 1-5: Comet / Bloom / Tempest / Venom / Flight\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
+	controls_details.text = "WASD: Move / Strafe\nAlt+W: Sprint; double-tap and hold Alt: Dash\nB + W: Blink forward; B + S: Blink backward\nCtrl: Walk / descend during flight\nSpace: Charged jump / rise during flight\nMiddle-mouse drag: Rotate camera; wheel: Zoom\nShift: Switch active hand and spell fingers\nRight hand 1-5: Ember / Frost / Arc / Gravity / Leech\nLeft hand 1-5: Comet / Bloom / Tempest / Venom / Flight\nLeft click: Punch with selected hand\nF: Lock target | C: Crouch | Tab (hold): War / damage\n0: More combatants | F11: Fullscreen"
 	controls_details.visible = false
 	column.add_child(controls_details)
 	controls_heading.pressed.connect(func(): controls_details.visible = not controls_details.visible)
@@ -1463,10 +1467,65 @@ func update_spell_test_target(dt: float) -> void:
 	tree.set("parameters/Cadence/scale",maxf(0.15,walker_speed/STRIDES[0]))
 	tree.advance(dt)
 
+func cast_blink(direction_sign: float) -> bool:
+	# W casts a forward blink; S casts a backward blink. Travel checks the
+	# real CharacterBody capsule against physical walls and nearby fighters.
+	if blink_cooldown_remaining>0.0 or combat_dead: return false
+	if player_controlled and not infinite_mana and mana<BLINK_MANA_COST: return false
+	var forward: Vector3 = -actor.global_basis.z
+	forward.y = 0.0
+	if forward.length_squared()<0.01: return false
+	var blink_direction: Vector3 = forward.normalized()*signf(direction_sign)
+	var start: Vector3 = actor.global_position
+	var max_distance: float = BLINK_DISTANCE
+	# Stay inside the visible 100 m arena; no teleporting through its wall.
+	var edge: float = 46.0
+	if blink_direction.x>0.001: max_distance = minf(max_distance,(edge-start.x)/blink_direction.x)
+	if blink_direction.x< -0.001: max_distance = minf(max_distance,(-edge-start.x)/blink_direction.x)
+	if blink_direction.z>0.001: max_distance = minf(max_distance,(edge-start.z)/blink_direction.z)
+	if blink_direction.z< -0.001: max_distance = minf(max_distance,(-edge-start.z)/blink_direction.z)
+	if max_distance<1.0: return false
+	var distance_available: float = max_distance
+	for test_step in range(8):
+		if not actor.test_move(actor.global_transform,blink_direction*distance_available): break
+		distance_available *= 0.65
+	if distance_available<1.0 or actor.test_move(actor.global_transform,blink_direction*distance_available): return false
+	if player_controlled and not infinite_mana: mana -= BLINK_MANA_COST
+	blink_cooldown_remaining = BLINK_COOLDOWN
+	actor.global_position += blink_direction*distance_available
+	actor.velocity = blink_direction*11.0
+	# Reuse the external spell-particle asset for the two teleport endpoints.
+	var arena: Node = get_tree().current_scene
+	if arena != null and arena.get("fireball_scene") != null:
+		for location in [start,actor.global_position]:
+			var flash := Node3D.new()
+			flash.name = "BlinkFlash"
+			arena.add_child(flash)
+			flash.global_position = location+Vector3.UP
+			var sparkle: GPUParticles3D = arena.fireball_scene.instantiate()
+			flash.add_child(sparkle)
+			var material: ParticleProcessMaterial = sparkle.process_material.duplicate(true) as ParticleProcessMaterial
+			if material!=null:
+				material.color_ramp = null
+				material.color = Color("9fbcff")
+				sparkle.process_material = material
+			sparkle.scale = Vector3.ONE*0.65
+			sparkle.amount = 25
+			sparkle.lifetime = 0.5
+			sparkle.one_shot = true
+			sparkle.emitting = true
+			sparkle.restart()
+			var cleanup := arena.create_tween()
+			cleanup.tween_interval(0.75)
+			cleanup.tween_callback(flash.queue_free)
+	print("[BLINK] ",name," direction=",("W_FORWARD" if direction_sign>0.0 else "S_BACK")," distance=",snappedf(distance_available,0.1))
+	return true
+
 func update_pursuit_agent(dt: float) -> void:
 	# Pursuit sandbox: one frightened escapee versus three ability-constrained
 	# hunters. All use real move_and_slide and the imported animation rig.
 	clock += dt
+	blink_cooldown_remaining = maxf(0.0,blink_cooldown_remaining-dt)
 	var arena: Node = get_tree().current_scene
 	if arena == null: return
 	var is_escapee: bool = pursuit_role == "escapee"
@@ -1534,9 +1593,9 @@ func update_pursuit_agent(dt: float) -> void:
 	spell_frost_remaining = maxf(0.0,spell_frost_remaining-dt)
 	spell_gravity_remaining = maxf(0.0,spell_gravity_remaining-dt)
 	spell_tempest_remaining = maxf(0.0,spell_tempest_remaining-dt)
-	var travel_speed: float = 11.4 if is_escapee else (12.7 if pursuit_role=="hunter" else (10.8 if pursuit_role=="no_flight" else 4.7))
+	var travel_speed: float = 11.4 if is_escapee else (12.7 if pursuit_role=="hunter" else (10.8 if pursuit_role=="no_flight" else (4.7 if pursuit_role=="no_sprint" else 12.2)))
 	if flight_enabled:
-		travel_speed = 15.2 if is_escapee else (17.0 if pursuit_role=="hunter" else 8.0)
+		travel_speed = 15.2 if is_escapee else (17.0 if pursuit_role=="hunter" else (8.0 if pursuit_role=="no_sprint" else 14.5))
 	if spell_frost_remaining>0.0: travel_speed *= 0.24
 	if spell_tempest_remaining>0.0:
 		desired = spell_tempest_direction
@@ -1558,6 +1617,13 @@ func update_pursuit_agent(dt: float) -> void:
 	actor.move_and_slide()
 	if desired.length_squared()>0.01:
 		actor.rotation.y = rotate_toward(actor.rotation.y,atan2(-desired.x,-desired.z),dt*7.0)
+	if pursuit_role=="blink_hunter" and not combat_dead and is_instance_valid(escapee) and not escapee.combat_dead and blink_cooldown_remaining<=0.0:
+		# Equivalent of the actor casting with W to close, or S to escape
+		# dangerously close opponents and reposition its next spell.
+		if target_distance>14.0 and target_distance<55.0:
+			cast_blink(1.0)
+		elif target_distance<6.5:
+			cast_blink(-1.0)
 	speed = Vector2(actor.velocity.x,actor.velocity.z).length()
 	blend = speed_band(SPEEDS,speed)
 	tree.set("parameters/Gaits/blend_position",blend)
@@ -1583,7 +1649,7 @@ func update_pursuit_agent(dt: float) -> void:
 			pursuit_spell_cursor += 1
 			controlled_arm = "left" if chosen in ["comet","tempest","venom"] else "right"
 			cast_spell(chosen)
-			pursuit_cast_timer = 1.65 if pursuit_role=="hunter" else (2.3 if pursuit_role=="no_flight" else 3.3)
+			pursuit_cast_timer = 1.65 if pursuit_role=="hunter" else (2.3 if pursuit_role=="no_flight" else (3.3 if pursuit_role=="no_sprint" else 1.85))
 	jab_aim_strength = 1.0
 	adjust_jab_arm()
 	update_cast_motion(dt)
@@ -1658,6 +1724,7 @@ func _physics_process(dt):
 					if changed_target: arena.record_player_auto_target_change(closest.name)
 	if paused: return
 	if player_controlled:
+		blink_cooldown_remaining = maxf(0.0,blink_cooldown_remaining-dt)
 		for i in range(spell_remaining.size()):
 			spell_remaining[i] = maxf(0.0,spell_remaining[i]-dt)
 		mana = 100.0 if infinite_mana else minf(100.0,mana+7.0*dt)
@@ -3040,6 +3107,9 @@ func _unhandled_input(event):
 			if event.keycode==KEY_C:
 				crouch.toggle()
 				debug_player("CROUCH","toggle")
+			if event.keycode==KEY_B:
+				if Input.is_physical_key_pressed(KEY_W): cast_blink(1.0)
+				elif Input.is_physical_key_pressed(KEY_S): cast_blink(-1.0)
 
 			if event.keycode==KEY_ESCAPE and options_panel != null: options_panel.visible = false
 			if event.keycode>=KEY_1 and event.keycode<=KEY_5:
