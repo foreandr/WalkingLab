@@ -60,23 +60,14 @@ func make_arena():
 	fill.light_energy = 0.16
 	add_child(fill)
 	if biome == "flat_dirt":
-		# Development layout: four independently generated 30x30 metre biomes.
-		# Debug-only red boundaries are visualization guides, not arena walls.
-		var tile_side: float = world_half_extent
-		for ix in range(2):
-			for iz in range(2):
-				var grassy: bool = (ix+iz)%2 == 0
-				var center := Vector3((float(ix)-0.5)*tile_side,0,(float(iz)-0.5)*tile_side)
-				var terrain = preload("res://biome_heightfield.gd").new()
-				terrain.name = "GrassTerrain_%d_%d" % [ix,iz] if grassy else "DirtTerrain_%d_%d" % [ix,iz]
-				terrain.side = tile_side
-				terrain.grassy = grassy
-				terrain.tile_index = ix*2+iz
-				terrain.position = center
-				add_child(terrain)
-				add_dev_tile_border(center,tile_side)
-		# Biome map remains available for the next terrain-development phase.
-		print("[LEVEL_ENVIRONMENT] flat_dirt_open_sky=true roof=false side_m=",world_half_extent*2.0)
+		# Eight irregular, blended grass/dirt regions within one continuous disk.
+		var terrain = preload("res://biome_heightfield.gd").new()
+		terrain.name = "CircularBiomeHeightfield"
+		terrain.side = world_half_extent*2.0
+		terrain.circular_mode = true
+		terrain.tile_index = randi_range(0,1000)
+		add_child(terrain)
+		print("[CIRCULAR_BIOMES] diameter=",world_half_extent*2.0," regions=8 blend=true")
 		return
 	var ground = PlaneMesh.new()
 	ground.size = Vector2(100,100) # Match the compact pursuit arena boundaries.
