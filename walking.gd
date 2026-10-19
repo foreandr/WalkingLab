@@ -142,6 +142,7 @@ var ring_inventory_panel: PanelContainer = null
 var demo_immortal: bool = false
 var equipped_spells: Array[String] = ["fire"]
 var ring_inventory_text: Label = null
+var ring_drag_rows: VBoxContainer = null
 # Smooth, persistent crossfade weights shared by player and motion showcase.
 var strafe_left_blend: float = 0.0
 var strafe_right_blend: float = 0.0
@@ -976,6 +977,8 @@ func install_ring_inventory(canvas: CanvasLayer) -> void:
 	ring_inventory_text = Label.new()
 	ring_inventory_text.add_theme_font_size_override("font_size",17)
 	column.add_child(ring_inventory_text)
+	ring_drag_rows = VBoxContainer.new()
+	column.add_child(ring_drag_rows)
 	refresh_ring_inventory()
 
 func refresh_ring_inventory() -> void:
@@ -988,7 +991,7 @@ func refresh_ring_inventory() -> void:
 	result += "\nV: Flight movement   |   G: Immortality"
 	ring_inventory_text.text = result
 	# Each equipped finger gets a draggable control. Dropping outside I drops loot.
-	for old_control in ring_inventory_text.get_children():
+	for old_control in ring_drag_rows.get_children():
 		old_control.queue_free()
 	for slot in range(SPELL_IDS.size()):
 		if not SPELL_IDS[slot] in equipped_spells: continue
@@ -997,8 +1000,7 @@ func refresh_ring_inventory() -> void:
 		row.spell_id = SPELL_IDS[slot]
 		row.text = "DRAG OUT: " + SPELL_NAMES[slot]
 		row.mouse_filter = Control.MOUSE_FILTER_STOP
-		row.position = Vector2(15.0,265.0+float(slot)*23.0)
-		ring_inventory_panel.add_child(row)
+		ring_drag_rows.add_child(row)
 
 func install_backwards(player: AnimationPlayer):
 	install_motion_library(player,"res://assets/backward_motions.glb","back",BACK_NAMES,BACK_NAMES)
