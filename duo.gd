@@ -158,6 +158,7 @@ func _ready():
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.actor_only = true
+	player.set_meta("allow_negative_terrain_y",String(current_level.get("biome","")) == "flat_dirt")
 	player.spawn_point = Vector3(-15.0,0.0,-15.0) if not flight_benchmark_requested else Vector3.ZERO
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
@@ -270,6 +271,7 @@ func _spawn_single_fighter() -> void:
 	fighter.name = "Fighter%02d" % (index + 1)
 	fighter.autonomous_only = true
 	fighter.actor_only = true
+	fighter.set_meta("allow_negative_terrain_y",String(current_level.get("biome","")) == "flat_dirt")
 	fighter.ai_abilities = false if not flight_benchmark_requested else true
 	fighter.team_battle_ai = false if not flight_benchmark_requested else true
 	var duel_spells: Array[String] = []
