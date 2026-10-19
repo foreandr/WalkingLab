@@ -122,23 +122,29 @@ func _ready():
 	floor_body.add_child(floor_shape)
 	player = preload("res://walking.gd").new()
 	player.name = "PlayerMan"
-	# Solo animation inspection: the former player is now a roaming CPU.
-	# Its existing camera remains the active spectator camera.
-	player.player_controlled = false
+	player.player_controlled = true
 	player.auto_war_combat = false
-	player.ai_mode = "sprint"
+	player.ai_mode = ""
 	player.actor_only = true
 	player.spawn_point = Vector3(0,0,155)
 	player.character_tint = Color("101114")
 	add_child(player)
 	player.camera.current = true
-	player.actor.rotation.y = 0.0
 	player_label = make_label(player.actor,"BLACK",Color("dddddd"))
 	make_boundary()
-	# No opponents, queued combatants or spell targets in solo CPU mode.
-	print("[ARENA_MODE] solo_cpu=true active_fighters=1 ai_mode=",player.ai_mode)
-	ai = null
-	ai_label = null
+	# Independent, continuously animated demonstrator; Black stays player-controlled.
+	ai = preload("res://walking.gd").new()
+	ai.name = "DemoNPC"
+	ai.player_controlled = false
+	ai.auto_war_combat = false
+	ai.ai_mode = "sprint"
+	ai.actor_only = true
+	ai.spawn_point = Vector3(12,0,145)
+	ai.character_tint = Color("708ac4")
+	add_child(ai)
+	ai.camera.current = false
+	ai_label = make_label(ai.actor,"MOTION DEMO",Color("c9d6ff"))
+	print("[ARENA_MODE] player=BLACK controlled=true demo=DemoNPC enabled=true")
 
 func clear_winner_announcement() -> void:
 	announced_winner = false
