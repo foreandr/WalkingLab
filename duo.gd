@@ -19,7 +19,7 @@ var fireball_scene: PackedScene = preload("res://assets/external_vfx/fire.tscn")
 const MAX_ACTIVE_FIGHTERS: int = 80
 # Default: one fleeing runner, three differently constrained spellcasters.
 # The previous 80-fighter stress test remains opt-in through CLI.
-const TEAM_AI_FIGHTERS: int = 7
+const TEAM_AI_FIGHTERS: int = 20
 const TEAM_BLUE: Color = Color("317bff")
 const TEAM_RED: Color = Color("ed4451")
 var status_refresh_clock: float = 0.0
@@ -144,7 +144,7 @@ func _ready():
 	player.auto_war_combat = false
 	player.ai_mode = ""
 	player.actor_only = true
-	player.spawn_point = Vector3(0,0,34)
+	player.spawn_point = Vector3(0,0,0)
 	player.character_tint = FIGHTER_COLOR
 	player.team_id = ""
 	player.demo_immortal = true
@@ -216,7 +216,9 @@ func random_war_spawn() -> Vector3:
 	var best: Vector3 = Vector3.ZERO
 	var best_clearance: float = -1.0
 	for attempt in range(64):
-		var candidate := Vector3(spawn_rng.randf_range(-ARENA_HALF_EXTENT+6.0,ARENA_HALF_EXTENT-6.0),0.0,spawn_rng.randf_range(-ARENA_HALF_EXTENT+6.0,ARENA_HALF_EXTENT-6.0))
+		var angle := spawn_rng.randf_range(-PI,PI)
+		var radius := sqrt(spawn_rng.randf_range(0.0,1.0))*27.0
+		var candidate := Vector3(cos(angle)*radius,0.0,sin(angle)*radius)
 		var clearance: float = candidate.distance_to(Vector3(player.spawn_point.x,0.0,player.spawn_point.z))
 		if is_instance_valid(ai):
 			clearance = minf(clearance,candidate.distance_to(Vector3(ai.spawn_point.x,0.0,ai.spawn_point.z)))
@@ -282,7 +284,7 @@ func _spawn_single_fighter() -> void:
 	spawn_peak_cost_ms = maxf(spawn_peak_cost_ms,spawn_last_cost_ms)
 	spawn_count_window += 1
 	record_performance_sample("fighter_spawn_one",Time.get_ticks_usec()-spawn_begin)
-	print("[SPAWN_DONE] fighters_total=",mannequins.size()," pending=",queued_fighter_spawns," spawn_ms=",snappedf(spawn_last_cost_ms,0.01))
+	print("[SPAWN_DONE] fighters_total=",mannequins.size()," pending=",queued_fighter_spawns," at=",fighter.actor.global_position," spawn_ms=",snappedf(spawn_last_cost_ms,0.01))
 
 func set_fireball_width(multiplier: float) -> void:
 	battle_fireball_size = multiplier
