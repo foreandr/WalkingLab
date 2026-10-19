@@ -29,25 +29,28 @@ func make_arena():
 	var env = WorldEnvironment.new()
 	var e = Environment.new()
 	var sky = Sky.new()
-	var pano = PanoramaSkyMaterial.new()
-	pano.panorama = load("res://assets/sky.hdr")
-	pano.energy_multiplier = 0.6
-	sky.sky_material = pano
+	var atmosphere := ProceduralSkyMaterial.new()
+	atmosphere.sky_top_color = Color("3279c7")
+	atmosphere.sky_horizon_color = Color("b6d9f0")
+	atmosphere.ground_bottom_color = Color("455d52")
+	atmosphere.ground_horizon_color = Color("c1d5cd")
+	atmosphere.use_debanding = true
+	sky.sky_material = atmosphere
 	e.sky = sky
 	e.background_mode = Environment.BG_SKY
-	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	e.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	e.ambient_light_color = Color("9aafc7")
-	e.ambient_light_energy = 0.32
+	e.ambient_light_energy = 0.55
 	e.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	e.fog_enabled = biome == "grassland"
-	e.fog_light_color = Color("9ba9b3")
-	e.fog_density = 0.004 if biome == "grassland" else 0.004
+	e.fog_light_color = Color("bbd4df")
+	e.fog_density = 0.0018 if biome == "grassland" else 0.004
 	env.environment = e
 	add_child(env)
 	var sun = DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-42,-32,0)
 	sun.light_color = Color("ffdfb6")
-	sun.light_energy = 0.85
+	sun.light_energy = 1.15
 	sun.shadow_enabled = false # Battle performance: avoid dynamic skeletal shadows
 	sun.directional_shadow_max_distance = 22
 	add_child(sun)
@@ -61,22 +64,7 @@ func make_arena():
 		var ground := PlaneMesh.new()
 		ground.size = Vector2(world_half_extent * 2.0, world_half_extent * 2.0)
 		mesh_node(ground, Vector3(0.0,-0.13,0.0), texture("forest_ground_04",0.18))
-		var roof_body := StaticBody3D.new()
-		roof_body.name = "SolidLevelRoof"
-		roof_body.position = Vector3(0.0,12.0,0.0)
-		add_child(roof_body)
-		var roof_box := BoxShape3D.new()
-		roof_box.size = Vector3(world_half_extent * 2.0,0.8,world_half_extent * 2.0)
-		var collision := CollisionShape3D.new()
-		collision.shape = roof_box
-		roof_body.add_child(collision)
-		var roof_mesh := BoxMesh.new()
-		roof_mesh.size = roof_box.size
-		var roof_visual := MeshInstance3D.new()
-		roof_visual.mesh = roof_mesh
-		roof_visual.material_override = texture("forest_ground_04",0.18)
-		roof_body.add_child(roof_visual)
-		print("[LEVEL_ENVIRONMENT] minimal_floor_roof side_m=",world_half_extent*2.0," roof_y=12.0 tower=false buildings=false")
+		print("[LEVEL_ENVIRONMENT] grassland_open_sky=true roof=false side_m=",world_half_extent*2.0)
 		return
 	var ground = PlaneMesh.new()
 	ground.size = Vector2(100,100) # Match the compact pursuit arena boundaries.
