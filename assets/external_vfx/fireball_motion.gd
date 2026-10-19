@@ -155,10 +155,15 @@ func explode(projectile: Node3D, position: Vector3) -> void:
 	# every impact. Fall back to the scene group outside arena mode.
 	var query_radius: float = maxf(blast_radius,11.0 if spell_type == "arc" else 0.0)
 	var candidates: Array = scene.war_nearby_fighters(position,maxi(1,int(ceil((query_radius + 3.0) / scene.WAR_GRID_CELL)))) if scene != null and scene.has_method("war_nearby_fighters") else projectile.get_tree().get_nodes_in_group("combat_fighters")
-	if scene != null and attacker_name != "PlayerMan":
-		# Player is controlled outside the war scheduler's mannequin roster.
-		var player_target: Node = scene.get_node_or_null("PlayerMan")
-		if is_instance_valid(player_target): candidates.append(player_target)
+	if scene != null:
+		# The central battle roster excludes the manually controlled player
+		# and optional motion demo. Both are still mortal spell targets.
+		if attacker_name != "PlayerMan":
+			var player_target: Node = scene.get_node_or_null("PlayerMan")
+			if is_instance_valid(player_target): candidates.append(player_target)
+		var demo_target: Node = scene.get_node_or_null("DemoNPC")
+		if is_instance_valid(demo_target) and attacker_name != "DemoNPC":
+			candidates.append(demo_target)
 	for fighter in candidates:
 		if not is_instance_valid(fighter): continue
 		if fighter.player_controlled and attacker_name=="PlayerMan": continue
